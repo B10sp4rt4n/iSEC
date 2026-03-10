@@ -18,3 +18,14 @@ CREATE INDEX IF NOT EXISTS idx_event_prospects_created_at
 
 CREATE INDEX IF NOT EXISTS idx_event_prospects_correo
   ON event_prospects (correo);
+
+CREATE TABLE IF NOT EXISTS event_raffle_winners (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  prospect_id UUID NOT NULL UNIQUE REFERENCES event_prospects(id) ON DELETE CASCADE,
+  prize_position SMALLINT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT chk_prize_position_range CHECK (prize_position BETWEEN 1 AND 3)
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_raffle_winners_position
+  ON event_raffle_winners (prize_position);
