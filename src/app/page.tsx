@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Home() {
   return (
@@ -6,9 +7,18 @@ export default function Home() {
       <section className="mx-auto flex min-h-[86vh] w-full max-w-6xl items-center">
         <div className="grid w-full gap-6 md:grid-cols-2">
           <article className="card rounded-3xl p-8 md:p-12">
-            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.16em] text-emerald-700">
-              ISEC INFOECURITY / THREATDOWN / SYN APPS SYS
-            </p>
+            <div className="mb-4 flex items-center gap-3">
+              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                ISEC INFOECURITY / SYN APPS SYS
+              </p>
+              <Image
+                src="/logos/threatdown-logo.png"
+                alt="ThreatDown logo"
+                width={120}
+                height={32}
+                className="object-contain"
+              />
+            </div>
             <h1 className="title-font mb-4 text-4xl leading-tight font-bold md:text-5xl">
               Hablemos de ciberseguridad aplicada para proteger y acelerar tu operacion
             </h1>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 
 type Winner = {
   prize_position: number;
@@ -80,9 +81,18 @@ export default function SorteoPage() {
     <main className="mesh-bg min-h-screen p-6 md:p-12">
       <section className="mx-auto w-full max-w-5xl">
         <article className="card rounded-3xl p-8 md:p-12">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.16em] text-emerald-700">
-            ISEC INFOECURITY / THREATDOWN
-          </p>
+          <div className="mb-3 flex items-center gap-3">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-700">
+              ISEC INFOECURITY
+            </p>
+            <Image
+              src="/logos/threatdown-logo.png"
+              alt="ThreatDown logo"
+              width={120}
+              height={32}
+              className="object-contain"
+            />
+          </div>
           <h1 className="title-font mb-4 text-4xl font-bold text-[#162036] md:text-5xl">
             Sorteo de cierre del evento
           </h1>
