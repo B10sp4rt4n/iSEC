@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSqlClient } from "@/lib/db";
+import { ensureEventSchema, getSqlClient } from "@/lib/db";
 
 type WinnerRow = {
   prize_position: number;
@@ -33,6 +33,7 @@ function isAuthorized(request: Request) {
 export async function GET() {
   try {
     const sql = getSqlClient();
+    await ensureEventSchema(sql);
 
     const winnersResult = await sql`
       SELECT
@@ -74,6 +75,8 @@ export async function POST(request: Request) {
 
   try {
     const sql = getSqlClient();
+    await ensureEventSchema(sql);
+    const winnerRowId = crypto.randomUUID();
 
     const drawResultSql = await sql`
       WITH current_count AS (
@@ -108,8 +111,8 @@ export async function POST(request: Request) {
         LIMIT 1
       ),
       inserted AS (
-        INSERT INTO event_raffle_winners (prospect_id, prize_position)
-        SELECT p.id, np.pos
+        INSERT INTO event_raffle_winners (id, prospect_id, prize_position)
+        SELECT ${winnerRowId}, p.id, np.pos
         FROM picked p
         CROSS JOIN next_position np
         WHERE np.pos <= ${MAX_WINNERS}

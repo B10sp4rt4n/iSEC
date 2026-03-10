@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSqlClient } from "@/lib/db";
+import { ensureEventSchema, getSqlClient } from "@/lib/db";
 
 const leadSchema = z.object({
   nombre: z.string().trim().min(2).max(120),
@@ -26,9 +26,12 @@ export async function POST(request: Request) {
     }
 
     const sql = getSqlClient();
+    await ensureEventSchema(sql);
+    const prospectId = crypto.randomUUID();
 
     const result = await sql`
       INSERT INTO event_prospects (
+        id,
         nombre,
         empresa,
         cargo,
@@ -39,6 +42,7 @@ export async function POST(request: Request) {
         dolor_reto
       )
       VALUES (
+        ${prospectId},
         ${parsed.data.nombre},
         ${parsed.data.empresa},
         ${parsed.data.cargo},
