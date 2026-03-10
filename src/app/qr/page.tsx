@@ -1,6 +1,7 @@
 "use client";
 
 import { QRCodeSVG } from "qrcode.react";
+import Image from "next/image";
 
 const REGISTRO_URL =
   process.env.NEXT_PUBLIC_REGISTRO_URL ??
@@ -10,16 +11,13 @@ export default function QRPage() {
   return (
     <main className="mesh-bg flex min-h-screen flex-col items-center justify-center gap-8 p-8 print:bg-white">
       <div className="flex flex-col items-center gap-6 rounded-3xl bg-white p-10 shadow-lg print:shadow-none">
-        <img
-          src="/logo.png"
-          alt="Synnappssys"
-          className="h-12 object-contain"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+        <Image
+          src="/logos/threatdown-logo.png"
+          alt="ThreatDown logo"
+          width={180}
+          height={48}
+          className="object-contain"
         />
-
-        <h1 className="text-center text-2xl font-bold text-[#162036]">
-          ThreatDown EDR
-        </h1>
         <p className="text-center text-sm text-slate-600">
           Escanea el QR para registrarte y continuar la conversacion
         </p>
