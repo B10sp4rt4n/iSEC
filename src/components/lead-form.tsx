@@ -30,6 +30,32 @@ export default function LeadForm() {
   const [form, setForm] = useState<FormState>(initialState);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailChecking, setEmailChecking] = useState(false);
+  const [emailValid, setEmailValid] = useState<boolean | null>(null);
+
+  const onEmailBlur = async () => {
+    const email = form.correo.trim();
+    if (!email || !email.includes("@")) return;
+    setEmailChecking(true);
+    setEmailError(null);
+    setEmailValid(null);
+    try {
+      const res = await fetch(`/api/validate-email?email=${encodeURIComponent(email)}`);
+      const data = (await res.json()) as { valid: boolean; reason?: string };
+      if (data.valid) {
+        setEmailValid(true);
+      } else {
+        setEmailError(data.reason ?? "Correo inválido.");
+        setEmailValid(false);
+      }
+    } catch {
+      // Si falla la red, no bloqueamos
+      setEmailValid(true);
+    } finally {
+      setEmailChecking(false);
+    }
+  };
 
   const onChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
@@ -42,6 +68,12 @@ export default function LeadForm() {
     event.preventDefault();
     setError(null);
     setIsSaving(true);
+
+    if (emailValid === false) {
+      setError("Por favor corrige el correo antes de continuar.");
+      setIsSaving(false);
+      return;
+    }
 
     try {
       const response = await fetch("/api/prospects", {
@@ -116,16 +148,32 @@ export default function LeadForm() {
         </label>
 
         <label className="space-y-1 text-sm font-medium">
-          Correo
+          Correo empresarial
           <input
             required
             type="email"
             name="correo"
             value={form.correo}
-            onChange={onChange}
-            className="field"
+            onChange={(e) => { onChange(e); setEmailValid(null); setEmailError(null); }}
+            onBlur={onEmailBlur}
+            className={`field ${
+              emailValid === false
+                ? "border-red-500 focus:ring-red-400"
+                : emailValid === true
+                ? "border-emerald-500 focus:ring-emerald-400"
+                : ""
+            }`}
             placeholder="nombre@empresa.com"
           />
+          {emailChecking && (
+            <span className="text-xs text-slate-400">Verificando dominio...</span>
+          )}
+          {emailError && (
+            <span className="text-xs text-red-600">{emailError}</span>
+          )}
+          {emailValid === true && (
+            <span className="text-xs text-emerald-600">✓ Correo empresarial válido</span>
+          )}
         </label>
 
         <label className="space-y-1 text-sm font-medium md:col-span-2">

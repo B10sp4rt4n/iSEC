@@ -1,6 +1,19 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { promises as dns } from "dns";
 import { ensureEventSchema, getSqlClient } from "@/lib/db";
+
+const FREE_DOMAINS = new Set([
+  "gmail.com", "googlemail.com",
+  "hotmail.com", "hotmail.es", "hotmail.mx",
+  "outlook.com", "outlook.es", "outlook.mx",
+  "live.com", "live.com.mx", "live.mx",
+  "yahoo.com", "yahoo.com.mx", "yahoo.es",
+  "icloud.com", "me.com", "mac.com",
+  "aol.com", "protonmail.com", "proton.me",
+  "tutanota.com", "mail.com", "gmx.com",
+  "ymail.com", "msn.com",
+]);
 
 const leadSchema = z.object({
   nombre: z.string().trim().min(2).max(120),
@@ -23,6 +36,24 @@ export async function POST(request: Request) {
         { error: "Datos invalidos", details: parsed.error.flatten() },
         { status: 400 },
       );
+    }
+
+    const domain = parsed.data.correo.split("@")[1].toLowerCase();
+    if (FREE_DOMAINS.has(domain)) {
+      return NextResponse.json(
+        { error: "Por favor usa tu correo empresarial, no uno personal." },
+        { status: 422 },
+      );
+    }
+    try {
+      const records = await dns.resolveMx(domain);
+      if (!records || records.length === 0) throw new Error("sin MX");
+    } catch {
+      return NextResponse.json(
+        { error: "El dominio del correo no parece válido. Usa el correo de tu empresa." },
+        { status: 422 },
+      );
+    }
     }
 
     const sql = getSqlClient();
