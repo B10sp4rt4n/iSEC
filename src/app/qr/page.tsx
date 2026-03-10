@@ -32,9 +32,14 @@ export default function QRPage() {
           />
         </div>
 
-        <p className="break-all text-center text-xs text-slate-400">
+        <a
+          href={REGISTRO_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="break-all text-center text-xs text-[#0a8f79] underline hover:text-[#066d5c]"
+        >
           {REGISTRO_URL}
-        </p>
+        </a>
       </div>
 
       <button
