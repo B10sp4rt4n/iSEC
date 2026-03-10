@@ -13,8 +13,8 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "SynAppsSys Eventos",
-  description: "Captacion de prospectos para eventos SynAppsSys",
+  title: "ISEC INFOECURITY / THREATDOWN / SYN APPS SYS",
+  description: "Registro de contacto para soluciones THREATDOWN en ciberseguridad aplicada.",
 };
 
 export default function RootLayout({
