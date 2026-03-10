@@ -59,8 +59,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, id: inserted?.id ?? null }, { status: 201 });
   } catch (error) {
     console.error("Error al guardar prospecto", error);
+    const detail = error instanceof Error ? error.message : "Error desconocido";
     return NextResponse.json(
-      { error: "Error interno al guardar el registro" },
+      { error: "Error interno al guardar el registro", detail },
       { status: 500 },
     );
   }
