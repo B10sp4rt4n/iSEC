@@ -29,3 +29,19 @@ CREATE TABLE IF NOT EXISTS event_raffle_winners (
 
 CREATE INDEX IF NOT EXISTS idx_event_raffle_winners_position
   ON event_raffle_winners (prize_position);
+
+-- ── OSINT: Security Exposure ───────────────────────────────────────────────
+-- Stores lightweight domain security analysis results.
+-- open_ports is stored as a JSON array string e.g. "[80,443]"
+CREATE TABLE IF NOT EXISTS security_exposure (
+  id        SERIAL PRIMARY KEY,
+  domain    TEXT NOT NULL UNIQUE,
+  score     INTEGER NOT NULL,
+  spf       BOOLEAN NOT NULL DEFAULT FALSE,
+  dmarc     BOOLEAN NOT NULL DEFAULT FALSE,
+  open_ports TEXT NOT NULL DEFAULT '[]',
+  timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_security_exposure_score
+  ON security_exposure (score ASC);
