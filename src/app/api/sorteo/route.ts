@@ -61,8 +61,9 @@ export async function GET() {
     );
   } catch (error) {
     console.error("Error al consultar sorteo", error);
+    const detail = error instanceof Error ? error.message : "Error desconocido";
     return NextResponse.json(
-      { error: "No se pudo consultar el sorteo" },
+      { error: "No se pudo consultar el sorteo", detail },
       { status: 500 },
     );
   }
@@ -169,8 +170,9 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Error al ejecutar sorteo", error);
+    const detail = error instanceof Error ? error.message : "Error desconocido";
     return NextResponse.json(
-      { error: "No se pudo ejecutar el sorteo" },
+      { error: "No se pudo ejecutar el sorteo", detail },
       { status: 500 },
     );
   }
