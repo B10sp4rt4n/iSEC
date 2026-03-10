@@ -141,14 +141,18 @@ def load_exposure() -> pd.DataFrame:
 
 
 def _risk_label(row: pd.Series) -> str:
-    """Assign a risk category for the event security map (Y axis)."""
+    """Assign a risk category based only on passive DNS/port check results.
+
+    These labels reflect observable signals only — NOT internal controls
+    (EDR, AV, XDR, etc.) which cannot be detected via public checks.
+    """
     if not row["spf"] and not row["dmarc"]:
-        return "email"
+        return "Email expuesto"
     if row["open_ports_count"] > 2:
-        return "infrastructure"
+        return "Puertos expuestos"
     if row["score"] < 40:
-        return "compliance"
-    return "endpoint"
+        return "Score crítico"
+    return "Sin alertas DNS"
 
 
 # ── Helpers de descarga ─────────────────────────────────────────────────────
@@ -410,10 +414,14 @@ with tab5:
 
         # ── Event Security Map (scatter) ──────────────────────────────────────
         st.subheader("🗺️ Mapa de seguridad del evento")
-        st.caption("X = Security Score (0-100) · Y = Categoría de riesgo dominante · Color = Score")
+        st.caption(
+            "X = Security Score (0-100) · Y = Señal de riesgo detectada en checks públicos · Color = Score  \n"
+            "⚠️ *Basado únicamente en checks pasivos de DNS y puertos TCP públicos. "
+            "No refleja controles internos como EDR, AV o XDR.*"
+        )
 
-        # Order Y axis categories for readability
-        category_order = {"risk": ["email", "compliance", "endpoint", "infrastructure"]}
+        # Order Y axis categories for readability (worst → best)
+        category_order = {"risk": ["Email expuesto", "Score crítico", "Puertos expuestos", "Sin alertas DNS"]}
 
         fig_map = px.scatter(
             df_exp,
