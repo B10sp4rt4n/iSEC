@@ -21,6 +21,25 @@ st.set_page_config(
     layout="wide",
 )
 
+# ── Autenticación ───────────────────────────────────────────────────────────
+DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "isec2026")
+
+def check_password() -> bool:
+    if st.session_state.get("authenticated"):
+        return True
+    st.markdown("## 🛡️ iSEC Dashboard — Acceso restringido")
+    pwd = st.text_input("Contraseña", type="password", key="pwd_input")
+    if st.button("Entrar"):
+        if pwd == DASHBOARD_PASSWORD:
+            st.session_state["authenticated"] = True
+            st.rerun()
+        else:
+            st.error("Contraseña incorrecta.")
+    return False
+
+if not check_password():
+    st.stop()
+
 # ── Conexión a la base de datos ─────────────────────────────────────────────
 @st.cache_resource
 def get_engine():
