@@ -119,3 +119,27 @@ Body JSON esperado:
 	"dolor_reto": "Tenemos demoras en la integracion entre ventas y operaciones"
 }
 ```
+
+## Sorteo En Vivo (Evento)
+
+Flujo recomendado:
+
+1. Proyecta la pantalla publica: `/sorteo`
+2. Controla el sorteo desde pantalla privada: `/sorteo/control`
+3. Presiona el boton para sacar 1 ganador por premio (maximo 3)
+
+### Seguridad del boton de sorteo
+
+Configura esta variable en Netlify (o entorno local):
+
+```env
+RAFFLE_ADMIN_KEY="tu_clave_privada_larga"
+```
+
+Sin esa clave, el endpoint de sorteo no permite ejecutar ganadores.
+
+### Persistencia de ganadores
+
+El sorteo guarda ganadores en la tabla `event_raffle_winners`.
+
+Si aun no la tienes en Neon, ejecuta el SQL actualizado de `db/schema.sql`.
