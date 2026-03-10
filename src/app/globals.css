@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f4ec;
+  --foreground: #162036;
+  --surface: #fffdf8;
+  --surface-strong: #f0eadf;
+  --accent: #0a8f79;
+  --accent-strong: #066d5c;
+  --ring: rgba(10, 143, 121, 0.26);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-manrope);
+  --font-mono: var(--font-space-grotesk);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-manrope), sans-serif;
+}
+
+.mesh-bg {
+  background-image:
+    radial-gradient(circle at 10% 10%, #fff1bf 0%, transparent 36%),
+    radial-gradient(circle at 90% 12%, #b7f3e8 0%, transparent 34%),
+    linear-gradient(145deg, #f8f5ee 0%, #eae4d5 100%);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid #ddd4c2;
+  box-shadow: 0 10px 30px rgba(22, 32, 54, 0.08);
+}
+
+.title-font {
+  font-family: var(--font-space-grotesk), sans-serif;
+}
+
+.field {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid #cfc2ab;
+  background: #fff;
+  padding: 0.68rem 0.85rem;
+  font-size: 0.95rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+.btn-primary {
+  border-radius: 0.75rem;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.btn-primary:hover {
+  background: var(--accent-strong);
+  transform: translateY(-1px);
+}
