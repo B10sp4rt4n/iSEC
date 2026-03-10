@@ -9,7 +9,7 @@ export default function Home() {
           <article className="card rounded-3xl p-8 md:p-12">
             <div className="mb-4 flex items-center gap-3">
               <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-700">
-                ISEC INFOECURITY / SYN APPS SYS
+                iSEC Infosecurity
               </p>
               <Image
                 src="/logos/threatdown-logo.png"

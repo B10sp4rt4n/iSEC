@@ -13,7 +13,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "ISEC INFOECURITY / THREATDOWN / SYN APPS SYS",
+  title: "iSEC Infosecurity | ThreatDown",
   description: "Registro de contacto para soluciones THREATDOWN en ciberseguridad aplicada.",
 };
 
