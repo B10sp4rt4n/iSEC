@@ -2,7 +2,9 @@
 
 import { QRCodeSVG } from "qrcode.react";
 
-const REGISTRO_URL = "https://registro.synappssys.com/registro";
+const REGISTRO_URL =
+  process.env.NEXT_PUBLIC_REGISTRO_URL ??
+  "https://registro.synappssys.com/registro";
 
 export default function QRPage() {
   return (
