@@ -5,7 +5,7 @@ import Image from "next/image";
 
 const REGISTRO_URL =
   process.env.NEXT_PUBLIC_REGISTRO_URL ??
-  "https://registro.synappssys.com/registro";
+  "https://registro.synappssys.com";
 
 export default function QRPage() {
   return (
