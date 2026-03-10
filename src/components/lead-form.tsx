@@ -140,7 +140,7 @@ export default function LeadForm() {
         </label>
 
         <label className="space-y-1 text-sm font-medium md:col-span-2">
-          Pregunta cerrada 1: Que solucion te interesa mas?
+          Actualmente, ¿con que solucion de seguridad en endpoints cuentas?
           <select
             required
             name="pregunta_cerrada_1"
@@ -149,15 +149,15 @@ export default function LeadForm() {
             className="field"
           >
             <option value="">Selecciona una opcion</option>
-            <option value="automatizacion">Automatizacion de procesos</option>
-            <option value="integracion">Integracion de sistemas</option>
-            <option value="analitica">Analitica y tableros</option>
-            <option value="ia">IA aplicada al negocio</option>
+            <option value="sin_solucion">No tengo ninguna solucion</option>
+            <option value="antivirus_tradicional">Solo antivirus tradicional</option>
+            <option value="edr_otro">EDR de otro proveedor</option>
+            <option value="no_se">No se que tengo actualmente</option>
           </select>
         </label>
 
         <label className="space-y-1 text-sm font-medium md:col-span-2">
-          Pregunta cerrada 2: Horizonte para iniciar proyecto?
+          ¿Cuantos endpoints (equipos) necesitas proteger?
           <select
             required
             name="pregunta_cerrada_2"
@@ -166,22 +166,22 @@ export default function LeadForm() {
             className="field"
           >
             <option value="">Selecciona una opcion</option>
-            <option value="0-3_meses">0 a 3 meses</option>
-            <option value="3-6_meses">3 a 6 meses</option>
-            <option value="6-12_meses">6 a 12 meses</option>
-            <option value="12+_meses">Mas de 12 meses</option>
+            <option value="menos_50">Menos de 50 equipos</option>
+            <option value="50_200">50 a 200 equipos</option>
+            <option value="200_500">200 a 500 equipos</option>
+            <option value="mas_500">Mas de 500 equipos</option>
           </select>
         </label>
 
         <label className="space-y-1 text-sm font-medium md:col-span-2">
-          Cual es tu principal dolor o reto hoy?
+          ¿Cual es tu principal preocupacion de seguridad en endpoints hoy?
           <textarea
             required
             name="dolor_reto"
             value={form.dolor_reto}
             onChange={onChange}
             className="field min-h-28"
-            placeholder="Comparte brevemente el reto mas importante"
+            placeholder="Ej. ransomware, visibilidad de amenazas, cumplimiento, respuesta a incidentes..."
           />
         </label>
       </div>
