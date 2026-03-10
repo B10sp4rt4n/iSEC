@@ -1,9 +1,13 @@
 """
 Dashboard iSEC Infosecurity | ThreatDown
 Visualización y descarga de prospectos, estadísticas y comentarios.
+Incluye módulo OSINT de exposición de seguridad por dominio.
 """
 
+import json
 import os
+import subprocess
+import sys
 import io
 import pandas as pd
 import streamlit as st
@@ -101,6 +105,52 @@ def load_winners() -> pd.DataFrame:
     return df
 
 
+@st.cache_data(ttl=30)
+def load_exposure() -> pd.DataFrame:
+    """Load security_exposure rows joined with empresa from event_prospects."""
+    engine = get_engine()
+    with engine.connect() as conn:
+        df = pd.read_sql(
+            text("""
+                SELECT
+                    se.domain,
+                    se.score,
+                    se.spf,
+                    se.dmarc,
+                    se.open_ports,
+                    se.timestamp,
+                    COALESCE(p.empresa, se.domain) AS empresa
+                FROM security_exposure se
+                LEFT JOIN LATERAL (
+                    SELECT empresa
+                    FROM event_prospects
+                    WHERE split_part(correo, '@', 2) = se.domain
+                    LIMIT 1
+                ) p ON TRUE
+                ORDER BY se.score ASC
+            """),
+            conn,
+        )
+    # Parse open_ports JSON string → Python list → string for display
+    df["open_ports_list"] = df["open_ports"].apply(
+        lambda v: json.loads(v) if isinstance(v, str) else (v or [])
+    )
+    df["open_ports_count"] = df["open_ports_list"].apply(len)
+    df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
+    return df
+
+
+def _risk_label(row: pd.Series) -> str:
+    """Assign a risk category for the event security map (Y axis)."""
+    if not row["spf"] and not row["dmarc"]:
+        return "email"
+    if row["open_ports_count"] > 2:
+        return "infrastructure"
+    if row["score"] < 40:
+        return "compliance"
+    return "endpoint"
+
+
 # ── Helpers de descarga ─────────────────────────────────────────────────────
 def to_csv(df: pd.DataFrame) -> bytes:
     return df.to_csv(index=False).encode("utf-8-sig")
@@ -138,7 +188,7 @@ c3.metric("🏆 Ganadores del sorteo", ganadores)
 st.divider()
 
 # ── Tabs ────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4 = st.tabs(["📊 Estadísticas", "📋 Base completa", "💬 Comentarios", "🏆 Ganadores"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Estadísticas", "📋 Base completa", "💬 Comentarios", "🏆 Ganadores", "🔍 OSINT"])
 
 # ────────────────────────────────────────────────────────────────────────────
 # TAB 1 — ESTADÍSTICAS
@@ -270,5 +320,140 @@ with tab4:
             "⬇️ Descargar ganadores CSV",
             data=to_csv(winners),
             file_name="ganadores_isec.csv",
+            mime="text/csv",
+        )
+
+# ────────────────────────────────────────────────────────────────────────────
+# TAB 5 — OSINT: SECURITY EXPOSURE MAP
+# ────────────────────────────────────────────────────────────────────────────
+with tab5:
+    st.subheader("🔍 Análisis OSINT — Exposición de seguridad por dominio")
+
+    # ── Run worker button ────────────────────────────────────────────────────
+    st.caption(
+        "El worker analiza dominios pendientes (extraídos de los correos registrados) "
+        "y almacena los resultados en la tabla `security_exposure`."
+    )
+    if st.button("▶️ Ejecutar análisis OSINT ahora"):
+        worker_path = os.path.join(os.path.dirname(__file__), "..", "osint", "worker.py")
+        with st.spinner("Analizando dominios... esto puede tardar un par de minutos."):
+            proc = subprocess.run(
+                [sys.executable, "-m", "osint.worker"],
+                capture_output=True,
+                text=True,
+                cwd=os.path.join(os.path.dirname(__file__), ".."),
+            )
+        if proc.returncode == 0:
+            st.success("✅ Análisis completado.")
+            st.cache_data.clear()
+        else:
+            st.error("❌ El worker terminó con errores.")
+        if proc.stdout:
+            st.code(proc.stdout, language="text")
+        if proc.stderr:
+            st.code(proc.stderr, language="text")
+
+    st.divider()
+
+    # ── Load data ────────────────────────────────────────────────────────────
+    try:
+        df_exp = load_exposure()
+    except Exception as e:
+        st.warning(
+            f"No se pudo cargar la tabla `security_exposure`. "
+            f"Asegúrate de haber ejecutado el schema SQL en Neon.  \n`{e}`"
+        )
+        st.stop()
+
+    if df_exp.empty:
+        st.info("No hay datos de exposición todavía. Haz clic en **Ejecutar análisis OSINT** para comenzar.")
+    else:
+        # Enrich with risk category
+        df_exp["risk"] = df_exp.apply(_risk_label, axis=1)
+
+        total_analizados = len(df_exp)
+        avg_score = round(df_exp["score"].mean(), 1)
+        top10 = df_exp.head(10)  # already ordered ASC by score → most exposed first
+
+        # ── KPIs OSINT ───────────────────────────────────────────────────────
+        k1, k2, k3 = st.columns(3)
+        k1.metric("🌐 Dominios analizados", total_analizados)
+        k2.metric("📊 Score promedio del evento", avg_score)
+        k3.metric("🔴 Dominios score < 40", int((df_exp["score"] < 40).sum()))
+
+        st.divider()
+
+        # ── Top 10 más expuestos ─────────────────────────────────────────────
+        st.subheader("🔴 Top 10 dominios más expuestos (score más bajo)")
+        top10_display = top10[["empresa", "domain", "score", "spf", "dmarc", "open_ports", "risk"]].copy()
+        top10_display.columns = ["Empresa", "Dominio", "Score", "SPF", "DMARC", "Puertos abiertos", "Categoría de riesgo"]
+        st.dataframe(top10_display, use_container_width=True)
+
+        st.divider()
+
+        # ── Distribución de scores ───────────────────────────────────────────
+        st.subheader("📊 Distribución de scores de exposición")
+        fig_hist = px.histogram(
+            df_exp,
+            x="score",
+            nbins=20,
+            color_discrete_sequence=["#0a8f79"],
+            labels={"score": "Security Score", "count": "Dominios"},
+            title="Distribución del Security Score en el evento",
+        )
+        fig_hist.add_vline(x=avg_score, line_dash="dash", line_color="red",
+                           annotation_text=f"Promedio: {avg_score}", annotation_position="top right")
+        fig_hist.update_layout(bargap=0.1)
+        st.plotly_chart(fig_hist, use_container_width=True)
+
+        st.divider()
+
+        # ── Event Security Map (scatter) ──────────────────────────────────────
+        st.subheader("🗺️ Mapa de seguridad del evento")
+        st.caption("X = Security Score (0-100) · Y = Categoría de riesgo dominante · Color = Score")
+
+        # Order Y axis categories for readability
+        category_order = {"risk": ["email", "compliance", "endpoint", "infrastructure"]}
+
+        fig_map = px.scatter(
+            df_exp,
+            x="score",
+            y="risk",
+            color="score",
+            color_continuous_scale="RdYlGn",
+            range_color=[0, 100],
+            hover_name="empresa",
+            hover_data={
+                "domain": True,
+                "score": True,
+                "spf": True,
+                "dmarc": True,
+                "open_ports": True,
+                "risk": False,
+            },
+            labels={
+                "score": "Security Score",
+                "risk": "Categoría de riesgo",
+            },
+            title="Event Security Map — iSEC ThreatDown",
+            category_orders=category_order,
+            height=450,
+        )
+        fig_map.update_traces(marker=dict(size=14, opacity=0.85, line=dict(width=1, color="white")))
+        fig_map.update_layout(coloraxis_colorbar=dict(title="Score"))
+        st.plotly_chart(fig_map, use_container_width=True)
+
+        st.divider()
+
+        # ── Tabla completa ───────────────────────────────────────────────────
+        st.subheader("📋 Todos los dominios analizados")
+        df_full = df_exp[["empresa", "domain", "score", "spf", "dmarc", "open_ports", "risk", "timestamp"]].copy()
+        df_full.columns = ["Empresa", "Dominio", "Score", "SPF", "DMARC", "Puertos abiertos", "Categoría", "Analizado"]
+        st.dataframe(df_full, use_container_width=True, height=400)
+
+        st.download_button(
+            "⬇️ Descargar reporte OSINT CSV",
+            data=to_csv(df_full),
+            file_name="osint_exposure_isec.csv",
             mime="text/csv",
         )
