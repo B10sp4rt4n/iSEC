@@ -305,6 +305,59 @@ function buildEmailHtml(
           </td>
         </tr>
 
+        <!-- ── Kill Chain ── -->
+        <tr>
+          <td style="padding:24px 36px 0">
+            <h2 style="margin:0 0 14px;font-size:14px;font-weight:700;color:#162036;
+                        text-transform:uppercase;letter-spacing:.05em">
+              Así se convierte en un incidente
+            </h2>
+            <table width="100%" cellpadding="0" cellspacing="0"
+                   style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+              <tr>
+                <td align="center" style="padding:14px 6px;background:#fee2e2;border-right:1px solid #e2e8f0;width:18%">
+                  <p style="margin:0;font-size:18px">🔓</p>
+                  <p style="margin:4px 0 0;font-size:10px;font-weight:700;color:#b91c1c;line-height:1.3">
+                    DNS sin<br>protección
+                  </p>
+                </td>
+                <td align="center" style="padding:14px 4px;color:#94a3b8;font-size:16px;font-weight:700;width:4%">→</td>
+                <td align="center" style="padding:14px 6px;background:#fef3c7;border-right:1px solid #e2e8f0;width:18%">
+                  <p style="margin:0;font-size:18px">📧</p>
+                  <p style="margin:4px 0 0;font-size:10px;font-weight:700;color:#92400e;line-height:1.3">
+                    Phishing<br>perfecto
+                  </p>
+                </td>
+                <td align="center" style="padding:14px 4px;color:#94a3b8;font-size:16px;font-weight:700;width:4%">→</td>
+                <td align="center" style="padding:14px 6px;background:#fef3c7;border-right:1px solid #e2e8f0;width:18%">
+                  <p style="margin:0;font-size:18px">🖱️</p>
+                  <p style="margin:4px 0 0;font-size:10px;font-weight:700;color:#92400e;line-height:1.3">
+                    Empleado<br>hace clic
+                  </p>
+                </td>
+                <td align="center" style="padding:14px 4px;color:#94a3b8;font-size:16px;font-weight:700;width:4%">→</td>
+                <td align="center" style="padding:14px 6px;background:#fee2e2;border-right:1px solid #e2e8f0;width:18%">
+                  <p style="margin:0;font-size:18px">💻</p>
+                  <p style="margin:4px 0 0;font-size:10px;font-weight:700;color:#b91c1c;line-height:1.3">
+                    Malware en<br>endpoint
+                  </p>
+                </td>
+                <td align="center" style="padding:14px 4px;color:#94a3b8;font-size:16px;font-weight:700;width:4%">→</td>
+                <td align="center" style="padding:14px 6px;background:#dcfce7;width:18%">
+                  <p style="margin:0;font-size:18px">🛡️</p>
+                  <p style="margin:4px 0 0;font-size:10px;font-weight:700;color:#15803d;line-height:1.3">
+                    ThreatDown<br>lo bloquea
+                  </p>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:10px 0 0;font-size:11px;color:#64748b;line-height:1.5">
+              El <strong>94% de los ataques de ransomware</strong> comienzan con un correo de phishing.
+              La barrera que falla primero no es el endpoint — es el dominio sin autenticación.
+            </p>
+          </td>
+        </tr>
+
         <!-- ── Análisis IA ── -->
         <tr>
           <td style="padding:24px 36px 0">
@@ -327,10 +380,10 @@ function buildEmailHtml(
                style="display:inline-block;background:#162036;color:#ffffff;
                       font-size:15px;font-weight:700;padding:16px 36px;
                       border-radius:8px;text-decoration:none;letter-spacing:.02em">
-              📅 Programa una sesión con un especialista
+              �️ Ver cómo ThreatDown hubiera bloqueado este ataque
             </a>
             <p style="margin:10px 0 0;font-size:11px;color:#94a3b8">
-              Tu nombre y correo ya estarán pre-llenados
+              Sesión de 30 min con un especialista — sin costo
             </p>
           </td>
         </tr>
@@ -433,9 +486,11 @@ export async function POST(request: Request) {
         {
           role: "system",
           content:
-            "Eres un consultor senior de ciberseguridad de SynAppsSys. " +
-            "Escribes en español formal, de forma concisa y orientada a riesgos de negocio. " +
-            "Nunca uses jerga excesivamente técnica. Tu audiencia son directivos y tomadores de decisiones.",
+            "Eres un consultor senior de ciberseguridad de SynAppsSys especializado en el vector phishing-endpoint. " +
+            "Tu objetivo es conectar hallazgos DNS con el riesgo real de compromiso de endpoints y robo de identidad. " +
+            "Siempre explicas la cadena completa: DNS sin protección → spoofing del dominio → phishing convincente → empleado hace clic → malware en el endpoint. " +
+            "Mencionas naturalmente las cuatro capas de defensa: seguridad de email (SPF/DMARC), filtrado de contenido web, anti-phishing en el navegador y EDR (ThreatDown). " +
+            "Escribes en español formal, conciso y orientado a riesgos de negocio. Tu audiencia son directivos y tomadores de decisiones.",
         },
         {
           role: "user",
@@ -448,10 +503,13 @@ export async function POST(request: Request) {
             `- Gateway de correo: ${scan.gateway ?? "no detectado"}\n` +
             `- Score de exposición: ${scan.score}/100\n` +
             `- Postura: ${scan.postura}\n\n` +
+            `Principal reto de seguridad declarado: ${dolor_reto}\n\n` +
             "Redacta UN párrafo ejecutivo de 3 a 4 oraciones dirigido directamente a este tomador de decisiones. " +
-            "Explica brevemente qué riesgos representan las brechas encontradas para su negocio " +
-            "y menciona que ThreatDown by Malwarebytes, junto con SynAppsSys, puede ayudarle a cerrarlas. " +
-            "Sé directo y no uses frases genéricas. No repitas el score ni los datos técnicos.",
+            "Explica cómo las brechas DNS encontradas permiten a un atacante suplantar el dominio de la empresa, " +
+            "enviar phishing perfecto a sus empleados y llegar finalmente al endpoint con malware o ransomware. " +
+            "Menciona que la defensa requiere capas: seguridad de email, filtrado de contenido web, " +
+            "anti-phishing en el navegador y —como última línea crítica— un EDR como ThreatDown by Malwarebytes. " +
+            "Relaciona los hallazgos con el reto declarado por el prospecto. Sé directo y específico. No repitas el score.",
         },
       ],
     });
@@ -459,9 +517,10 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error("[scan-report] OpenAI error:", err);
     aiParagraph =
-      "Basado en el análisis de su dominio, identificamos áreas de mejora en su postura de seguridad de correo electrónico. " +
-      "Le recomendamos hablar con un especialista de SynAppsSys para revisar las brechas detectadas " +
-      "y conocer cómo ThreatDown by Malwarebytes puede fortalecer su protección.";
+      "Las brechas detectadas en el dominio de su empresa permiten a cualquier atacante suplantar su identidad corporativa y enviar correos de phishing que pasan los filtros tradicionales — el empleado los recibe como si vinieran de un compañero o directivo real. " +
+      "Ese correo típicamente lleva a un enlace malicioso o un adjunto que deposita malware en el endpoint, iniciando un ataque de ransomware o robo de credenciales. " +
+      "Cubrir esta exposición requiere cuatro capas: autenticación de email (SPF/DMARC), filtrado de contenido web, anti-phishing en el navegador y, como última línea crítica, un EDR con detección comportamental como ThreatDown by Malwarebytes. " +
+      "SynAppsSys puede ayudarle a implementar todas estas capas de forma coordinada.";
   }
 
   // 3. Enviar correo
@@ -477,7 +536,7 @@ export async function POST(request: Request) {
   const { error: sendError } = await resend.emails.send({
     from: `SynAppsSys Security <${fromDomain}>`,
     to: correo,
-    subject: `Reporte de exposición DNS — ${domain}`,
+    subject: `⚠️ Riesgo de phishing detectado en ${domain} — Reporte de seguridad`,
     html: buildEmailHtml(nombre, empresa, cargo, correo, domain, scan, aiParagraph),
   });
 
