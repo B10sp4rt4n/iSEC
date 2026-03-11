@@ -8,6 +8,7 @@ type Winner = {
   nombre: string;
   empresa: string;
   correo: string;
+  folio?: number | null;
 };
 
 type RaffleState = {
@@ -98,17 +99,20 @@ export default function SorteoPage() {
           </h1>
           <p className="mb-8 text-lg text-slate-700">{title}</p>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            {[1, 2, 3].map((position) => {
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((position) => {
               const winner = state.winners.find((item) => item.prize_position === position);
               return (
                 <div
                   key={position}
                   className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
                 >
-                  <p className="text-sm font-semibold text-emerald-700">Premio {position}</p>
+                  <p className="text-sm font-semibold text-emerald-700">{position}° lugar</p>
                   {winner ? (
                     <>
+                      <p className="mt-1 text-xs font-mono font-bold text-slate-400">
+                        Folio #{String(winner.folio ?? "-").padStart(4, "0")}
+                      </p>
                       <p className="mt-2 text-xl font-bold text-[#162036]">{winner.nombre}</p>
                       <p className="text-sm text-slate-600">{winner.empresa}</p>
                       <p className="mt-1 text-xs text-slate-500">{maskEmail(winner.correo)}</p>

@@ -6,6 +6,7 @@ type WinnerRow = {
   nombre: string;
   empresa: string;
   correo: string;
+  folio: number | null;
 };
 
 type DrawRow = {
@@ -16,9 +17,10 @@ type DrawRow = {
   nombre: string;
   empresa: string;
   correo: string;
+  folio: number | null;
 };
 
-const MAX_WINNERS = 3;
+const MAX_WINNERS = 4;
 
 function isAuthorized(request: Request) {
   const adminKey = process.env.RAFFLE_ADMIN_KEY;
@@ -40,7 +42,8 @@ export async function GET() {
         w.prize_position,
         p.nombre,
         p.empresa,
-        p.correo
+        p.correo,
+        p.folio
       FROM event_raffle_winners w
       INNER JOIN event_prospects p ON p.id = w.prospect_id
       ORDER BY w.prize_position ASC;
@@ -127,7 +130,8 @@ export async function POST(request: Request) {
         i.created_at,
         ep.nombre,
         ep.empresa,
-        ep.correo
+        ep.correo,
+        ep.folio
       FROM inserted i
       INNER JOIN event_prospects ep ON ep.id = i.prospect_id;
     `;
@@ -152,7 +156,7 @@ export async function POST(request: Request) {
         ok: true,
         done: true,
         message: winners.length >= MAX_WINNERS
-          ? "El sorteo ya completo los 3 premios"
+          ? "El sorteo ya completo los 4 premios"
           : "No hay participantes elegibles para sortear",
         winners,
       });
