@@ -15,8 +15,9 @@ import plotly.express as px
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env.local"))
-load_dotenv()
+_base_dir = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(dotenv_path=os.path.join(_base_dir, "..", ".env.local"), override=True)
+load_dotenv(override=False)
 
 
 def _secret(key: str, default: str = "") -> str:
@@ -556,20 +557,145 @@ with tab5:
 with tab6:
     import sys
     import concurrent.futures as _cf
-    _PROSPECTSCAN_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "ProspectScan")
-    _PROSPECTSCAN_PATH = os.path.normpath(_PROSPECTSCAN_PATH)
-    if _PROSPECTSCAN_PATH not in sys.path:
-        sys.path.insert(0, _PROSPECTSCAN_PATH)
+    import dns.resolver as _dns_resolver
 
-    try:
-        from core import (
-            analizar_dominio, resultado_a_dict_tecnico, resultado_a_dict_ejecutivo,
-            ResultadoAnalisis, es_dominio_corporativo, MAX_WORKERS as _PS_MAX_WORKERS,
-        )
-        _PS_DISPONIBLE = True
-    except ImportError as _e:
-        _PS_DISPONIBLE = False
-        st.error(f"❌ No se pudo importar ProspectScan/core.py: {_e}")
+    # ── Adaptadores locales (sustituyen ProspectScan/core.py) ────────────────
+    _REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    if _REPO_ROOT not in sys.path:
+        sys.path.insert(0, _REPO_ROOT)
+
+    _PS_MAX_WORKERS = 10
+
+    _FREE_DOMAINS = {
+        "gmail.com","googlemail.com","hotmail.com","hotmail.es","hotmail.mx",
+        "outlook.com","outlook.es","outlook.mx","live.com","live.com.mx","live.mx",
+        "yahoo.com","yahoo.com.mx","yahoo.es","icloud.com","me.com","mac.com",
+        "aol.com","protonmail.com","proton.me","tutanota.com","mail.com","gmx.com",
+        "ymail.com","msn.com",
+    }
+
+    def es_dominio_corporativo(domain: str) -> bool:
+        return domain.lower() not in _FREE_DOMAINS and "." in domain
+
+    def _get_mx_records(domain: str) -> list:
+        try:
+            answers = _dns_resolver.resolve(domain, "MX", lifetime=5)
+            return [str(r.exchange).rstrip(".").lower() for r in answers]
+        except Exception:
+            return []
+
+    def _get_spf_raw(domain: str) -> str:
+        try:
+            answers = _dns_resolver.resolve(domain, "TXT", lifetime=5)
+            for rdata in answers:
+                txt = b"".join(rdata.strings).decode("utf-8", errors="ignore")
+                if txt.startswith("v=spf1"):
+                    return txt
+        except Exception:
+            pass
+        return ""
+
+    def _detectar_vendor(mx_records: list) -> str:
+        mx_str = " ".join(mx_records)
+        if any(x in mx_str for x in ["google.com", "googlemail.com", "aspmx"]):
+            return "Google Workspace"
+        if any(x in mx_str for x in ["mail.protection.outlook.com", "microsoft.com"]):
+            return "Microsoft 365"
+        if "pphosted.com" in mx_str:
+            return "Proofpoint"
+        if "mimecast.com" in mx_str:
+            return "Mimecast"
+        if "barracudanetworks.com" in mx_str:
+            return "Barracuda"
+        if "messagelabs.com" in mx_str:
+            return "Symantec MessageLabs"
+        if "zoho.com" in mx_str:
+            return "Zoho Mail"
+        if mx_records:
+            return "Otro"
+        return "Sin registros MX"
+
+    def _detectar_gateway(mx_records: list) -> str:
+        mx_str = " ".join(mx_records)
+        gateways = []
+        if "pphosted.com" in mx_str:
+            gateways.append("Proofpoint")
+        if "mimecast.com" in mx_str:
+            gateways.append("Mimecast")
+        if "barracudanetworks.com" in mx_str:
+            gateways.append("Barracuda")
+        if "messagelabs.com" in mx_str:
+            gateways.append("Symantec")
+        return ", ".join(gateways) if gateways else "Sin gateway"
+
+    def _detectar_envio(spf_raw: str) -> str:
+        servicios = []
+        spf_lower = spf_raw.lower()
+        if "salesforce.com" in spf_lower:
+            servicios.append("Salesforce")
+        if "amazonses.com" in spf_lower or "amazon.com" in spf_lower:
+            servicios.append("Amazon SES")
+        if "sendgrid.net" in spf_lower:
+            servicios.append("SendGrid")
+        if "mailchimp.com" in spf_lower or "mandrillapp.com" in spf_lower:
+            servicios.append("Mailchimp")
+        if "hubspot.com" in spf_lower:
+            servicios.append("HubSpot")
+        if "mailgun.org" in spf_lower:
+            servicios.append("Mailgun")
+        return ", ".join(servicios) if servicios else "Sin servicios"
+
+    def _calcular_postura(spf: bool, dmarc: bool, gateway: str) -> str:
+        tiene_gateway = gateway != "Sin gateway"
+        if spf and dmarc and tiene_gateway:
+            return "Avanzada"
+        if spf and dmarc:
+            return "Intermedia"
+        return "Básica"
+
+    def analizar_dominio(domain: str) -> dict:
+        from osint.dns_checks import check_spf, check_dmarc, check_dns_resolution
+        mx = _get_mx_records(domain)
+        spf_raw = _get_spf_raw(domain)
+        spf = check_spf(domain)
+        dmarc = check_dmarc(domain)
+        vendor = _detectar_vendor(mx)
+        gateway = _detectar_gateway(mx)
+        envio = _detectar_envio(spf_raw)
+        postura = _calcular_postura(spf, dmarc, gateway)
+        return {
+            "dominio": domain,
+            "vendor": vendor,
+            "gateway": gateway,
+            "envio": envio,
+            "spf": spf,
+            "dmarc": dmarc,
+            "postura": postura,
+        }
+
+    def resultado_a_dict_ejecutivo(r: dict) -> dict:
+        return {
+            "Dominio": r["dominio"],
+            "Vendor de Correo": r["vendor"],
+            "Seguridad": r["gateway"],
+            "Envío": r["envio"],
+            "SPF": "OK" if r["spf"] else "Ausente",
+            "DMARC": "OK" if r["dmarc"] else "Ausente",
+            "Postura": r["postura"],
+        }
+
+    def resultado_a_dict_tecnico(r: dict) -> dict:
+        return {
+            "Dominio": r["dominio"],
+            "SPF": "✅" if r["spf"] else "❌",
+            "DMARC": "✅" if r["dmarc"] else "❌",
+            "Gateway de Seguridad": r["gateway"],
+            "Vendor de Correo": r["vendor"],
+            "Servicios de Envío": r["envio"],
+            "Postura": r["postura"],
+        }
+
+    _PS_DISPONIBLE = True
 
     if _PS_DISPONIBLE:
         st.subheader("🎯 ProspectScan — Análisis enriquecido de dominios del evento")
