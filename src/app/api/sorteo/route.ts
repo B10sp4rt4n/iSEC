@@ -87,7 +87,7 @@ export async function POST(request: Request) {
         SELECT COUNT(*)::int AS total FROM event_raffle_winners
       ),
       next_position AS (
-        SELECT total + 1 AS pos FROM current_count
+        SELECT ${MAX_WINNERS} - total AS pos FROM current_count
       ),
       unique_participants AS (
         SELECT id, nombre, empresa, correo
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
         SELECT ${winnerRowId}, p.id, np.pos
         FROM picked p
         CROSS JOIN next_position np
-        WHERE np.pos <= ${MAX_WINNERS}
+        WHERE np.pos >= 1
         ON CONFLICT DO NOTHING
         RETURNING id, prospect_id, prize_position, created_at
       )
