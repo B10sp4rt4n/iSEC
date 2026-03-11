@@ -599,7 +599,7 @@ with tab6:
         mx_str = " ".join(mx_records)
         if any(x in mx_str for x in ["google.com", "googlemail.com", "aspmx"]):
             return "Google Workspace"
-        if any(x in mx_str for x in ["mail.protection.outlook.com", "microsoft.com"]):
+        if any(x in mx_str for x in ["mail.protection.outlook.com", "microsoft.com", "outlook.com"]):
             return "Microsoft 365"
         if "pphosted.com" in mx_str:
             return "Proofpoint"
@@ -609,8 +609,18 @@ with tab6:
             return "Barracuda"
         if "messagelabs.com" in mx_str:
             return "Symantec MessageLabs"
+        if "cisco.com" in mx_str or "ironport.com" in mx_str:
+            return "Cisco IronPort"
+        if "fortimail" in mx_str or "fortinet.com" in mx_str:
+            return "FortiMail"
+        if "sophos.com" in mx_str or "reflexion.net" in mx_str:
+            return "Sophos"
         if "zoho.com" in mx_str:
             return "Zoho Mail"
+        if "trendmicro.com" in mx_str or "imhs.trendmicro" in mx_str:
+            return "Trend Micro"
+        if "spamexperts.com" in mx_str:
+            return "SpamExperts"
         if mx_records:
             return "Otro"
         return "Sin registros MX"
@@ -626,43 +636,98 @@ with tab6:
             gateways.append("Barracuda")
         if "messagelabs.com" in mx_str:
             gateways.append("Symantec")
+        if "cisco.com" in mx_str or "ironport.com" in mx_str:
+            gateways.append("Cisco IronPort")
+        if "fortimail" in mx_str or "fortinet.com" in mx_str:
+            gateways.append("FortiMail")
+        if "sophos.com" in mx_str or "reflexion.net" in mx_str:
+            gateways.append("Sophos")
+        if "trendmicro.com" in mx_str:
+            gateways.append("Trend Micro")
+        if "spamexperts.com" in mx_str:
+            gateways.append("SpamExperts")
         return ", ".join(gateways) if gateways else "Sin gateway"
 
     def _detectar_envio(spf_raw: str) -> str:
         servicios = []
         spf_lower = spf_raw.lower()
-        if "salesforce.com" in spf_lower:
-            servicios.append("Salesforce")
-        if "amazonses.com" in spf_lower or "amazon.com" in spf_lower:
-            servicios.append("Amazon SES")
-        if "sendgrid.net" in spf_lower:
-            servicios.append("SendGrid")
-        if "mailchimp.com" in spf_lower or "mandrillapp.com" in spf_lower:
-            servicios.append("Mailchimp")
-        if "hubspot.com" in spf_lower:
-            servicios.append("HubSpot")
-        if "mailgun.org" in spf_lower:
-            servicios.append("Mailgun")
+        checks = [
+            ("salesforce.com", "Salesforce"),
+            ("amazonses.com", "Amazon SES"),
+            ("_amazonses", "Amazon SES"),
+            ("sendgrid.net", "SendGrid"),
+            ("mandrillapp.com", "Mailchimp/Mandrill"),
+            ("mailchimp.com", "Mailchimp"),
+            ("hubspot.com", "HubSpot"),
+            ("mailgun.org", "Mailgun"),
+            ("sparkpostmail.com", "SparkPost"),
+            ("postmarkapp.com", "Postmark"),
+            ("constantcontact.com", "Constant Contact"),
+            ("zoho.com", "Zoho"),
+            ("marketo.net", "Marketo"),
+            ("exacttarget.com", "Salesforce Marketing Cloud"),
+            ("eloqua.com", "Oracle Eloqua"),
+        ]
+        seen = set()
+        for pattern, name in checks:
+            if pattern in spf_lower and name not in seen:
+                servicios.append(name)
+                seen.add(name)
         return ", ".join(servicios) if servicios else "Sin servicios"
 
-    def _calcular_postura(spf: bool, dmarc: bool, gateway: str) -> str:
+    def _get_dmarc_policy(domain: str) -> str:
+        try:
+            answers = _dns_resolver.resolve(f"_dmarc.{domain}", "TXT", lifetime=5)
+            for rdata in answers:
+                txt = b"".join(rdata.strings).decode("utf-8", errors="ignore")
+                if "v=DMARC1" in txt:
+                    for part in txt.split(";"):
+                        part = part.strip()
+                        if part.startswith("p="):
+                            return part[2:].strip().lower()
+        except Exception:
+            pass
+        return "ausente"
+
+    def _get_domain_age(domain: str) -> str:
+        try:
+            import whois as _whois
+            w = _whois.whois(domain)
+            creation = w.creation_date
+            if isinstance(creation, list):
+                creation = creation[0]
+            if creation:
+                from datetime import datetime, timezone
+                now = datetime.now(timezone.utc)
+                if creation.tzinfo is None:
+                    creation = creation.replace(tzinfo=timezone.utc)
+                years = (now - creation).days // 365
+                return f"{years} años"
+        except Exception:
+            pass
+        return "N/D"
+
+    def _calcular_postura(spf: bool, dmarc: bool, dmarc_policy: str, gateway: str) -> str:
         tiene_gateway = gateway != "Sin gateway"
-        if spf and dmarc and tiene_gateway:
+        policy_ok = dmarc_policy in ("reject", "quarantine")
+        if spf and dmarc and policy_ok and tiene_gateway:
             return "Avanzada"
         if spf and dmarc:
             return "Intermedia"
         return "Básica"
 
     def analizar_dominio(domain: str) -> dict:
-        from osint.dns_checks import check_spf, check_dmarc, check_dns_resolution
+        from osint.dns_checks import check_spf, check_dmarc
         mx = _get_mx_records(domain)
         spf_raw = _get_spf_raw(domain)
         spf = check_spf(domain)
         dmarc = check_dmarc(domain)
+        dmarc_policy = _get_dmarc_policy(domain)
         vendor = _detectar_vendor(mx)
         gateway = _detectar_gateway(mx)
         envio = _detectar_envio(spf_raw)
-        postura = _calcular_postura(spf, dmarc, gateway)
+        postura = _calcular_postura(spf, dmarc, dmarc_policy, gateway)
+        edad = _get_domain_age(domain)
         return {
             "dominio": domain,
             "vendor": vendor,
@@ -670,12 +735,15 @@ with tab6:
             "envio": envio,
             "spf": spf,
             "dmarc": dmarc,
+            "dmarc_policy": dmarc_policy,
             "postura": postura,
+            "edad_dominio": edad,
         }
 
     def resultado_a_dict_ejecutivo(r: dict) -> dict:
         return {
             "Dominio": r["dominio"],
+            "Antigüedad": r.get("edad_dominio", "N/D"),
             "Vendor de Correo": r["vendor"],
             "Seguridad": r["gateway"],
             "Envío": r["envio"],
@@ -687,8 +755,10 @@ with tab6:
     def resultado_a_dict_tecnico(r: dict) -> dict:
         return {
             "Dominio": r["dominio"],
+            "Antigüedad": r.get("edad_dominio", "N/D"),
             "SPF": "✅" if r["spf"] else "❌",
             "DMARC": "✅" if r["dmarc"] else "❌",
+            "Política DMARC": r.get("dmarc_policy", "ausente"),
             "Gateway de Seguridad": r["gateway"],
             "Vendor de Correo": r["vendor"],
             "Servicios de Envío": r["envio"],
