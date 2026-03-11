@@ -143,6 +143,7 @@ function buildEmailHtml(
   nombre: string,
   empresa: string,
   cargo: string,
+  correo: string,
   domain: string,
   scan: ScanResult,
   aiParagraph: string,
@@ -322,12 +323,26 @@ function buildEmailHtml(
         <!-- ── CTA ── -->
         <tr>
           <td style="padding:28px 36px 0;text-align:center">
+            <!-- CTA principal -->
             <a href="https://registro.synappssys.com"
                style="display:inline-block;background:#162036;color:#ffffff;
                       font-size:14px;font-weight:700;padding:14px 32px;
                       border-radius:8px;text-decoration:none;letter-spacing:.02em">
               Habla con un especialista →
             </a>
+            <!-- Calendly — pre-llena nombre y correo del prospecto -->
+            <div style="margin-top:14px">
+              <a href="https://calendly.com/salvador-ruiz-synappssys/30min?email=${encodeURIComponent(correo)}&name=${encodeURIComponent(nombre)}"
+                 style="display:inline-block;background:#ffffff;color:#162036;
+                        font-size:14px;font-weight:700;padding:13px 32px;
+                        border-radius:8px;text-decoration:none;letter-spacing:.02em;
+                        border:2px solid #162036">
+                📅 Agenda una reunión de 30 min
+              </a>
+            </div>
+            <p style="margin:10px 0 0;font-size:11px;color:#94a3b8">
+              Tu nombre y correo ya estarán pre-llenados
+            </p>
           </td>
         </tr>
 
@@ -474,7 +489,7 @@ export async function POST(request: Request) {
     from: `SynAppsSys Security <${fromDomain}>`,
     to: correo,
     subject: `Reporte de exposición DNS — ${domain}`,
-    html: buildEmailHtml(nombre, empresa, cargo, domain, scan, aiParagraph),
+    html: buildEmailHtml(nombre, empresa, cargo, correo, domain, scan, aiParagraph),
   });
 
   if (sendError) {
