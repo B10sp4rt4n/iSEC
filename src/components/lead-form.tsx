@@ -161,8 +161,17 @@ export default function LeadForm() {
               <option value="ingeniero_seguridad">Ingeniero de Seguridad</option>
               <option value="analista_ti">Analista / Técnico de TI</option>
             </optgroup>
-            <optgroup label="Consultor / Reseller">
-              <option value="reseller">Consultor / Integrador / Reseller</option>
+            <optgroup label="Reseller / Integrador / Canal">
+              <option value="reseller_ventas">Ejecutivo de Ventas (Reseller / Canal)</option>
+              <option value="reseller_preventa">Preventa / Sales Engineer (Canal)</option>
+              <option value="reseller_gerente">Gerente de Canal / Partner Manager</option>
+              <option value="reseller">Consultor / Integrador Técnico</option>
+            </optgroup>
+            <optgroup label="Fabricante / Vendor">
+              <option value="vendor_am">Account Manager (Fabricante / Vendor)</option>
+              <option value="vendor_se">Sales Engineer / Preventa (Vendor)</option>
+              <option value="vendor_channel">Channel Manager (Fabricante)</option>
+              <option value="vendor_mktg">Marketing / Desarrollo de Negocio (Vendor)</option>
             </optgroup>
             <optgroup label="Otro">
               <option value="otro">Otro</option>
