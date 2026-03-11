@@ -139,8 +139,8 @@ export async function POST(request: Request) {
             <img src="https://registro.synappssys.com/logos/threatdown-logo.png"
                  alt="ThreatDown" style="height:40px;margin-bottom:24px" />
             <h2 style="color:#162036">Hola, ${parsed.data.nombre} 👋</h2>
-            <p>Recibimos tu registro correctamente. Un especialista de
-            <strong>iSEC Infosecurity</strong> se pondrá en contacto contigo
+            <p>Recibimos tu registro correctamente. Un experto de
+            <strong>SynAppsSys</strong> se pondrá en contacto contigo
             para darte seguimiento personalizado con <strong>ThreatDown</strong>.</p>
             <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
             <p style="font-size:13px;color:#64748b">

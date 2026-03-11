@@ -62,7 +62,11 @@ def get_engine():
         st.stop()
     # SQLAlchemy espera postgresql:// no postgres://
     db_url = db_url.replace("postgres://", "postgresql://", 1)
-    return create_engine(db_url)
+    return create_engine(
+        db_url,
+        pool_pre_ping=True,
+        pool_recycle=300,
+    )
 
 
 @st.cache_data(ttl=30)
