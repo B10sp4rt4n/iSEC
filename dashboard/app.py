@@ -206,7 +206,7 @@ c3.metric("🏆 Ganadores del sorteo", ganadores)
 st.divider()
 
 # ── Tabs ────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Estadísticas", "📋 Base completa", "🎯 Prioridades", "🏆 Ganadores", "🔍 OSINT", "🎯 ProspectScan"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Estadísticas", "📋 Base completa", "🎯 Prioridades", "🏆 Ganadores", "🔍 Análisis de Seguridad"])
 
 # ────────────────────────────────────────────────────────────────────────────
 # TAB 1 — ESTADÍSTICAS
@@ -391,181 +391,19 @@ with tab4:
         )
 
 # ────────────────────────────────────────────────────────────────────────────
-# TAB 5 — OSINT: SECURITY EXPOSURE MAP
+# TAB 5 — ANÁLISIS DE SEGURIDAD (OSINT + ProspectScan unificados)
 # ────────────────────────────────────────────────────────────────────────────
 with tab5:
-    st.subheader("🔍 Análisis OSINT — Exposición de seguridad por dominio")
+    st.subheader("🔍 Análisis de Seguridad — Exposición por dominio")
 
-    with st.expander("⚖️ Aviso legal y alcance del análisis", expanded=False):
-        st.markdown("""
-        **Uso exclusivamente informativo**
-
-        Los resultados de este módulo se obtienen mediante consultas **pasivas y públicas**
-        de registros DNS (SPF, DMARC, MX) y escaneo de puertos TCP accesibles desde Internet.
-        Ninguna acción intrusiva, acceso no autorizado ni interceptación de tráfico es realizada.
-
-        - La información mostrada proviene de fuentes públicas de libre acceso (DNS público, WHOIS).
-        - Los scores y categorías de riesgo son **indicadores orientativos**, no constituyen
-          una auditoría de seguridad formal ni un dictamen técnico-legal.
-        - Los datos de empresas y correos son los proporcionados voluntariamente por los propios
-          asistentes al evento iSEC al momento de su registro.
-        - El uso de esta herramienta está restringido al equipo interno de **Synapp Systems** y al
-          personal autorizado del evento. Queda prohibida su difusión o uso comercial sin autorización.
-        - **Synapp Systems no asume responsabilidad** por decisiones tomadas con base en estos
-          resultados. Se recomienda siempre complementar con una evaluación profesional certificada.
-
-        *De conformidad con la Ley Federal de Protección de Datos Personales en Posesión
-        de los Particulares (LFPDPPP) y demás normativa aplicable en México.*
-        """)
-
-    # ── Run worker button ────────────────────────────────────────────────────
-    st.caption(
-        "El worker analiza dominios pendientes (extraídos de los correos registrados) "
-        "y almacena los resultados en la tabla `security_exposure`."
-    )
-    if st.button("▶️ Ejecutar análisis OSINT ahora"):
-        worker_path = os.path.join(os.path.dirname(__file__), "..", "osint", "worker.py")
-        with st.spinner("Analizando dominios... esto puede tardar un par de minutos."):
-            proc = subprocess.run(
-                [sys.executable, "-m", "osint.worker"],
-                capture_output=True,
-                text=True,
-                cwd=os.path.join(os.path.dirname(__file__), ".."),
-            )
-        if proc.returncode == 0:
-            st.success("✅ Análisis completado.")
-            st.cache_data.clear()
-        else:
-            st.error("❌ El worker terminó con errores.")
-        if proc.stdout:
-            st.code(proc.stdout, language="text")
-        if proc.stderr:
-            st.code(proc.stderr, language="text")
-
-    st.divider()
-
-    # ── Load data ────────────────────────────────────────────────────────────
-    try:
-        df_exp = load_exposure()
-    except Exception as e:
-        st.warning(
-            f"No se pudo cargar la tabla `security_exposure`. "
-            f"Asegúrate de haber ejecutado el schema SQL en Neon.  \n`{e}`"
-        )
-        st.stop()
-
-    if df_exp.empty:
-        st.info("No hay datos de exposición todavía. Haz clic en **Ejecutar análisis OSINT** para comenzar.")
-    else:
-        # Enrich with risk category
-        df_exp["risk"] = df_exp.apply(_risk_label, axis=1)
-
-        total_analizados = len(df_exp)
-        avg_score = round(df_exp["score"].mean(), 1)
-        top10 = df_exp.head(10)  # already ordered ASC by score → most exposed first
-
-        # ── KPIs OSINT ───────────────────────────────────────────────────────
-        k1, k2, k3 = st.columns(3)
-        k1.metric("🌐 Dominios analizados", total_analizados)
-        k2.metric("📊 Score promedio del evento", avg_score)
-        k3.metric("🔴 Dominios score < 40", int((df_exp["score"] < 40).sum()))
-
-        st.divider()
-
-        # ── Top 10 más expuestos ─────────────────────────────────────────────
-        st.subheader("🔴 Top 10 dominios más expuestos (score más bajo)")
-        top10_display = top10[["empresa", "domain", "score", "spf", "dmarc", "open_ports", "risk"]].copy()
-        top10_display.columns = ["Empresa", "Dominio", "Score", "SPF", "DMARC", "Puertos abiertos", "Categoría de riesgo"]
-        st.dataframe(top10_display, use_container_width=True)
-
-        st.divider()
-
-        # ── Distribución de scores ───────────────────────────────────────────
-        st.subheader("📊 Distribución de scores de exposición")
-        fig_hist = px.histogram(
-            df_exp,
-            x="score",
-            nbins=20,
-            color_discrete_sequence=["#0a8f79"],
-            labels={"score": "Security Score", "count": "Dominios"},
-            title="Distribución del Security Score en el evento",
-        )
-        fig_hist.add_vline(x=avg_score, line_dash="dash", line_color="red",
-                           annotation_text=f"Promedio: {avg_score}", annotation_position="top right")
-        fig_hist.update_layout(bargap=0.1)
-        st.plotly_chart(fig_hist, use_container_width=True, key="fig_hist")
-
-        st.divider()
-
-        # ── Event Security Map (scatter) ──────────────────────────────────────
-        st.subheader("🗺️ Mapa de seguridad del evento")
-        st.caption(
-            "X = Security Score (0-100) · Y = Señal de riesgo detectada en checks públicos · Color = Score  \n"
-            "⚠️ *Basado únicamente en checks pasivos de DNS y puertos TCP públicos. "
-            "No refleja controles internos como EDR, AV o XDR.*"
-        )
-
-        # Order Y axis categories for readability (worst → best)
-        category_order = {"risk": ["Email expuesto", "Score crítico", "Puertos expuestos", "Sin alertas DNS"]}
-
-        fig_map = px.scatter(
-            df_exp,
-            x="score",
-            y="risk",
-            color="score",
-            color_continuous_scale="RdYlGn",
-            range_color=[0, 100],
-            hover_name="empresa",
-            hover_data={
-                "domain": True,
-                "score": True,
-                "spf": True,
-                "dmarc": True,
-                "open_ports": True,
-                "risk": False,
-            },
-            labels={
-                "score": "Security Score",
-                "risk": "Categoría de riesgo",
-            },
-            title="Event Security Map — iSEC ThreatDown",
-            category_orders=category_order,
-            height=450,
-        )
-        fig_map.update_traces(marker=dict(size=14, opacity=0.85, line=dict(width=1, color="white")))
-        fig_map.update_layout(coloraxis_colorbar=dict(title="Score"))
-        st.plotly_chart(fig_map, use_container_width=True, key="fig_map")
-
-        st.divider()
-
-        # ── Tabla completa ───────────────────────────────────────────────────
-        st.subheader("📋 Todos los dominios analizados")
-        df_full = df_exp[["empresa", "domain", "score", "spf", "dmarc", "open_ports", "risk", "timestamp"]].copy()
-        df_full.columns = ["Empresa", "Dominio", "Score", "SPF", "DMARC", "Puertos abiertos", "Categoría", "Analizado"]
-        st.dataframe(df_full, use_container_width=True, height=400)
-
-        st.download_button(
-            "⬇️ Descargar reporte OSINT CSV",
-            data=to_csv(df_full),
-            file_name="osint_exposure_isec.csv",
-            mime="text/csv",
-        )
-
-# ────────────────────────────────────────────────────────────────────────────
-# TAB 6 — PROSPECTSCAN: ANÁLISIS ENRIQUECIDO DE DOMINIOS
-# ────────────────────────────────────────────────────────────────────────────
-with tab6:
-    import sys
     import concurrent.futures as _cf
     import dns.resolver as _dns_resolver
 
-    # ── Adaptadores locales (sustituyen ProspectScan/core.py) ────────────────
     _REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
     if _REPO_ROOT not in sys.path:
         sys.path.insert(0, _REPO_ROOT)
 
     _PS_MAX_WORKERS = 10
-
     _FREE_DOMAINS = {
         "gmail.com","googlemail.com","hotmail.com","hotmail.es","hotmail.mx",
         "outlook.com","outlook.es","outlook.mx","live.com","live.com.mx","live.mx",
@@ -574,20 +412,19 @@ with tab6:
         "ymail.com","msn.com",
     }
 
-    def es_dominio_corporativo(domain: str) -> bool:
+    def _es_corporativo(domain: str) -> bool:
         return domain.lower() not in _FREE_DOMAINS and "." in domain
 
-    def _get_mx_records(domain: str) -> list:
+    def _get_mx(domain: str) -> list:
         try:
-            answers = _dns_resolver.resolve(domain, "MX", lifetime=5)
-            return [str(r.exchange).rstrip(".").lower() for r in answers]
+            ans = _dns_resolver.resolve(domain, "MX", lifetime=5)
+            return [str(r.exchange).rstrip(".").lower() for r in ans]
         except Exception:
             return []
 
     def _get_spf_raw(domain: str) -> str:
         try:
-            answers = _dns_resolver.resolve(domain, "TXT", lifetime=5)
-            for rdata in answers:
+            for rdata in _dns_resolver.resolve(domain, "TXT", lifetime=5):
                 txt = b"".join(rdata.strings).decode("utf-8", errors="ignore")
                 if txt.startswith("v=spf1"):
                     return txt
@@ -595,90 +432,56 @@ with tab6:
             pass
         return ""
 
-    def _detectar_vendor(mx_records: list) -> str:
-        mx_str = " ".join(mx_records)
-        if any(x in mx_str for x in ["google.com", "googlemail.com", "aspmx"]):
-            return "Google Workspace"
-        if any(x in mx_str for x in ["mail.protection.outlook.com", "microsoft.com", "outlook.com"]):
-            return "Microsoft 365"
-        if "pphosted.com" in mx_str:
-            return "Proofpoint"
-        if "mimecast.com" in mx_str:
-            return "Mimecast"
-        if "barracudanetworks.com" in mx_str:
-            return "Barracuda"
-        if "messagelabs.com" in mx_str:
-            return "Symantec MessageLabs"
-        if "cisco.com" in mx_str or "ironport.com" in mx_str:
-            return "Cisco IronPort"
-        if "fortimail" in mx_str or "fortinet.com" in mx_str:
-            return "FortiMail"
-        if "sophos.com" in mx_str or "reflexion.net" in mx_str:
-            return "Sophos"
-        if "zoho.com" in mx_str:
-            return "Zoho Mail"
-        if "trendmicro.com" in mx_str or "imhs.trendmicro" in mx_str:
-            return "Trend Micro"
-        if "spamexperts.com" in mx_str:
-            return "SpamExperts"
-        if mx_records:
-            return "Otro"
-        return "Sin registros MX"
+    def _vendor(mx: list) -> str:
+        s = " ".join(mx)
+        if any(x in s for x in ["google.com","googlemail.com","aspmx"]):          return "Google Workspace"
+        if any(x in s for x in ["mail.protection.outlook.com","outlook.com"]):    return "Microsoft 365"
+        if "pphosted.com" in s:       return "Proofpoint"
+        if "mimecast.com" in s:       return "Mimecast"
+        if "barracudanetworks.com" in s: return "Barracuda"
+        if "messagelabs.com" in s:    return "Symantec MessageLabs"
+        if "ironport.com" in s:       return "Cisco IronPort"
+        if "fortimail" in s or "fortinet.com" in s: return "FortiMail"
+        if "sophos.com" in s or "reflexion.net" in s: return "Sophos"
+        if "trendmicro.com" in s:     return "Trend Micro"
+        if "spamexperts.com" in s:    return "SpamExperts"
+        if "zoho.com" in s:           return "Zoho Mail"
+        return "Otro" if mx else "Sin registros MX"
 
-    def _detectar_gateway(mx_records: list) -> str:
-        mx_str = " ".join(mx_records)
-        gateways = []
-        if "pphosted.com" in mx_str:
-            gateways.append("Proofpoint")
-        if "mimecast.com" in mx_str:
-            gateways.append("Mimecast")
-        if "barracudanetworks.com" in mx_str:
-            gateways.append("Barracuda")
-        if "messagelabs.com" in mx_str:
-            gateways.append("Symantec")
-        if "cisco.com" in mx_str or "ironport.com" in mx_str:
-            gateways.append("Cisco IronPort")
-        if "fortimail" in mx_str or "fortinet.com" in mx_str:
-            gateways.append("FortiMail")
-        if "sophos.com" in mx_str or "reflexion.net" in mx_str:
-            gateways.append("Sophos")
-        if "trendmicro.com" in mx_str:
-            gateways.append("Trend Micro")
-        if "spamexperts.com" in mx_str:
-            gateways.append("SpamExperts")
-        return ", ".join(gateways) if gateways else "Sin gateway"
+    def _gateway(mx: list) -> str:
+        s = " ".join(mx)
+        gw = []
+        if "pphosted.com" in s:       gw.append("Proofpoint")
+        if "mimecast.com" in s:       gw.append("Mimecast")
+        if "barracudanetworks.com" in s: gw.append("Barracuda")
+        if "messagelabs.com" in s:    gw.append("Symantec")
+        if "ironport.com" in s:       gw.append("Cisco IronPort")
+        if "fortimail" in s:          gw.append("FortiMail")
+        if "sophos.com" in s:         gw.append("Sophos")
+        if "trendmicro.com" in s:     gw.append("Trend Micro")
+        if "spamexperts.com" in s:    gw.append("SpamExperts")
+        return ", ".join(gw) if gw else "Sin gateway"
 
-    def _detectar_envio(spf_raw: str) -> str:
-        servicios = []
-        spf_lower = spf_raw.lower()
+    def _envio(spf_raw: str) -> str:
+        s = spf_raw.lower()
         checks = [
-            ("salesforce.com", "Salesforce"),
-            ("amazonses.com", "Amazon SES"),
-            ("_amazonses", "Amazon SES"),
-            ("sendgrid.net", "SendGrid"),
-            ("mandrillapp.com", "Mailchimp/Mandrill"),
-            ("mailchimp.com", "Mailchimp"),
-            ("hubspot.com", "HubSpot"),
-            ("mailgun.org", "Mailgun"),
-            ("sparkpostmail.com", "SparkPost"),
-            ("postmarkapp.com", "Postmark"),
-            ("constantcontact.com", "Constant Contact"),
-            ("zoho.com", "Zoho"),
-            ("marketo.net", "Marketo"),
-            ("exacttarget.com", "Salesforce Marketing Cloud"),
-            ("eloqua.com", "Oracle Eloqua"),
+            ("salesforce.com","Salesforce"), ("amazonses.com","Amazon SES"),
+            ("_amazonses","Amazon SES"), ("sendgrid.net","SendGrid"),
+            ("mandrillapp.com","Mailchimp/Mandrill"), ("mailchimp.com","Mailchimp"),
+            ("hubspot.com","HubSpot"), ("mailgun.org","Mailgun"),
+            ("sparkpostmail.com","SparkPost"), ("postmarkapp.com","Postmark"),
+            ("constantcontact.com","Constant Contact"), ("marketo.net","Marketo"),
+            ("exacttarget.com","Salesforce Mktg Cloud"), ("eloqua.com","Oracle Eloqua"),
         ]
-        seen = set()
-        for pattern, name in checks:
-            if pattern in spf_lower and name not in seen:
-                servicios.append(name)
-                seen.add(name)
-        return ", ".join(servicios) if servicios else "Sin servicios"
+        seen, out = set(), []
+        for pat, name in checks:
+            if pat in s and name not in seen:
+                out.append(name); seen.add(name)
+        return ", ".join(out) if out else "Sin servicios"
 
-    def _get_dmarc_policy(domain: str) -> str:
+    def _dmarc_policy(domain: str) -> str:
         try:
-            answers = _dns_resolver.resolve(f"_dmarc.{domain}", "TXT", lifetime=5)
-            for rdata in answers:
+            for rdata in _dns_resolver.resolve(f"_dmarc.{domain}", "TXT", lifetime=5):
                 txt = b"".join(rdata.strings).decode("utf-8", errors="ignore")
                 if "v=DMARC1" in txt:
                     for part in txt.split(";"):
@@ -689,204 +492,214 @@ with tab6:
             pass
         return "ausente"
 
-    def _get_domain_age(domain: str) -> str:
+    def _domain_age(domain: str) -> str:
         try:
             import whois as _whois
+            from datetime import datetime, timezone
             w = _whois.whois(domain)
-            creation = w.creation_date
-            if isinstance(creation, list):
-                creation = creation[0]
-            if creation:
-                from datetime import datetime, timezone
+            c = w.creation_date
+            if isinstance(c, list): c = c[0]
+            if c:
                 now = datetime.now(timezone.utc)
-                if creation.tzinfo is None:
-                    creation = creation.replace(tzinfo=timezone.utc)
-                years = (now - creation).days // 365
-                return f"{years} años"
+                if c.tzinfo is None: c = c.replace(tzinfo=timezone.utc)
+                return f"{(now - c).days // 365} años"
         except Exception:
             pass
         return "N/D"
 
-    def _calcular_postura(spf: bool, dmarc: bool, dmarc_policy: str, gateway: str) -> str:
-        tiene_gateway = gateway != "Sin gateway"
-        policy_ok = dmarc_policy in ("reject", "quarantine")
-        if spf and dmarc and policy_ok and tiene_gateway:
+    def _postura(spf: bool, dmarc: bool, policy: str, gw: str) -> str:
+        if spf and dmarc and policy in ("reject","quarantine") and gw != "Sin gateway":
             return "Avanzada"
         if spf and dmarc:
             return "Intermedia"
         return "Básica"
 
-    def analizar_dominio(domain: str) -> dict:
-        from osint.dns_checks import check_spf, check_dmarc
-        mx = _get_mx_records(domain)
+    def _analizar(domain: str) -> dict:
+        from osint.dns_checks import check_spf, check_dmarc, check_open_ports
+        mx      = _get_mx(domain)
         spf_raw = _get_spf_raw(domain)
-        spf = check_spf(domain)
-        dmarc = check_dmarc(domain)
-        dmarc_policy = _get_dmarc_policy(domain)
-        vendor = _detectar_vendor(mx)
-        gateway = _detectar_gateway(mx)
-        envio = _detectar_envio(spf_raw)
-        postura = _calcular_postura(spf, dmarc, dmarc_policy, gateway)
-        edad = _get_domain_age(domain)
+        spf     = check_spf(domain)
+        dmarc   = check_dmarc(domain)
+        policy  = _dmarc_policy(domain)
+        gw      = _gateway(mx)
+        ports   = check_open_ports(domain)
+        score   = 50
+        score  += 10 if spf else -5
+        score  += 15 if dmarc else -5
+        score  += 10 if policy in ("reject","quarantine") else (5 if policy == "none" else 0)
+        score  += 10 if gw != "Sin gateway" else 0
+        score  -= len(ports) * 3
+        score   = max(0, min(100, score))
         return {
-            "dominio": domain,
-            "vendor": vendor,
-            "gateway": gateway,
-            "envio": envio,
-            "spf": spf,
-            "dmarc": dmarc,
-            "dmarc_policy": dmarc_policy,
-            "postura": postura,
-            "edad_dominio": edad,
+            "dominio":      domain,
+            "vendor":       _vendor(mx),
+            "gateway":      gw,
+            "envio":        _envio(spf_raw),
+            "spf":          spf,
+            "dmarc":        dmarc,
+            "dmarc_policy": policy,
+            "open_ports":   ports,
+            "score":        score,
+            "postura":      _postura(spf, dmarc, policy, gw),
+            "edad_dominio": _domain_age(domain),
         }
 
-    def resultado_a_dict_ejecutivo(r: dict) -> dict:
-        return {
-            "Dominio": r["dominio"],
-            "Antigüedad": r.get("edad_dominio", "N/D"),
-            "Vendor de Correo": r["vendor"],
-            "Seguridad": r["gateway"],
-            "Envío": r["envio"],
-            "SPF": "OK" if r["spf"] else "Ausente",
-            "DMARC": "OK" if r["dmarc"] else "Ausente",
-            "Postura": r["postura"],
-        }
+    # ── Aviso legal ──────────────────────────────────────────────────────────
+    with st.expander("⚖️ Aviso legal y alcance", expanded=False):
+        st.markdown("""
+        **Uso exclusivamente informativo.** Checks **pasivos y públicos** de DNS (MX, SPF, DMARC, WHOIS)
+        y escaneo TCP básico. Sin acceso no autorizado ni actividad intrusiva.
 
-    def resultado_a_dict_tecnico(r: dict) -> dict:
-        return {
-            "Dominio": r["dominio"],
-            "Antigüedad": r.get("edad_dominio", "N/D"),
-            "SPF": "✅" if r["spf"] else "❌",
-            "DMARC": "✅" if r["dmarc"] else "❌",
-            "Política DMARC": r.get("dmarc_policy", "ausente"),
-            "Gateway de Seguridad": r["gateway"],
-            "Vendor de Correo": r["vendor"],
-            "Servicios de Envío": r["envio"],
-            "Postura": r["postura"],
-        }
+        - Scores y posturas son indicadores orientativos, no auditorías formales.
+        - Datos de empresas provienen de registros voluntarios al evento iSEC.
+        - Uso restringido al equipo de **Synapp Systems** y personal autorizado.
+        - **Synapp Systems no asume responsabilidad** por decisiones basadas en estos resultados.
 
-    _PS_DISPONIBLE = True
+        *De conformidad con la LFPDPPP y normativa aplicable en México.*
+        """)
 
-    if _PS_DISPONIBLE:
-        st.subheader("🎯 ProspectScan — Análisis enriquecido de dominios del evento")
-        st.caption(
-            "Vendor detection, postura de email (Avanzada / Intermedia / Básica), "
-            "antigüedad del dominio y detección de gateways de seguridad.  \n"
-            "⚠️ *Basado en checks pasivos de DNS/WHOIS públicos. No refleja controles internos.*"
+    # ── Cargar dominios ──────────────────────────────────────────────────────
+    @st.cache_data(ttl=60)
+    def _cargar_dominios_seg() -> list[dict]:
+        engine = get_engine()
+        with engine.connect() as conn:
+            rows = conn.execute(text(
+                "SELECT DISTINCT split_part(correo,'@',2) AS dominio, empresa "
+                "FROM event_prospects ORDER BY dominio"
+            )).fetchall()
+        return [{"dominio": r[0], "empresa": r[1]} for r in rows if _es_corporativo(r[0])]
+
+    dominios_info  = _cargar_dominios_seg()
+    dominios_lista = [d["dominio"] for d in dominios_info]
+    empresa_map    = {d["dominio"]: d["empresa"] for d in dominios_info}
+
+    st.info(f"📂 **{len(dominios_lista)}** dominios corporativos detectados en el evento")
+
+    if st.button("▶️ Ejecutar análisis completo", key="seg_run"):
+        progreso = st.progress(0)
+        estado   = st.empty()
+        resultados: list[dict] = []
+        with _cf.ThreadPoolExecutor(max_workers=_PS_MAX_WORKERS) as ex:
+            futuros = {ex.submit(_analizar, d): d for d in dominios_lista}
+            for i, fut in enumerate(_cf.as_completed(futuros)):
+                dom = futuros[fut]
+                try:
+                    resultados.append(fut.result())
+                except Exception as exc:
+                    st.warning(f"⚠️ Error en {dom}: {exc}")
+                progreso.progress((i + 1) / max(len(dominios_lista), 1))
+                estado.text(f"Analizando: {dom}")
+        estado.success("✅ Análisis completado")
+        st.session_state["seg_resultados"] = resultados
+
+    resultados = st.session_state.get("seg_resultados")
+
+    if resultados:
+        POSTURA_ICON = {"Avanzada": "🟢", "Intermedia": "🟡", "Básica": "🔴"}
+        COLOR_MAP    = {"Avanzada": "#22c55e", "Intermedia": "#eab308", "Básica": "#ef4444"}
+
+        df_r = pd.DataFrame(resultados)
+        df_r["empresa"] = df_r["dominio"].map(empresa_map).fillna(df_r["dominio"])
+
+        # ── KPIs ─────────────────────────────────────────────────────────────
+        posturas  = df_r["postura"].value_counts()
+        avg_score = round(df_r["score"].mean(), 1)
+        k1, k2, k3, k4, k5 = st.columns(5)
+        k1.metric("🌐 Dominios",       len(df_r))
+        k2.metric("📊 Score promedio", avg_score)
+        k3.metric("🟢 Avanzada",       int(posturas.get("Avanzada", 0)))
+        k4.metric("🟡 Intermedia",     int(posturas.get("Intermedia", 0)))
+        k5.metric("🔴 Básica",         int(posturas.get("Básica", 0)))
+
+        st.divider()
+
+        # ── Tabla maestra ─────────────────────────────────────────────────────
+        st.subheader("📋 Tabla maestra de seguridad")
+        df_show = df_r[[
+            "empresa","dominio","edad_dominio","vendor","gateway",
+            "spf","dmarc","dmarc_policy","envio","open_ports","score","postura"
+        ]].copy()
+        df_show["spf"]        = df_show["spf"].map({True:"✅", False:"❌"})
+        df_show["dmarc"]      = df_show["dmarc"].map({True:"✅", False:"❌"})
+        df_show["open_ports"] = df_show["open_ports"].apply(lambda p: ", ".join(map(str, p)) if p else "—")
+        df_show["postura"]    = df_show["postura"].apply(lambda p: f"{POSTURA_ICON.get(p,'')} {p}")
+        df_show.columns = [
+            "Empresa","Dominio","Antigüedad","Vendor","Gateway",
+            "SPF","DMARC","Política DMARC","Servicios Envío","Puertos","Score","Postura"
+        ]
+        st.dataframe(df_show, use_container_width=True, hide_index=True, height=420)
+
+        st.divider()
+
+        # ── Gráficas ──────────────────────────────────────────────────────────
+        gc1, gc2, gc3 = st.columns(3)
+        with gc1:
+            pos_df = df_r["postura"].value_counts().reset_index()
+            pos_df.columns = ["Postura","Dominios"]
+            fig_pos = px.bar(pos_df, x="Postura", y="Dominios", color="Postura",
+                             color_discrete_map=COLOR_MAP, text="Dominios",
+                             height=300, title="Postura de seguridad")
+            fig_pos.update_traces(textposition="outside")
+            fig_pos.update_layout(showlegend=False)
+            st.plotly_chart(fig_pos, use_container_width=True, key="fig_postura")
+        with gc2:
+            vend_df = df_r["vendor"].value_counts().reset_index()
+            vend_df.columns = ["Vendor","Dominios"]
+            fig_vend = px.pie(vend_df, names="Vendor", values="Dominios",
+                              title="Plataformas de correo", height=300)
+            st.plotly_chart(fig_vend, use_container_width=True, key="fig_vendor")
+        with gc3:
+            fig_hist = px.histogram(df_r, x="score", nbins=15,
+                                    color_discrete_sequence=["#0a8f79"],
+                                    title="Distribución de Score", height=300,
+                                    labels={"score":"Score","count":"Dominios"})
+            fig_hist.add_vline(x=avg_score, line_dash="dash", line_color="red",
+                               annotation_text=f"Prom: {avg_score}")
+            st.plotly_chart(fig_hist, use_container_width=True, key="fig_score")
+
+        st.divider()
+
+        # ── Event Security Map ────────────────────────────────────────────────
+        st.subheader("🗺️ Event Security Map")
+        st.caption("X = Score · Color = Postura · Hover = detalle  \n"
+                   "⚠️ *Checks pasivos DNS/puertos. No refleja controles internos (EDR, AV, XDR).*")
+        fig_map = px.scatter(
+            df_r, x="score", y="postura", color="postura",
+            color_discrete_map=COLOR_MAP, hover_name="empresa",
+            hover_data={"dominio":True,"score":True,"spf":True,"dmarc":True,
+                        "dmarc_policy":True,"gateway":True,"postura":False},
+            category_orders={"postura":["Básica","Intermedia","Avanzada"]},
+            labels={"score":"Security Score","postura":"Postura"},
+            title="Event Security Map — iSEC ThreatDown", height=380,
         )
+        fig_map.update_traces(marker=dict(size=14, opacity=0.85, line=dict(width=1, color="white")))
+        st.plotly_chart(fig_map, use_container_width=True, key="fig_map")
 
-        with st.expander("⚖️ Aviso legal y alcance del análisis", expanded=False):
-            st.markdown("""
-            **Uso exclusivamente informativo**
+        st.divider()
 
-            Los resultados se obtienen mediante consultas **pasivas y públicas** de DNS (MX, SPF, DMARC)
-            y registros WHOIS. No se realiza ningún acceso no autorizado ni actividad intrusiva.
+        # ── Top 10 más expuestos ──────────────────────────────────────────────
+        st.subheader("🔴 Top 10 — Mayor exposición (score más bajo)")
+        top10 = df_r.nsmallest(10, "score")[
+            ["empresa","dominio","score","spf","dmarc","dmarc_policy","gateway","postura"]
+        ].copy()
+        top10["spf"]   = top10["spf"].map({True:"✅", False:"❌"})
+        top10["dmarc"] = top10["dmarc"].map({True:"✅", False:"❌"})
+        top10.columns  = ["Empresa","Dominio","Score","SPF","DMARC","Política DMARC","Gateway","Postura"]
+        st.dataframe(top10, use_container_width=True, hide_index=True)
 
-            - La detección de vendors (Microsoft 365, Proofpoint, etc.) se basa en registros MX/SPF públicos;
-              no implica relación comercial ni afiliación con dichos proveedores.
-            - La **postura de seguridad** (Avanzada / Intermedia / Básica) es un indicador orientativo
-              calculado a partir de señales observables públicamente. No sustituye una auditoría formal.
-            - Los datos de empresas analizadas provienen de los registros voluntarios al evento iSEC.
-            - Uso restringido al equipo interno de **Synapp Systems** y personal autorizado.
-            - **Synapp Systems no asume responsabilidad** por decisiones basadas en estos resultados.
+        st.divider()
 
-            *De conformidad con la LFPDPPP y demás normativa aplicable en México.*
-            """)
-
-        # ── Cargar dominios desde Neon ────────────────────────────────────────
-        @st.cache_data(ttl=60)
-        def _ps_cargar_dominios() -> list:
-            engine = get_engine()
-            with engine.connect() as conn:
-                rows = conn.execute(
-                    text(
-                        "SELECT DISTINCT split_part(correo, '@', 2) AS dominio "
-                        "FROM event_prospects ORDER BY dominio"
-                    )
-                ).fetchall()
-            return [r[0] for r in rows if es_dominio_corporativo(r[0])]
-
-        dominios_ps = _ps_cargar_dominios()
-        st.info(f"📂 {len(dominios_ps)} dominios corporativos cargados desde Neon")
-
-        if st.button("▶️ Ejecutar análisis ProspectScan", key="ps_run"):
-            progreso = st.progress(0)
-            estado_txt = st.empty()
-            resultados_ps: list = []
-            with _cf.ThreadPoolExecutor(max_workers=_PS_MAX_WORKERS) as executor:
-                futuros = {executor.submit(analizar_dominio, d): d for d in dominios_ps}
-                for i, futuro in enumerate(_cf.as_completed(futuros)):
-                    dominio_ps = futuros[futuro]
-                    try:
-                        resultados_ps.append(futuro.result())
-                    except Exception as exc:
-                        st.warning(f"Error en {dominio_ps}: {exc}")
-                    progreso.progress((i + 1) / max(len(dominios_ps), 1))
-                    estado_txt.text(f"Analizando: {dominio_ps}")
-            estado_txt.text("✅ Análisis completado")
-            st.session_state["ps_resultados"] = resultados_ps
-
-        resultados_ps = st.session_state.get("ps_resultados")
-        if resultados_ps:
-            df_ps_eje = pd.DataFrame([resultado_a_dict_ejecutivo(r) for r in resultados_ps])
-            df_ps_tec = pd.DataFrame([resultado_a_dict_tecnico(r) for r in resultados_ps])
-
-            # KPIs
-            posturas = df_ps_eje["Postura"].value_counts()
-            pk1, pk2, pk3 = st.columns(3)
-            pk1.metric("🟢 Avanzada", int(posturas.get("Avanzada", 0)))
-            pk2.metric("🟡 Intermedia", int(posturas.get("Intermedia", 0)))
-            pk3.metric("🔴 Básica", int(posturas.get("Básica", 0)))
-
-            # Tabla con badge
-            POSTURA_ICON = {"Avanzada": "🟢", "Intermedia": "🟡", "Básica": "🔴"}
-            df_ps_show = df_ps_eje.copy()
-            df_ps_show["Postura"] = df_ps_show["Postura"].apply(
-                lambda p: f"{POSTURA_ICON.get(p, '')} {p}"
-            )
-            st.subheader("📋 Resumen ejecutivo por dominio")
-            st.dataframe(df_ps_show, use_container_width=True, hide_index=True)
-
-            # Gráficos
-            c_bar, c_pie = st.columns(2)
-            postura_df = df_ps_eje["Postura"].value_counts().reset_index()
-            postura_df.columns = ["Postura", "Dominios"]
-            color_map = {"Avanzada": "#22c55e", "Intermedia": "#eab308", "Básica": "#ef4444"}
-
-            with c_bar:
-                fig_bar = px.bar(
-                    postura_df, x="Postura", y="Dominios",
-                    color="Postura", color_discrete_map=color_map,
-                    text="Dominios", height=320, title="Distribución de postura",
-                )
-                fig_bar.update_traces(textposition="outside")
-                fig_bar.update_layout(showlegend=False)
-                st.plotly_chart(fig_bar, use_container_width=True, key="fig_ps_bar")
-
-            with c_pie:
-                vendor_df = df_ps_eje["Vendor de Correo"].value_counts().reset_index()
-                vendor_df.columns = ["Vendor", "Dominios"]
-                fig_pie = px.pie(
-                    vendor_df, names="Vendor", values="Dominios",
-                    title="Plataformas de correo detectadas", height=320,
-                )
-                st.plotly_chart(fig_pie, use_container_width=True, key="fig_ps_pie")
-
-            # Técnico expandible
-            with st.expander("🔧 Ver diagnóstico técnico completo"):
-                st.dataframe(df_ps_tec, use_container_width=True, hide_index=True)
-
-            # Descargas
-            dl1, dl2 = st.columns(2)
-            with dl1:
-                st.download_button(
-                    "📥 Resumen ejecutivo CSV",
-                    df_ps_eje.to_csv(index=False).encode("utf-8"),
-                    "prospectscan_ejecutivo.csv", "text/csv", key="ps_dl1",
-                )
-            with dl2:
-                st.download_button(
-                    "📥 Diagnóstico técnico CSV",
-                    df_ps_tec.to_csv(index=False).encode("utf-8"),
-                    "prospectscan_tecnico.csv", "text/csv", key="ps_dl2",
-                )
+        # ── Descargas ─────────────────────────────────────────────────────────
+        dl1, dl2 = st.columns(2)
+        with dl1:
+            st.download_button("📥 Descargar CSV",
+                df_show.to_csv(index=False).encode("utf-8-sig"),
+                "seguridad_isec.csv", "text/csv", key="seg_dl_csv")
+        with dl2:
+            buf = io.BytesIO()
+            with pd.ExcelWriter(buf, engine="openpyxl") as wr:
+                df_show.to_excel(wr, index=False, sheet_name="Seguridad")
+            st.download_button("📥 Descargar Excel", buf.getvalue(),
+                "seguridad_isec.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="seg_dl_xlsx")
