@@ -784,8 +784,33 @@ with tab5:
 
                 # Desglose del score
                 with st.expander("📊 Ver desglose del score"):
+                    st.markdown("""
+**Marco de referencia**
+
+El score se calcula con base en controles de seguridad de correo reconocidos internacionalmente:
+
+| Control | Estándar / RFC |
+|---------|---------------|
+| SPF | RFC 7208 — recomendado por NIST SP 800-177 y CIS Control 9 |
+| DMARC | RFC 7489 — recomendado por CISA, M3AAWG y NIST SP 800-177 |
+| Política DMARC (`reject`/`quarantine`) | CISA Binding Operational Directive 18-01 y M3AAWG Best Practices |
+| Gateway de seguridad de correo | CIS Control 9.7 — Bloqueo de email malicioso en perímetro |
+| Puertos TCP expuestos | CIS Control 4.4 — Gestión de puertos y servicios no necesarios |
+
+> **Nota:** Este score es un indicador orientativo de controles públicamente observables. No equivale a
+> una auditoría ISO 27001, PCI-DSS ni cualquier evaluación formal. Los resultados deben complementarse
+> con una evaluación profesional.
+                    """)
                     desglose = {
                         "Control": ["SPF", "DMARC", "Política DMARC", "Gateway de seguridad", "Puertos abiertos", "Base"],
+                        "Estándar de referencia": [
+                            "RFC 7208 / NIST SP 800-177",
+                            "RFC 7489 / CISA BOD 18-01",
+                            "CISA BOD 18-01 / M3AAWG",
+                            "CIS Control 9.7",
+                            "CIS Control 4.4",
+                            "—",
+                        ],
                         "Valor detectado": [
                             "Presente" if r["spf"] else "Ausente",
                             "Presente" if r["dmarc"] else "Ausente",
@@ -804,5 +829,5 @@ with tab5:
                         ]
                     }
                     df_desglose = pd.DataFrame(desglose)
-                    df_desglose.loc[len(df_desglose)] = ["**TOTAL**", "", score_sel]
+                    df_desglose.loc[len(df_desglose)] = ["**TOTAL**", "", "", score_sel]
                     st.dataframe(df_desglose, use_container_width=True, hide_index=True)
