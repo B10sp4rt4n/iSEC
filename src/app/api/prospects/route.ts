@@ -151,6 +151,26 @@ export async function POST(request: Request) {
       }).catch((err: unknown) => console.error("Resend error:", err));
     }
 
+    // Disparo asíncrono del reporte de seguridad (fire & forget — no bloquea la respuesta)
+    const scanSecret = process.env.SCAN_REPORT_SECRET;
+    const siteUrl = process.env.URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+    if (scanSecret) {
+      fetch(`${siteUrl}/api/scan-report`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-internal-secret": scanSecret,
+        },
+        body: JSON.stringify({
+          nombre: parsed.data.nombre,
+          empresa: parsed.data.empresa,
+          cargo: parsed.data.cargo,
+          correo: parsed.data.correo,
+          dolor_reto: parsed.data.dolor_reto,
+        }),
+      }).catch((err: unknown) => console.error("[prospects] scan-report fire error:", err));
+    }
+
     return NextResponse.json({ ok: true, id: inserted?.id ?? null }, { status: 201 });
   } catch (error) {
     console.error("Error al guardar prospecto", error);
