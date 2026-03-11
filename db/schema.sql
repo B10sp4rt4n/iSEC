@@ -2,6 +2,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE TABLE IF NOT EXISTS event_prospects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  folio SERIAL,
   nombre VARCHAR(120) NOT NULL,
   empresa VARCHAR(120) NOT NULL,
   cargo VARCHAR(120) NOT NULL,
@@ -24,7 +25,7 @@ CREATE TABLE IF NOT EXISTS event_raffle_winners (
   prospect_id UUID NOT NULL UNIQUE REFERENCES event_prospects(id) ON DELETE CASCADE,
   prize_position SMALLINT NOT NULL UNIQUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT chk_prize_position_range CHECK (prize_position BETWEEN 1 AND 3)
+  CONSTRAINT chk_prize_position_range CHECK (prize_position BETWEEN 1 AND 4)
 );
 
 CREATE INDEX IF NOT EXISTS idx_event_raffle_winners_position

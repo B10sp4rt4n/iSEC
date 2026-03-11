@@ -36,14 +36,30 @@ export async function ensureEventSchema(sql: ReturnType<typeof getSqlClient>) {
     ON event_prospects (correo);
   `;
 
+  // Agrega columna folio si no existe (consecutivo del sorteo)
+  await sql`
+    ALTER TABLE event_prospects
+    ADD COLUMN IF NOT EXISTS folio SERIAL;
+  `;
+
   await sql`
     CREATE TABLE IF NOT EXISTS event_raffle_winners (
       id UUID PRIMARY KEY,
       prospect_id UUID NOT NULL UNIQUE REFERENCES event_prospects(id) ON DELETE CASCADE,
       prize_position SMALLINT NOT NULL UNIQUE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      CONSTRAINT chk_prize_position_range CHECK (prize_position BETWEEN 1 AND 3)
+      CONSTRAINT chk_prize_position_range CHECK (prize_position BETWEEN 1 AND 4)
     );
+  `;
+
+  // Migra constraint de 3 a 4 lugares si ya existe la tabla
+  await sql`
+    ALTER TABLE event_raffle_winners
+    DROP CONSTRAINT IF EXISTS chk_prize_position_range;
+  `;
+  await sql`
+    ALTER TABLE event_raffle_winners
+    ADD CONSTRAINT chk_prize_position_range CHECK (prize_position BETWEEN 1 AND 4);
   `;
 
   await sql`
