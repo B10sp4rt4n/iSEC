@@ -181,9 +181,12 @@ function buildEmailHtml(
         <!-- ── Header ── -->
         <tr>
           <td style="background:#162036;padding:28px 36px">
-            <img src="https://registro.synappssys.com/logos/threatdown-logo.png"
-                 alt="ThreatDown by Malwarebytes" height="36"
-                 style="display:block;margin-bottom:16px" />
+            <div style="display:inline-block;background:#ffffff;border-radius:8px;
+                        padding:8px 16px;margin-bottom:20px">
+              <img src="https://registro.synappssys.com/logos/threatdown-logo.png"
+                   alt="ThreatDown by Malwarebytes" height="32"
+                   style="display:block" />
+            </div>
             <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;line-height:1.3">
               Reporte de Exposición DNS
             </h1>
