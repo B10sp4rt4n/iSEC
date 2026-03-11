@@ -188,7 +188,7 @@ export default function LeadForm() {
         </label>
 
         <label className="space-y-1 text-sm font-medium md:col-span-2">
-          Actualmente, ¿con que solucion de seguridad en endpoints cuentas?
+          1. ¿Qué riesgo te preocupa más en tu empresa?
           <select
             required
             name="pregunta_cerrada_1"
@@ -196,16 +196,16 @@ export default function LeadForm() {
             onChange={onChange}
             className="field"
           >
-            <option value="">Selecciona una opcion</option>
-            <option value="sin_solucion">No tengo ninguna solucion</option>
-            <option value="antivirus_tradicional">Solo antivirus tradicional</option>
-            <option value="edr_otro">EDR de otro proveedor</option>
-            <option value="no_se">No se que tengo actualmente</option>
+            <option value="">Selecciona una opción</option>
+            <option value="phishing">Phishing o correo malicioso</option>
+            <option value="ransomware">Ransomware</option>
+            <option value="visibilidad">Falta de visibilidad sobre equipos</option>
+            <option value="navegacion">Navegación o acceso a sitios riesgosos</option>
           </select>
         </label>
 
         <label className="space-y-1 text-sm font-medium md:col-span-2">
-          ¿Cuantos endpoints (equipos) necesitas proteger?
+          2. ¿Tu empresa tiene forma de detectar qué pasó dentro de un equipo cuando ocurre algo sospechoso?
           <select
             required
             name="pregunta_cerrada_2"
@@ -213,24 +213,28 @@ export default function LeadForm() {
             onChange={onChange}
             className="field"
           >
-            <option value="">Selecciona una opcion</option>
-            <option value="menos_50">Menos de 50 equipos</option>
-            <option value="50_200">50 a 200 equipos</option>
-            <option value="200_500">200 a 500 equipos</option>
-            <option value="mas_500">Mas de 500 equipos</option>
+            <option value="">Selecciona una opción</option>
+            <option value="si">Sí</option>
+            <option value="no">No</option>
+            <option value="no_seguro">No estoy seguro</option>
           </select>
         </label>
 
         <label className="space-y-1 text-sm font-medium md:col-span-2">
-          ¿Cual es tu principal preocupacion de seguridad en endpoints hoy?
-          <textarea
+          3. Cuando evalúan ciberseguridad, ¿qué pesa más para ustedes?
+          <select
             required
             name="dolor_reto"
             value={form.dolor_reto}
             onChange={onChange}
-            className="field min-h-28"
-            placeholder="Ej. ransomware, visibilidad de amenazas, cumplimiento, respuesta a incidentes..."
-          />
+            className="field"
+          >
+            <option value="">Selecciona una opción</option>
+            <option value="prevenir">Prevenir incidentes</option>
+            <option value="visibilidad_control">Tener visibilidad y control</option>
+            <option value="reducir_carga">Reducir carga operativa al equipo</option>
+            <option value="cumplimiento">Cumplimiento o tranquilidad para dirección</option>
+          </select>
         </label>
       </div>
 

@@ -48,7 +48,7 @@ const leadSchema = z.object({
   telefono: z.string().trim().max(40).optional().or(z.literal("")),
   pregunta_cerrada_1: z.string().trim().min(1).max(80),
   pregunta_cerrada_2: z.string().trim().min(1).max(80),
-  dolor_reto: z.string().trim().min(10).max(1000),
+  dolor_reto: z.string().trim().min(1).max(1000),
 });
 
 export async function POST(request: Request) {
