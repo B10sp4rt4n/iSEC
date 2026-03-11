@@ -8,6 +8,7 @@ type Winner = {
   nombre: string;
   empresa: string;
   correo: string;
+  folio?: number | null;
 };
 
 type DrawResponse = {
@@ -26,7 +27,7 @@ export default function SorteoControlPage() {
   const [status, setStatus] = useState("Ingresa tu clave para habilitar el boton de sorteo.");
 
   const canDraw = useMemo(
-    () => adminKey.trim().length > 0 && !busy && winners.length < 3,
+    () => adminKey.trim().length > 0 && !busy && winners.length < 4,
     [adminKey, busy, winners.length],
   );
 
@@ -118,7 +119,8 @@ export default function SorteoControlPage() {
             ) : (
               <ul className="space-y-2 text-sm text-slate-700">
                 {winners.map((winner) => (
-                  <li key={winner.prize_position}>
+                  <li key={winner.prize_position} className="flex items-center gap-2">
+                    <span className="font-bold text-[#162036]">#{String(winner.folio ?? "-").padStart(4, "0")}</span>
                     Premio {winner.prize_position}: {winner.nombre} ({winner.empresa})
                   </li>
                 ))}
