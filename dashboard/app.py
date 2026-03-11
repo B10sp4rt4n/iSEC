@@ -18,6 +18,15 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env.local"))
 load_dotenv()
 
+
+def _secret(key: str, default: str = "") -> str:
+    """Lee un secreto: primero st.secrets (Streamlit Cloud), luego os.environ."""
+    try:
+        return st.secrets[key]
+    except (KeyError, AttributeError, FileNotFoundError):
+        return os.environ.get(key, default)
+
+
 # ── Configuración de página ─────────────────────────────────────────────────
 st.set_page_config(
     page_title="iSEC Dashboard",
@@ -26,7 +35,7 @@ st.set_page_config(
 )
 
 # ── Autenticación ───────────────────────────────────────────────────────────
-DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "isec2026")
+DASHBOARD_PASSWORD = _secret("DASHBOARD_PASSWORD", "isec2026")
 
 def check_password() -> bool:
     if st.session_state.get("authenticated"):
