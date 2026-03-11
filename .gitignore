@@ -45,3 +45,6 @@ __pycache__/
 *.pyc
 *.pyo
 =2.6.0
+
+# Streamlit Cloud — secrets locales (nunca subir al repo)
+.streamlit/secrets.toml
