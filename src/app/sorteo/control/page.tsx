@@ -78,26 +78,35 @@ export default function SorteoControlPage() {
   }
 
   return (
-    <main className="mesh-bg min-h-screen p-6 md:p-12">
+    <main className="min-h-screen p-6 md:p-12" style={{background:"#0f172a"}}>
       <section className="mx-auto w-full max-w-3xl">
-        <article className="card rounded-3xl p-8 md:p-10">
-          <h1 className="title-font mb-2 text-3xl font-bold text-[#162036]">Control privado de sorteo</h1>
-          <p className="mb-6 text-sm text-slate-600">
-            Esta pantalla es solo para el organizador. Proyecta en publico la vista de 
-            <Link href="/sorteo" className="ml-1 font-semibold text-emerald-800 underline">
-              /sorteo
+
+        {/* Banda de identificación */}
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-yellow-400 bg-yellow-400/10 px-5 py-3">
+          <span className="text-2xl">🔐</span>
+          <div>
+            <p className="font-bold text-yellow-300 text-sm uppercase tracking-widest">Panel privado del organizador</p>
+            <p className="text-xs text-yellow-200/70">Pantalla interna — no proyectar al público</p>
+          </div>
+        </div>
+
+        <article className="rounded-3xl border border-slate-700 bg-slate-800 p-8 md:p-10">
+          <h1 className="mb-1 text-3xl font-bold text-white">Control de sorteo</h1>
+          <p className="mb-6 text-sm text-slate-400">
+            Proyecta en la pantalla grande la vista pública:&nbsp;
+            <Link href="/sorteo" className="font-semibold text-emerald-400 underline" target="_blank">
+              /sorteo ↗
             </Link>
-            .
           </p>
 
-          <label className="mb-4 block text-sm font-medium text-slate-700">
-            Clave de administrador (RAFFLE_ADMIN_KEY)
+          <label className="mb-5 block text-sm font-medium text-slate-300">
+            Clave de administrador
             <input
               type="password"
-              className="field mt-2"
+              className="mt-2 w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-400 focus:outline-none"
               value={adminKey}
               onChange={(e) => setAdminKey(e.target.value)}
-              placeholder="Ingresa tu clave"
+              placeholder="Ingresa tu RAFFLE_ADMIN_KEY"
             />
           </label>
 
@@ -105,23 +114,24 @@ export default function SorteoControlPage() {
             type="button"
             onClick={drawOneWinner}
             disabled={!canDraw}
-            className="btn-primary w-full px-6 py-3 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl bg-emerald-500 px-6 py-5 text-xl font-bold text-white shadow-lg transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {busy ? "Sorteando..." : "Sortear siguiente ganador"}
+            {busy ? "⏳ Sorteando..." : "🎲 Sortear siguiente ganador"}
           </button>
 
-          <p className="mt-4 text-sm text-slate-600">{status}</p>
+          <p className="mt-4 text-center text-sm text-slate-400">{status}</p>
 
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
-            <p className="mb-2 text-sm font-semibold text-emerald-700">Ganadores actuales</p>
+          <div className="mt-6 rounded-2xl border border-slate-600 bg-slate-900 p-5">
+            <p className="mb-3 text-sm font-semibold text-emerald-400">Ganadores sorteados</p>
             {winners.length === 0 ? (
-              <p className="text-sm text-slate-500">Aun no hay ganadores sorteados.</p>
+              <p className="text-sm text-slate-500">Aún no hay ganadores.</p>
             ) : (
-              <ul className="space-y-2 text-sm text-slate-700">
+              <ul className="space-y-2 text-sm text-slate-200">
                 {winners.map((winner) => (
-                  <li key={winner.prize_position} className="flex items-center gap-2">
-                    <span className="font-bold text-[#162036]">#{String(winner.folio ?? "-").padStart(4, "0")}</span>
-                    Premio {winner.prize_position}: {winner.nombre} ({winner.empresa})
+                  <li key={winner.prize_position} className="flex items-center gap-3 rounded-lg bg-slate-800 px-4 py-2">
+                    <span className="font-mono font-bold text-emerald-400">#{String(winner.folio ?? "-").padStart(4, "0")}</span>
+                    <span className="text-yellow-300 font-semibold">{winner.prize_position}°</span>
+                    {winner.nombre} — <span className="text-slate-400">{winner.empresa}</span>
                   </li>
                 ))}
               </ul>
