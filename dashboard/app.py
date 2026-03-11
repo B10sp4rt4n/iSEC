@@ -207,7 +207,7 @@ with tab1:
         fig = px.bar(emp.head(15), x="Registros", y="Empresa", orientation="h",
                      color="Registros", color_continuous_scale="Teal")
         fig.update_layout(yaxis={"categoryorder": "total ascending"}, height=420)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, key="fig_empresas")
 
     with col2:
         st.subheader("Registros por cargo")
@@ -216,7 +216,7 @@ with tab1:
         fig2 = px.pie(cargo.head(10), names="Cargo", values="Registros",
                       color_discrete_sequence=px.colors.sequential.Teal)
         fig2.update_traces(textposition="inside", textinfo="percent+label")
-        st.plotly_chart(fig2, use_container_width=True)
+        st.plotly_chart(fig2, use_container_width=True, key="fig_cargos")
 
     st.divider()
     col3, col4 = st.columns(2)
@@ -247,7 +247,7 @@ with tab1:
         fig3 = px.bar(p1, x="Respuesta", y="Votos",
                       color="Votos", color_continuous_scale="Teal", text="Votos")
         fig3.update_traces(textposition="outside")
-        st.plotly_chart(fig3, use_container_width=True)
+        st.plotly_chart(fig3, use_container_width=True, key="fig_p1")
 
     with col4:
         st.subheader("🔎 Pregunta 2: ¿Detectan actividad sospechosa en equipos?")
@@ -256,7 +256,7 @@ with tab1:
         fig4 = px.bar(p2, x="Respuesta", y="Votos",
                       color="Votos", color_continuous_scale="Teal", text="Votos")
         fig4.update_traces(textposition="outside")
-        st.plotly_chart(fig4, use_container_width=True)
+        st.plotly_chart(fig4, use_container_width=True, key="fig_p2")
 
     st.divider()
     st.subheader("🎯 Pregunta 3: ¿Qué pesa más al evaluar ciberseguridad?")
@@ -265,7 +265,7 @@ with tab1:
     fig_p3 = px.bar(p3, x="Prioridad", y="Votos",
                     color="Votos", color_continuous_scale="Teal", text="Votos")
     fig_p3.update_traces(textposition="outside")
-    st.plotly_chart(fig_p3, use_container_width=True)
+    st.plotly_chart(fig_p3, use_container_width=True, key="fig_p3")
 
     if total > 0:
         st.divider()
@@ -275,7 +275,7 @@ with tab1:
         hora_cnt.columns = ["Hora", "Registros"]
         fig5 = px.line(hora_cnt, x="Hora", y="Registros", markers=True,
                        color_discrete_sequence=["#0a8f79"])
-        st.plotly_chart(fig5, use_container_width=True)
+        st.plotly_chart(fig5, use_container_width=True, key="fig_horas")
 
 # ────────────────────────────────────────────────────────────────────────────
 # TAB 2 — BASE COMPLETA
@@ -465,7 +465,7 @@ with tab5:
         fig_hist.add_vline(x=avg_score, line_dash="dash", line_color="red",
                            annotation_text=f"Promedio: {avg_score}", annotation_position="top right")
         fig_hist.update_layout(bargap=0.1)
-        st.plotly_chart(fig_hist, use_container_width=True)
+        st.plotly_chart(fig_hist, use_container_width=True, key="fig_hist")
 
         st.divider()
 
@@ -506,7 +506,7 @@ with tab5:
         )
         fig_map.update_traces(marker=dict(size=14, opacity=0.85, line=dict(width=1, color="white")))
         fig_map.update_layout(coloraxis_colorbar=dict(title="Score"))
-        st.plotly_chart(fig_map, use_container_width=True)
+        st.plotly_chart(fig_map, use_container_width=True, key="fig_map")
 
         st.divider()
 
@@ -638,7 +638,7 @@ with tab6:
                 )
                 fig_bar.update_traces(textposition="outside")
                 fig_bar.update_layout(showlegend=False)
-                st.plotly_chart(fig_bar, use_container_width=True)
+                st.plotly_chart(fig_bar, use_container_width=True, key="fig_ps_bar")
 
             with c_pie:
                 vendor_df = df_ps_eje["Vendor de Correo"].value_counts().reset_index()
@@ -647,7 +647,7 @@ with tab6:
                     vendor_df, names="Vendor", values="Dominios",
                     title="Plataformas de correo detectadas", height=320,
                 )
-                st.plotly_chart(fig_pie, use_container_width=True)
+                st.plotly_chart(fig_pie, use_container_width=True, key="fig_ps_pie")
 
             # Técnico expandible
             with st.expander("🔧 Ver diagnóstico técnico completo"):
