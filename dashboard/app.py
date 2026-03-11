@@ -192,7 +192,7 @@ c3.metric("🏆 Ganadores del sorteo", ganadores)
 st.divider()
 
 # ── Tabs ────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Estadísticas", "📋 Base completa", "💬 Comentarios", "🏆 Ganadores", "🔍 OSINT", "🎯 ProspectScan"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Estadísticas", "📋 Base completa", "🎯 Prioridades", "🏆 Ganadores", "🔍 OSINT", "🎯 ProspectScan"])
 
 # ────────────────────────────────────────────────────────────────────────────
 # TAB 1 — ESTADÍSTICAS
@@ -221,9 +221,28 @@ with tab1:
     st.divider()
     col3, col4 = st.columns(2)
 
+    # Mapas de etiquetas para las respuestas
+    LABELS_P1 = {
+        "phishing": "Phishing o correo malicioso",
+        "ransomware": "Ransomware",
+        "visibilidad": "Falta de visibilidad",
+        "navegacion": "Navegación riesgosa",
+    }
+    LABELS_P2 = {
+        "si": "Sí",
+        "no": "No",
+        "no_seguro": "No estoy seguro",
+    }
+    LABELS_P3 = {
+        "prevenir": "Prevenir incidentes",
+        "visibilidad_control": "Visibilidad y control",
+        "reducir_carga": "Reducir carga operativa",
+        "cumplimiento": "Cumplimiento / Dirección",
+    }
+
     with col3:
-        st.subheader("Pregunta 1: ¿Tienes solución de endpoint?")
-        p1 = df["pregunta_cerrada_1"].value_counts().reset_index()
+        st.subheader("⚠️ Pregunta 1: ¿Qué riesgo te preocupa más?")
+        p1 = df["pregunta_cerrada_1"].map(LABELS_P1).fillna(df["pregunta_cerrada_1"]).value_counts().reset_index()
         p1.columns = ["Respuesta", "Votos"]
         fig3 = px.bar(p1, x="Respuesta", y="Votos",
                       color="Votos", color_continuous_scale="Teal", text="Votos")
@@ -231,13 +250,22 @@ with tab1:
         st.plotly_chart(fig3, use_container_width=True)
 
     with col4:
-        st.subheader("Pregunta 2: ¿Tu equipo atiende incidentes?")
-        p2 = df["pregunta_cerrada_2"].value_counts().reset_index()
+        st.subheader("🔎 Pregunta 2: ¿Detectan actividad sospechosa en equipos?")
+        p2 = df["pregunta_cerrada_2"].map(LABELS_P2).fillna(df["pregunta_cerrada_2"]).value_counts().reset_index()
         p2.columns = ["Respuesta", "Votos"]
         fig4 = px.bar(p2, x="Respuesta", y="Votos",
                       color="Votos", color_continuous_scale="Teal", text="Votos")
         fig4.update_traces(textposition="outside")
         st.plotly_chart(fig4, use_container_width=True)
+
+    st.divider()
+    st.subheader("🎯 Pregunta 3: ¿Qué pesa más al evaluar ciberseguridad?")
+    p3 = df["dolor_reto"].map(LABELS_P3).fillna(df["dolor_reto"]).value_counts().reset_index()
+    p3.columns = ["Prioridad", "Votos"]
+    fig_p3 = px.bar(p3, x="Prioridad", y="Votos",
+                    color="Votos", color_continuous_scale="Teal", text="Votos")
+    fig_p3.update_traces(textposition="outside")
+    st.plotly_chart(fig_p3, use_container_width=True)
 
     if total > 0:
         st.divider()
@@ -290,18 +318,25 @@ with tab2:
 # TAB 3 — COMENTARIOS / RETOS
 # ────────────────────────────────────────────────────────────────────────────
 with tab3:
-    st.subheader("Principales retos y comentarios de los prospectos")
-    buscar = st.text_input("🔍 Buscar en comentarios")
+    st.subheader("🎯 Prioridades declaradas por los prospectos")
+    buscar = st.text_input("🔍 Buscar")
 
+    LABELS_P3_TAB = {
+        "prevenir": "Prevenir incidentes",
+        "visibilidad_control": "Visibilidad y control",
+        "reducir_carga": "Reducir carga operativa",
+        "cumplimiento": "Cumplimiento / Tranquilidad para dirección",
+    }
     df_coments = df[["nombre", "empresa", "cargo", "dolor_reto", "created_at"]].copy()
+    df_coments["prioridad"] = df_coments["dolor_reto"].map(LABELS_P3_TAB).fillna(df_coments["dolor_reto"])
     if buscar:
-        df_coments = df_coments[df_coments["dolor_reto"].str.contains(buscar, case=False, na=False)]
+        df_coments = df_coments[df_coments["prioridad"].str.contains(buscar, case=False, na=False)]
 
-    st.caption(f"{len(df_coments)} comentarios encontrados")
+    st.caption(f"{len(df_coments)} registros encontrados")
 
     for _, row in df_coments.iterrows():
         with st.expander(f"**{row['nombre']}** — {row['empresa']} ({row['cargo']})"):
-            st.write(row["dolor_reto"])
+            st.write(f"🎯 {row['prioridad']}")
             st.caption(f"Registrado: {row['created_at'].strftime('%d/%m/%Y %H:%M')}")
 
 # ────────────────────────────────────────────────────────────────────────────
