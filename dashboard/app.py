@@ -77,6 +77,7 @@ def load_prospects() -> pd.DataFrame:
         df = pd.read_sql(
             text("""
                 SELECT
+                    p.folio,
                     p.nombre,
                     p.empresa,
                     p.cargo,
@@ -89,7 +90,7 @@ def load_prospects() -> pd.DataFrame:
                     CASE WHEN w.prospect_id IS NOT NULL THEN '🏆 Ganador' ELSE '' END AS ganador
                 FROM event_prospects p
                 LEFT JOIN event_raffle_winners w ON p.id = w.prospect_id
-                ORDER BY p.created_at DESC
+                ORDER BY p.folio ASC
             """),
             conn,
         )
@@ -323,6 +324,14 @@ with tab2:
         df_view = df_view[df_view["empresa"].str.contains(filtro_empresa, case=False, na=False)]
     if filtro_ganador:
         df_view = df_view[df_view["ganador"] == "🏆 Ganador"]
+
+    # Folio como primera columna, formateado con ceros
+    if "folio" in df_view.columns:
+        df_view["folio"] = df_view["folio"].apply(
+            lambda x: f"#{str(int(x)).zfill(4)}" if pd.notna(x) else "—"
+        )
+        cols = ["folio", "ganador"] + [c for c in df_view.columns if c not in ("folio", "ganador")]
+        df_view = df_view[cols]
 
     st.dataframe(df_view, use_container_width=True, height=420)
 
@@ -563,11 +572,15 @@ with tab5:
     def _cargar_dominios_seg() -> list[dict]:
         engine = get_engine()
         with engine.connect() as conn:
-            rows = conn.execute(text(
-                "SELECT DISTINCT split_part(correo,'@',2) AS dominio, empresa "
-                "FROM event_prospects ORDER BY dominio"
-            )).fetchall()
-        return [{"dominio": r[0], "empresa": r[1]} for r in rows if _es_corporativo(r[0])]
+            # Un solo registro por dominio (el más reciente) para evitar duplicados
+            rows = conn.execute(text("""
+                SELECT DISTINCT ON (split_part(correo,'@',2))
+                    split_part(correo,'@',2) AS dominio,
+                    empresa
+                FROM event_prospects
+                ORDER BY split_part(correo,'@',2), created_at DESC
+            """)).fetchall()
+        return [{'dominio': r[0], 'empresa': r[1]} for r in rows if _es_corporativo(r[0])]
 
     dominios_info  = _cargar_dominios_seg()
     dominios_lista = [d["dominio"] for d in dominios_info]
