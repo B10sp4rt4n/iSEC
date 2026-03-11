@@ -39,7 +39,14 @@ const CARGO_LABEL: Record<string, string> = {
   admin_sistemas: "Administrador de Sistemas",
   ingeniero_seguridad: "Ingeniero de Seguridad",
   analista_ti: "Analista de TI",
-  reseller: "Reseller / Canal",
+  reseller: "Consultor / Integrador Técnico",
+  reseller_ventas: "Ejecutivo de Ventas (Canal)",
+  reseller_preventa: "Preventa / Sales Engineer (Canal)",
+  reseller_gerente: "Gerente de Canal / Partner Manager",
+  vendor_am: "Account Manager (Vendor)",
+  vendor_se: "Sales Engineer (Vendor)",
+  vendor_channel: "Channel Manager (Fabricante)",
+  vendor_mktg: "Marketing / Desarrollo de Negocio (Vendor)",
   otro: "Otro",
 };
 
