@@ -192,7 +192,7 @@ c3.metric("🏆 Ganadores del sorteo", ganadores)
 st.divider()
 
 # ── Tabs ────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Estadísticas", "📋 Base completa", "💬 Comentarios", "🏆 Ganadores", "🔍 OSINT"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Estadísticas", "📋 Base completa", "💬 Comentarios", "🏆 Ganadores", "🔍 OSINT", "🎯 ProspectScan"])
 
 # ────────────────────────────────────────────────────────────────────────────
 # TAB 1 — ESTADÍSTICAS
@@ -465,3 +465,130 @@ with tab5:
             file_name="osint_exposure_isec.csv",
             mime="text/csv",
         )
+
+# ────────────────────────────────────────────────────────────────────────────
+# TAB 6 — PROSPECTSCAN: ANÁLISIS ENRIQUECIDO DE DOMINIOS
+# ────────────────────────────────────────────────────────────────────────────
+with tab6:
+    import sys
+    import concurrent.futures as _cf
+    _PROSPECTSCAN_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "ProspectScan")
+    _PROSPECTSCAN_PATH = os.path.normpath(_PROSPECTSCAN_PATH)
+    if _PROSPECTSCAN_PATH not in sys.path:
+        sys.path.insert(0, _PROSPECTSCAN_PATH)
+
+    try:
+        from core import (
+            analizar_dominio, resultado_a_dict_tecnico, resultado_a_dict_ejecutivo,
+            ResultadoAnalisis, es_dominio_corporativo, MAX_WORKERS as _PS_MAX_WORKERS,
+        )
+        _PS_DISPONIBLE = True
+    except ImportError as _e:
+        _PS_DISPONIBLE = False
+        st.error(f"❌ No se pudo importar ProspectScan/core.py: {_e}")
+
+    if _PS_DISPONIBLE:
+        st.subheader("🎯 ProspectScan — Análisis enriquecido de dominios del evento")
+        st.caption(
+            "Vendor detection, postura de email (Avanzada / Intermedia / Básica), "
+            "antigüedad del dominio y detección de gateways de seguridad.  \n"
+            "⚠️ *Basado en checks pasivos de DNS/WHOIS públicos. No refleja controles internos.*"
+        )
+
+        # ── Cargar dominios desde Neon ────────────────────────────────────────
+        @st.cache_data(ttl=60)
+        def _ps_cargar_dominios() -> list:
+            engine = get_engine()
+            with engine.connect() as conn:
+                rows = conn.execute(
+                    text(
+                        "SELECT DISTINCT split_part(correo, '@', 2) AS dominio "
+                        "FROM event_prospects ORDER BY dominio"
+                    )
+                ).fetchall()
+            return [r[0] for r in rows if es_dominio_corporativo(r[0])]
+
+        dominios_ps = _ps_cargar_dominios()
+        st.info(f"📂 {len(dominios_ps)} dominios corporativos cargados desde Neon")
+
+        if st.button("▶️ Ejecutar análisis ProspectScan", key="ps_run"):
+            progreso = st.progress(0)
+            estado_txt = st.empty()
+            resultados_ps: list = []
+            with _cf.ThreadPoolExecutor(max_workers=_PS_MAX_WORKERS) as executor:
+                futuros = {executor.submit(analizar_dominio, d): d for d in dominios_ps}
+                for i, futuro in enumerate(_cf.as_completed(futuros)):
+                    dominio_ps = futuros[futuro]
+                    try:
+                        resultados_ps.append(futuro.result())
+                    except Exception as exc:
+                        st.warning(f"Error en {dominio_ps}: {exc}")
+                    progreso.progress((i + 1) / max(len(dominios_ps), 1))
+                    estado_txt.text(f"Analizando: {dominio_ps}")
+            estado_txt.text("✅ Análisis completado")
+            st.session_state["ps_resultados"] = resultados_ps
+
+        resultados_ps = st.session_state.get("ps_resultados")
+        if resultados_ps:
+            df_ps_eje = pd.DataFrame([resultado_a_dict_ejecutivo(r) for r in resultados_ps])
+            df_ps_tec = pd.DataFrame([resultado_a_dict_tecnico(r) for r in resultados_ps])
+
+            # KPIs
+            posturas = df_ps_eje["Postura"].value_counts()
+            pk1, pk2, pk3 = st.columns(3)
+            pk1.metric("🟢 Avanzada", int(posturas.get("Avanzada", 0)))
+            pk2.metric("🟡 Intermedia", int(posturas.get("Intermedia", 0)))
+            pk3.metric("🔴 Básica", int(posturas.get("Básica", 0)))
+
+            # Tabla con badge
+            POSTURA_ICON = {"Avanzada": "🟢", "Intermedia": "🟡", "Básica": "🔴"}
+            df_ps_show = df_ps_eje.copy()
+            df_ps_show["Postura"] = df_ps_show["Postura"].apply(
+                lambda p: f"{POSTURA_ICON.get(p, '')} {p}"
+            )
+            st.subheader("📋 Resumen ejecutivo por dominio")
+            st.dataframe(df_ps_show, use_container_width=True, hide_index=True)
+
+            # Gráficos
+            c_bar, c_pie = st.columns(2)
+            postura_df = df_ps_eje["Postura"].value_counts().reset_index()
+            postura_df.columns = ["Postura", "Dominios"]
+            color_map = {"Avanzada": "#22c55e", "Intermedia": "#eab308", "Básica": "#ef4444"}
+
+            with c_bar:
+                fig_bar = px.bar(
+                    postura_df, x="Postura", y="Dominios",
+                    color="Postura", color_discrete_map=color_map,
+                    text="Dominios", height=320, title="Distribución de postura",
+                )
+                fig_bar.update_traces(textposition="outside")
+                fig_bar.update_layout(showlegend=False)
+                st.plotly_chart(fig_bar, use_container_width=True)
+
+            with c_pie:
+                vendor_df = df_ps_eje["Vendor de Correo"].value_counts().reset_index()
+                vendor_df.columns = ["Vendor", "Dominios"]
+                fig_pie = px.pie(
+                    vendor_df, names="Vendor", values="Dominios",
+                    title="Plataformas de correo detectadas", height=320,
+                )
+                st.plotly_chart(fig_pie, use_container_width=True)
+
+            # Técnico expandible
+            with st.expander("🔧 Ver diagnóstico técnico completo"):
+                st.dataframe(df_ps_tec, use_container_width=True, hide_index=True)
+
+            # Descargas
+            dl1, dl2 = st.columns(2)
+            with dl1:
+                st.download_button(
+                    "📥 Resumen ejecutivo CSV",
+                    df_ps_eje.to_csv(index=False).encode("utf-8"),
+                    "prospectscan_ejecutivo.csv", "text/csv", key="ps_dl1",
+                )
+            with dl2:
+                st.download_button(
+                    "📥 Diagnóstico técnico CSV",
+                    df_ps_tec.to_csv(index=False).encode("utf-8"),
+                    "prospectscan_tecnico.csv", "text/csv", key="ps_dl2",
+                )
