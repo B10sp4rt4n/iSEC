@@ -703,3 +703,106 @@ with tab5:
                 "seguridad_isec.xlsx",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 key="seg_dl_xlsx")
+
+        st.divider()
+
+        # ── Ficha individual por dominio ──────────────────────────────────────
+        st.subheader("🔎 Ficha de diagnóstico por dominio")
+        st.caption("Selecciona un dominio para ver la combinación exacta de controles y qué falta para subir de postura.")
+
+        opciones = sorted(df_r["dominio"].tolist())
+        dom_sel = st.selectbox("Dominio:", opciones, key="seg_dom_sel")
+
+        if dom_sel:
+            r = next((x for x in resultados if x["dominio"] == dom_sel), None)
+            if r:
+                empresa_sel = empresa_map.get(dom_sel, dom_sel)
+                postura_sel = r["postura"]
+                score_sel   = r["score"]
+                icon_pos    = POSTURA_ICON.get(postura_sel, "")
+
+                # Cabecera
+                col_h1, col_h2, col_h3 = st.columns([2, 1, 1])
+                col_h1.markdown(f"### 🏢 {empresa_sel}  \n`{dom_sel}`")
+                col_h2.metric("Score", f"{score_sel}/100")
+                col_h3.metric("Postura", f"{icon_pos} {postura_sel}")
+
+                st.divider()
+
+                # Controles detectados
+                ctrl_col1, ctrl_col2 = st.columns(2)
+                with ctrl_col1:
+                    st.markdown("**Controles detectados**")
+                    st.markdown(f"{'✅' if r['spf']   else '❌'} SPF")
+                    st.markdown(f"{'✅' if r['dmarc'] else '❌'} DMARC")
+                    policy_icon = "✅" if r["dmarc_policy"] in ("reject","quarantine") else ("⚠️" if r["dmarc_policy"] == "none" else "❌")
+                    st.markdown(f"{policy_icon} Política DMARC: **{r['dmarc_policy']}**")
+                    gw_icon = "✅" if r["gateway"] != "Sin gateway" else "❌"
+                    st.markdown(f"{gw_icon} Gateway de seguridad: **{r['gateway']}**")
+
+                with ctrl_col2:
+                    st.markdown("**Servicios detectados**")
+                    st.markdown(f"🏷️ Vendor: **{r['vendor']}**")
+                    st.markdown(f"📧 Servicios de envío: **{r['envio']}**")
+                    st.markdown(f"📅 Antigüedad del dominio: **{r.get('edad_dominio','N/D')}**")
+                    ports_str = ", ".join(map(str, r["open_ports"])) if r["open_ports"] else "Ninguno"
+                    st.markdown(f"🔌 Puertos abiertos: **{ports_str}**")
+
+                st.divider()
+
+                # Brecha hacia la siguiente postura
+                st.markdown("**📈 ¿Qué falta para subir de postura?**")
+                if postura_sel == "Avanzada":
+                    st.success("✅ Este dominio ya tiene postura Avanzada. Todos los controles críticos están activos.")
+                elif postura_sel == "Intermedia":
+                    faltante = []
+                    if r["dmarc_policy"] not in ("reject","quarantine"):
+                        faltante.append(f"Endurecer política DMARC a `reject` o `quarantine` (actual: `{r['dmarc_policy']}`)")
+                    if r["gateway"] == "Sin gateway":
+                        faltante.append("Implementar un gateway de seguridad de correo (Proofpoint, Mimecast, Barracuda, etc.)")
+                    if faltante:
+                        st.warning(f"Para llegar a **Avanzada** se requiere:")
+                        for f in faltante:
+                            st.markdown(f"  - {f}")
+                else:  # Básica
+                    faltante = []
+                    if not r["spf"]:
+                        faltante.append("Publicar registro **SPF** en el DNS del dominio")
+                    if not r["dmarc"]:
+                        faltante.append("Publicar registro **DMARC** (`_dmarc.dominio`) con política mínima `p=none`")
+                    if r["dmarc_policy"] not in ("reject","quarantine"):
+                        faltante.append(f"Endurecer política DMARC a `reject` o `quarantine` (actual: `{r['dmarc_policy']}`)")
+                    if r["gateway"] == "Sin gateway":
+                        faltante.append("Implementar gateway de seguridad de correo")
+                    st.error(f"Para llegar a **Intermedia** (mínimo recomendado):")
+                    for f in faltante[:2]:
+                        st.markdown(f"  - {f}")
+                    if len(faltante) > 2:
+                        st.warning("Para llegar a **Avanzada** además:")
+                        for f in faltante[2:]:
+                            st.markdown(f"  - {f}")
+
+                # Desglose del score
+                with st.expander("📊 Ver desglose del score"):
+                    desglose = {
+                        "Control": ["SPF", "DMARC", "Política DMARC", "Gateway de seguridad", "Puertos abiertos", "Base"],
+                        "Valor detectado": [
+                            "Presente" if r["spf"] else "Ausente",
+                            "Presente" if r["dmarc"] else "Ausente",
+                            r["dmarc_policy"],
+                            r["gateway"],
+                            f"{len(r['open_ports'])} puerto(s)",
+                            "—"
+                        ],
+                        "Puntos": [
+                            +10 if r["spf"] else -5,
+                            +15 if r["dmarc"] else -5,
+                            +10 if r["dmarc_policy"] in ("reject","quarantine") else (5 if r["dmarc_policy"] == "none" else 0),
+                            +10 if r["gateway"] != "Sin gateway" else 0,
+                            -len(r["open_ports"]) * 3,
+                            50,
+                        ]
+                    }
+                    df_desglose = pd.DataFrame(desglose)
+                    df_desglose.loc[len(df_desglose)] = ["**TOTAL**", "", score_sel]
+                    st.dataframe(df_desglose, use_container_width=True, hide_index=True)
