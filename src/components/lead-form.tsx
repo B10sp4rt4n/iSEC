@@ -137,14 +137,37 @@ export default function LeadForm() {
 
         <label className="space-y-1 text-sm font-medium">
           Cargo
-          <input
+          <select
             required
             name="cargo"
             value={form.cargo}
             onChange={onChange}
             className="field"
-            placeholder="Ej. Gerente de Operaciones"
-          />
+          >
+            <option value="">Selecciona tu cargo</option>
+            <optgroup label="Dirección / C-Level">
+              <option value="ciso">CISO / Director de Seguridad</option>
+              <option value="cio_cto">CIO / CTO / Director de TI</option>
+              <option value="director_ops">Director de Operaciones</option>
+              <option value="director_gral">Director General / CEO</option>
+            </optgroup>
+            <optgroup label="Gerencia / Jefatura">
+              <option value="gerente_ti">Gerente de TI / Infraestructura</option>
+              <option value="gerente_seguridad">Gerente de Seguridad</option>
+              <option value="jefe_ti">Jefe de TI / Soporte</option>
+            </optgroup>
+            <optgroup label="Técnico / Operativo">
+              <option value="admin_sistemas">Administrador de Sistemas / Redes</option>
+              <option value="ingeniero_seguridad">Ingeniero de Seguridad</option>
+              <option value="analista_ti">Analista / Técnico de TI</option>
+            </optgroup>
+            <optgroup label="Consultor / Reseller">
+              <option value="reseller">Consultor / Integrador / Reseller</option>
+            </optgroup>
+            <optgroup label="Otro">
+              <option value="otro">Otro</option>
+            </optgroup>
+          </select>
         </label>
 
         <label className="space-y-1 text-sm font-medium">
