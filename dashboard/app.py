@@ -237,7 +237,14 @@ with tab1:
             "admin_sistemas": "Admin. Sistemas / Redes",
             "ingeniero_seguridad": "Ing. de Seguridad",
             "analista_ti": "Analista / Técnico TI",
-            "reseller": "Consultor / Reseller",
+            "reseller": "Consultor / Integrador Técnico",
+            "reseller_ventas": "Ejecutivo de Ventas (Canal)",
+            "reseller_preventa": "Preventa / SE (Canal)",
+            "reseller_gerente": "Gerente de Canal",
+            "vendor_am": "Account Manager (Vendor)",
+            "vendor_se": "Sales Engineer (Vendor)",
+            "vendor_channel": "Channel Manager (Fabricante)",
+            "vendor_mktg": "Marketing / BizDev (Vendor)",
             "otro": "Otro",
         }
         cargo = df["cargo"].map(LABELS_CARGO).fillna(df["cargo"]).value_counts().reset_index()
