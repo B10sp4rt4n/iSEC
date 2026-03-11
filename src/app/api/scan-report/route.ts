@@ -354,10 +354,15 @@ function buildEmailHtml(
             </div>
 
             <!-- Footer -->
-            <p style="margin:20px 0 0;font-size:11px;color:#94a3b8;text-align:center;line-height:1.6">
-              Este mensaje fue generado automáticamente por SynAppsSys • iSEC Infosecurity<br>
-              Si no te registraste en nuestro evento, ignora este correo o contáctanos.
-            </p>
+            <div style="margin-top:24px;text-align:center">
+              <img src="https://registro.synappssys.com/logos/synappssys-logo.png"
+                   alt="SynAppsSys" height="36"
+                   style="display:inline-block;margin-bottom:8px" />
+              <p style="margin:0;font-size:11px;color:#94a3b8;line-height:1.6">
+                Este mensaje fue generado automáticamente por <strong>SynAppsSys</strong> • iSEC Infosecurity<br>
+                Si no te registraste en nuestro evento, ignora este correo o contáctanos.
+              </p>
+            </div>
           </td>
         </tr>
 
