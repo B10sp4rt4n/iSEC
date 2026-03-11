@@ -333,6 +333,28 @@ with tab4:
 with tab5:
     st.subheader("🔍 Análisis OSINT — Exposición de seguridad por dominio")
 
+    with st.expander("⚖️ Aviso legal y alcance del análisis", expanded=False):
+        st.markdown("""
+        **Uso exclusivamente informativo**
+
+        Los resultados de este módulo se obtienen mediante consultas **pasivas y públicas**
+        de registros DNS (SPF, DMARC, MX) y escaneo de puertos TCP accesibles desde Internet.
+        Ninguna acción intrusiva, acceso no autorizado ni interceptación de tráfico es realizada.
+
+        - La información mostrada proviene de fuentes públicas de libre acceso (DNS público, WHOIS).
+        - Los scores y categorías de riesgo son **indicadores orientativos**, no constituyen
+          una auditoría de seguridad formal ni un dictamen técnico-legal.
+        - Los datos de empresas y correos son los proporcionados voluntariamente por los propios
+          asistentes al evento iSEC al momento de su registro.
+        - El uso de esta herramienta está restringido al equipo interno de **Synapp Systems** y al
+          personal autorizado del evento. Queda prohibida su difusión o uso comercial sin autorización.
+        - **Synapp Systems no asume responsabilidad** por decisiones tomadas con base en estos
+          resultados. Se recomienda siempre complementar con una evaluación profesional certificada.
+
+        *De conformidad con la Ley Federal de Protección de Datos Personales en Posesión
+        de los Particulares (LFPDPPP) y demás normativa aplicable en México.*
+        """)
+
     # ── Run worker button ────────────────────────────────────────────────────
     st.caption(
         "El worker analiza dominios pendientes (extraídos de los correos registrados) "
@@ -494,6 +516,24 @@ with tab6:
             "antigüedad del dominio y detección de gateways de seguridad.  \n"
             "⚠️ *Basado en checks pasivos de DNS/WHOIS públicos. No refleja controles internos.*"
         )
+
+        with st.expander("⚖️ Aviso legal y alcance del análisis", expanded=False):
+            st.markdown("""
+            **Uso exclusivamente informativo**
+
+            Los resultados se obtienen mediante consultas **pasivas y públicas** de DNS (MX, SPF, DMARC)
+            y registros WHOIS. No se realiza ningún acceso no autorizado ni actividad intrusiva.
+
+            - La detección de vendors (Microsoft 365, Proofpoint, etc.) se basa en registros MX/SPF públicos;
+              no implica relación comercial ni afiliación con dichos proveedores.
+            - La **postura de seguridad** (Avanzada / Intermedia / Básica) es un indicador orientativo
+              calculado a partir de señales observables públicamente. No sustituye una auditoría formal.
+            - Los datos de empresas analizadas provienen de los registros voluntarios al evento iSEC.
+            - Uso restringido al equipo interno de **Synapp Systems** y personal autorizado.
+            - **Synapp Systems no asume responsabilidad** por decisiones basadas en estos resultados.
+
+            *De conformidad con la LFPDPPP y demás normativa aplicable en México.*
+            """)
 
         # ── Cargar dominios desde Neon ────────────────────────────────────────
         @st.cache_data(ttl=60)
