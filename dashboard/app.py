@@ -211,9 +211,23 @@ with tab1:
 
     with col2:
         st.subheader("Registros por cargo")
-        cargo = df["cargo"].value_counts().reset_index()
+        LABELS_CARGO = {
+            "ciso": "CISO / Dir. Seguridad",
+            "cio_cto": "CIO / CTO / Dir. TI",
+            "director_ops": "Director de Operaciones",
+            "director_gral": "Director General / CEO",
+            "gerente_ti": "Gerente de TI",
+            "gerente_seguridad": "Gerente de Seguridad",
+            "jefe_ti": "Jefe de TI / Soporte",
+            "admin_sistemas": "Admin. Sistemas / Redes",
+            "ingeniero_seguridad": "Ing. de Seguridad",
+            "analista_ti": "Analista / Técnico TI",
+            "reseller": "Consultor / Reseller",
+            "otro": "Otro",
+        }
+        cargo = df["cargo"].map(LABELS_CARGO).fillna(df["cargo"]).value_counts().reset_index()
         cargo.columns = ["Cargo", "Registros"]
-        fig2 = px.pie(cargo.head(10), names="Cargo", values="Registros",
+        fig2 = px.pie(cargo, names="Cargo", values="Registros",
                       color_discrete_sequence=px.colors.sequential.Teal)
         fig2.update_traces(textposition="inside", textinfo="percent+label")
         st.plotly_chart(fig2, use_container_width=True, key="fig_cargos")

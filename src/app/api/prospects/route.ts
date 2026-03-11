@@ -43,7 +43,12 @@ function isRateLimited(ip: string): boolean {
 const leadSchema = z.object({
   nombre: z.string().trim().min(2).max(120),
   empresa: z.string().trim().min(2).max(120),
-  cargo: z.string().trim().min(2).max(120),
+  cargo: z.enum([
+    "ciso", "cio_cto", "director_ops", "director_gral",
+    "gerente_ti", "gerente_seguridad", "jefe_ti",
+    "admin_sistemas", "ingeniero_seguridad", "analista_ti",
+    "reseller", "otro",
+  ]),
   correo: z.string().trim().email().max(180),
   telefono: z.string().trim().max(40).optional().or(z.literal("")),
   pregunta_cerrada_1: z.string().trim().min(1).max(80),
