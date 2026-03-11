@@ -120,10 +120,11 @@ export async function POST(request: Request) {
         ${parsed.data.pregunta_cerrada_2},
         ${parsed.data.dolor_reto}
       )
-      RETURNING id;
+      RETURNING id, folio;
     `;
 
     const inserted = Array.isArray(result) ? result[0] : null;
+    const folio = inserted?.folio ? String(inserted.folio).padStart(4, "0") : "—";
 
     // Correo de confirmación (no bloqueante — si falla no afecta el registro)
     const resendKey = process.env.RESEND_API_KEY;
@@ -136,12 +137,36 @@ export async function POST(request: Request) {
         subject: "Gracias por registrarte — iSEC Infosecurity | ThreatDown",
         html: `
           <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
-            <img src="https://registro.synappssys.com/logos/threatdown-logo.png"
-                 alt="ThreatDown" style="height:40px;margin-bottom:24px" />
-            <h2 style="color:#162036">Hola, ${parsed.data.nombre} 👋</h2>
-            <p>Recibimos tu registro correctamente. Un experto de
-            <strong>SynAppsSys</strong> se pondrá en contacto contigo
-            para darte seguimiento personalizado con <strong>ThreatDown</strong>.</p>
+            <div style="background:#ffffff;border-radius:8px;padding:8px 16px;
+                        display:inline-block;margin-bottom:24px;border:1px solid #e2e8f0">
+              <img src="https://registro.synappssys.com/logos/threatdown-logo.png"
+                   alt="ThreatDown" style="height:36px;display:block" />
+            </div>
+            <h2 style="color:#162036;margin:0 0 12px">Hola, ${parsed.data.nombre} 👋</h2>
+            <p style="color:#475569;line-height:1.6;margin:0 0 16px">
+              Recibimos tu registro correctamente. Un experto de
+              <strong>SynAppsSys</strong> se pondrá en contacto contigo
+              para darte seguimiento personalizado con <strong>ThreatDown</strong>.
+            </p>
+            <!-- Sorteo -->
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;
+                        padding:16px 20px;margin:20px 0">
+              <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#1d4ed8">
+                🎟️ Ya estás inscrito en el sorteo
+              </p>
+              <p style="margin:0 0 10px;font-size:13px;color:#1e3a5f;line-height:1.5">
+                Con tu registro participas automáticamente en el sorteo del evento
+                <strong>iSEC Infosecurity</strong>. Rifamos <strong>4 premios</strong>
+                (1°, 2°, 3° y 4° lugar). El ganador se anunciará durante la sesión.
+                ¡Buena suerte!
+              </p>
+              <div style="background:#162036;border-radius:8px;padding:14px 20px;text-align:center">
+                <p style="margin:0;font-size:11px;color:#94a3b8;text-transform:uppercase;
+                           letter-spacing:.08em;font-weight:600">Tu folio de participación</p>
+                <p style="margin:6px 0 0;font-size:32px;font-weight:800;color:#ffffff;
+                           letter-spacing:.1em">#${folio}</p>
+              </div>
+            </div>
             <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
             <p style="font-size:13px;color:#64748b">
               Si tienes dudas, responde este correo o escríbenos directamente.
