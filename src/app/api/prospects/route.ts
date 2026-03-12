@@ -132,7 +132,7 @@ export async function POST(request: Request) {
     const resendKey = process.env.RESEND_API_KEY;
     if (resendKey) {
       const resend = new Resend(resendKey);
-      const fromDomain = process.env.RESEND_FROM ?? "no-reply@registro.synappssys.com";
+      const fromDomain = process.env.RESEND_FROM ?? "analisis@send.synappssys.com";
       resend.emails.send({
         from: `iSEC Infosecurity <${fromDomain}>`,
         to: parsed.data.correo,

@@ -383,7 +383,7 @@ function buildEmailHtml(
         <!-- ── CTA ── -->
         <tr>
           <td style="padding:28px 36px 0;text-align:center">
-            <a href="https://calendly.com/salvador-ruiz-synappssys/30min?email=${encodeURIComponent(correo)}&name=${encodeURIComponent(nombre)}"
+            <a href="https://registro.synappssys.com/cal?email=${encodeURIComponent(correo)}&name=${encodeURIComponent(nombre)}"
                style="display:inline-block;background:#162036;color:#ffffff;
                       font-size:15px;font-weight:700;padding:16px 36px;
                       border-radius:8px;text-decoration:none;letter-spacing:.02em">
@@ -538,10 +538,10 @@ export async function POST(request: Request) {
   }
 
   const resend = new Resend(resendKey);
-  const fromDomain = process.env.RESEND_FROM ?? "no-reply@send.synappssys.com";
+  const fromDomain = process.env.RESEND_FROM ?? "analisis@send.synappssys.com";
 
   const { error: sendError } = await resend.emails.send({
-    from: `SynAppsSys Security <${fromDomain}>`,
+    from: `SynAppsSys Seguridad <${fromDomain}>`,
     to: correo,
     subject: `⚠️ Riesgo de phishing detectado en ${domain} — Reporte de seguridad`,
     html: buildEmailHtml(nombre, empresa, cargo, correo, domain, scan, aiParagraph),
