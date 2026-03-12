@@ -549,7 +549,7 @@ export async function POST(request: Request) {
   const { error: sendError } = await resend.emails.send({
     from: `SynAppsSys Seguridad <${fromDomain}>`,
     to: correo,
-    subject: `⚠️ Riesgo de phishing detectado en ${domain} — Reporte de seguridad`,
+    subject: `DNS Assessment iSEC 2026 — ${domain}`,
     html: buildEmailHtml(nombre, empresa, cargo, correo, domain, scan, aiParagraph),
   });
 
