@@ -151,6 +151,93 @@ export async function POST(request: Request) {
               para darte seguimiento personalizado con <strong>ThreatDown</strong>.
             </p>
 
+            <!-- Recursos del fabricante -->
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;
+                        padding:16px 20px;margin:0 0 24px">
+              <p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#162036;
+                        text-transform:uppercase;letter-spacing:.06em">
+                📚 Recursos de ThreatDown
+              </p>
+              <table cellpadding="0" cellspacing="0" style="width:100%">
+                <!-- Sitio web -->
+                <tr>
+                  <td colspan="2" style="padding:4px 0;font-size:12px;color:#64748b;
+                      font-weight:600;text-transform:uppercase;letter-spacing:.05em;
+                      padding-top:8px">Sitio web</td>
+                </tr>
+                <tr>
+                  <td style="padding:3px 8px 3px 0;font-size:13px">
+                    <a href="https://www.threatdown.com/"
+                       style="color:#1d4ed8;text-decoration:none">
+                      ¿Qué es ThreatDown?
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:3px 8px 3px 0;font-size:13px">
+                    <a href="https://www.threatdown.com/products-bundles/"
+                       style="color:#1d4ed8;text-decoration:none">
+                      Bundles y productos
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:3px 8px 3px 0;font-size:13px">
+                    <a href="https://www.threatdown.com/why-threatdown/"
+                       style="color:#1d4ed8;text-decoration:none">
+                      ¿Por qué ThreatDown?
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:3px 8px 3px 0;font-size:13px">
+                    <a href="https://www.threatdown.com/resources/"
+                       style="color:#1d4ed8;text-decoration:none">
+                      Recursos y datasheets
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:3px 8px 3px 0;font-size:13px">
+                    <a href="https://www.malwarebytes.com/blog/"
+                       style="color:#1d4ed8;text-decoration:none">
+                      Blog de ciberseguridad
+                    </a>
+                  </td>
+                </tr>
+                <!-- Datasheets -->
+                <tr>
+                  <td colspan="2" style="padding:4px 0;font-size:12px;color:#64748b;
+                      font-weight:600;text-transform:uppercase;letter-spacing:.05em;
+                      padding-top:12px">Datasheets</td>
+                </tr>
+                <tr>
+                  <td style="padding:3px 8px 3px 0;font-size:13px">
+                    <a href="https://www.threatdown.com/wp-content/uploads/2024/04/TD_EDR_Datasheet_v2.pdf"
+                       style="color:#1d4ed8;text-decoration:none">
+                      📄 ThreatDown EDR
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:3px 8px 3px 0;font-size:13px">
+                    <a href="https://www.threatdown.com/wp-content/uploads/2025/07/TD_Email_Security_Datasheet.pdf"
+                       style="color:#1d4ed8;text-decoration:none">
+                      📄 ThreatDown Email Security
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:3px 8px 3px 0;font-size:13px">
+                    <a href="https://www.threatdown.com/wp-content/uploads/2025/11/TD_MDR_Datasheet.pdf"
+                       style="color:#1d4ed8;text-decoration:none">
+                      📄 ThreatDown MDR
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </div>
+
             <!-- Firma Estela Cota -->
             <table cellpadding="0" cellspacing="0" style="font-size:13px;color:#1e293b;margin-bottom:24px">
               <tr>
