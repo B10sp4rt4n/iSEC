@@ -387,7 +387,7 @@ function buildEmailHtml(
                style="display:inline-block;background:#162036;color:#ffffff;
                       font-size:15px;font-weight:700;padding:16px 36px;
                       border-radius:8px;text-decoration:none;letter-spacing:.02em">
-              �️ Ver cómo ThreatDown hubiera bloqueado este ataque
+              Ver cómo ThreatDown hubiera bloqueado este ataque
             </a>
             <p style="margin:10px 0 0;font-size:11px;color:#94a3b8">
               Sesión de 30 min con un especialista — sin costo
