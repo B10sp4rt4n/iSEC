@@ -192,7 +192,7 @@ function buildEmailHtml(
             <div style="display:inline-block;background:#ffffff;border-radius:8px;
                         padding:8px 16px;margin-bottom:20px">
               <img src="https://registro.synappssys.com/logos/synappssys-logo.png"
-                   alt="SynAppsSys" height="32"
+                   alt="SynAppsSys" height="128"
                    style="display:block" />
             </div>
             <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;line-height:1.3">

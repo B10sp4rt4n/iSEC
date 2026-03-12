@@ -150,6 +150,34 @@ export async function POST(request: Request) {
               <strong>SynAppsSys</strong> se pondrá en contacto contigo
               para darte seguimiento personalizado con <strong>ThreatDown</strong>.
             </p>
+
+            <!-- Firma Estela Cota -->
+            <table cellpadding="0" cellspacing="0" style="font-size:13px;color:#1e293b;margin-bottom:24px">
+              <tr>
+                <td style="padding-right:16px;vertical-align:top">
+                  <img src="https://registro.synappssys.com/logos/threatdown-logo.png"
+                       alt="ThreatDown" style="height:28px;display:block;margin-bottom:6px"/>
+                </td>
+                <td style="border-left:3px solid #162036;padding-left:16px;vertical-align:top">
+                  <p style="margin:0;font-weight:700;color:#162036">Estela Cota</p>
+                  <p style="margin:2px 0 0;color:#475569">Territory Channel Account Manager, LATAM</p>
+                  <p style="margin:6px 0 0;color:#64748b">
+                    e: <a href="mailto:ecota@malwarebytes.com"
+                         style="color:#162036;text-decoration:none">ecota@malwarebytes.com</a>
+                  </p>
+                  <p style="margin:2px 0 0;color:#64748b">
+                    m: <a href="tel:+16198699089"
+                         style="color:#162036;text-decoration:none">+1 619 869 9089</a>
+                  </p>
+                  <p style="margin:2px 0 0;color:#94a3b8;font-size:11px">
+                    3979 Freedom Circle, 12th Floor, Santa Clara, CA 95054
+                  </p>
+                </td>
+              </tr>
+            </table>
+
+            <hr style="border:none;border-top:1px solid #e2e8f0;margin:0 0 20px"/>
+
             <!-- Sorteo -->
             <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;
                         padding:16px 20px;margin:20px 0">
@@ -169,31 +197,6 @@ export async function POST(request: Request) {
                            letter-spacing:.1em">#${folio}</p>
               </div>
             </div>
-            <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
-            <!-- Firma Estela Cota -->
-            <table cellpadding="0" cellspacing="0" style="font-size:13px;color:#1e293b">
-              <tr>
-                <td style="padding-right:16px;vertical-align:top">
-                  <img src="https://registro.synappssys.com/logos/threatdown-logo.png"
-                       alt="ThreatDown" style="height:28px;display:block;margin-bottom:6px"/>
-                </td>
-                <td style="border-left:3px solid #162036;padding-left:16px;vertical-align:top">
-                  <p style="margin:0;font-weight:700;color:#162036">Estela Cota</p>
-                  <p style="margin:2px 0 0;color:#475569">Territory Channel Account Manager, LATAM</p>
-                  <p style="margin:6px 0 0;color:#64748b">
-                    📧 <a href="mailto:ecota@malwarebytes.com"
-                         style="color:#162036;text-decoration:none">ecota@malwarebytes.com</a>
-                  </p>
-                  <p style="margin:2px 0 0;color:#64748b">
-                    📱 <a href="tel:+16198699089"
-                         style="color:#162036;text-decoration:none">+1 619 869 9089</a>
-                  </p>
-                  <p style="margin:2px 0 0;color:#94a3b8;font-size:11px">
-                    3979 Freedom Circle, 12th Floor, Santa Clara, CA 95054
-                  </p>
-                </td>
-              </tr>
-            </table>
           </div>
         `,
       }).catch((err: unknown) => console.error("Resend error:", err));
