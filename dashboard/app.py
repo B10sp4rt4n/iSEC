@@ -679,6 +679,62 @@ with tab5:
 
         st.divider()
 
+        # ── Bubble Chart: concentración de score por evento/mes ───────────────
+        st.subheader("🫧 Concentración de riesgo por evento")
+        st.caption("Tamaño del nodo = número de empresas en ese rango · Color = postura predominante")
+
+        @st.cache_data(ttl=300)
+        def _load_bubble_data():
+            url = _get_db_url()
+            if not url:
+                return pd.DataFrame()
+            sql_conn = neon(url)
+            rows = sql_conn("""
+                SELECT
+                    to_char(timestamp AT TIME ZONE 'America/Mexico_City', 'YYYY-MM') AS mes,
+                    CASE
+                        WHEN score <= 20 THEN '0–20'
+                        WHEN score <= 40 THEN '21–40'
+                        WHEN score <= 60 THEN '41–60'
+                        WHEN score <= 80 THEN '61–80'
+                        ELSE '81–100'
+                    END AS rango,
+                    CASE
+                        WHEN score <= 40 THEN 'Básica'
+                        WHEN score <= 65 THEN 'Intermedia'
+                        ELSE 'Avanzada'
+                    END AS postura,
+                    COUNT(*) AS empresas
+                FROM security_exposure
+                GROUP BY mes, rango, postura
+                ORDER BY mes, rango
+            """)
+            return pd.DataFrame(rows, columns=["Mes","Rango","Postura","Empresas"])
+
+        df_bub = _load_bubble_data()
+        if df_bub.empty:
+            st.info("Sin datos históricos aún. Aparecerá aquí después del primer análisis.")
+        else:
+            RANGO_ORDER = ["0–20","21–40","41–60","61–80","81–100"]
+            COLOR_BUB   = {"Básica":"#ef4444","Intermedia":"#eab308","Avanzada":"#22c55e"}
+            fig_bub = px.scatter(
+                df_bub,
+                x="Rango", y="Mes",
+                size="Empresas", color="Postura",
+                color_discrete_map=COLOR_BUB,
+                size_max=70,
+                category_orders={"Rango": RANGO_ORDER},
+                text="Empresas",
+                labels={"Rango":"Score de exposición","Mes":"Evento / Mes","Empresas":"Empresas"},
+                height=420,
+            )
+            fig_bub.update_traces(textposition="middle center",
+                                  textfont=dict(color="white", size=12, family="Arial Black"))
+            fig_bub.update_layout(legend_title_text="Postura")
+            st.plotly_chart(fig_bub, use_container_width=True, key="fig_bubble")
+
+        st.divider()
+
         # ── Event Security Map ────────────────────────────────────────────────
         st.subheader("🗺️ Event Security Map")
         st.caption("X = Score · Color = Postura · Hover = detalle  \n"
