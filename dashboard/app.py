@@ -784,8 +784,8 @@ with tab5:
                                annotation_text=f"Prom: {avg_score}")
             st.plotly_chart(fig_hist, use_container_width=True, key="fig_score")
 
-        # ── Score promedio por vendor  +  Distribución de riesgo ────────────
-        col_vs, col_pie = st.columns(2)
+        # ── Score por vendor · Distribución de riesgo · Heatmap SPF×DMARC ─────
+        col_vs, col_pie, col_hm = st.columns(3)
 
         with col_vs:
             vend_score = (
@@ -838,45 +838,34 @@ with tab5:
                 category_orders={"Rango": RANGO_ORDER_PIE},
                 height=380,
             )
-            fig_pie_score.update_traces(
-                textinfo="percent+label",
-                textposition="inside",
-                pull=[0.05]*5,
-            )
+            fig_pie_score.update_traces(textinfo="percent+label", textposition="inside", pull=[0.05]*5)
             fig_pie_score.update_layout(showlegend=True, legend_title_text="Rango de score")
             st.plotly_chart(fig_pie_score, use_container_width=True, key="fig_pie_score")
 
-        st.divider()
-
-        # ── Heatmap SPF × DMARC ───────────────────────────────────────────────
-        st.subheader("🔲 Cobertura SPF × DMARC")
-        st.caption("Cruce de presencia de SPF y DMARC — cada celda muestra el nº de empresas.")
-        _hm = (
-            df_r.assign(
-                SPF=df_r["spf"].map({True:"✅ Presente", False:"❌ Ausente"}),
-                DMARC=df_r["dmarc"].map({True:"✅ Presente", False:"❌ Ausente"}),
+        with col_hm:
+            _hm = (
+                df_r.assign(
+                    SPF=df_r["spf"].map({True:"✅ Presente", False:"❌ Ausente"}),
+                    DMARC=df_r["dmarc"].map({True:"✅ Presente", False:"❌ Ausente"}),
+                )
+                .groupby(["DMARC","SPF"])
+                .size()
+                .unstack(fill_value=0)
             )
-            .groupby(["DMARC","SPF"])
-            .size()
-            .unstack(fill_value=0)
-        )
-        # Asegurar ambas columnas existen
-        for _col in ["✅ Presente","❌ Ausente"]:
-            if _col not in _hm.columns:
-                _hm[_col] = 0
-        for _idx in ["✅ Presente","❌ Ausente"]:
-            if _idx not in _hm.index:
-                _hm.loc[_idx] = 0
-        _hm = _hm.loc[["✅ Presente","❌ Ausente"], ["✅ Presente","❌ Ausente"]]
-        fig_hm = px.imshow(
-            _hm, text_auto=True,
-            color_continuous_scale=["#dc2626","#fef08a","#22c55e"],
-            labels={"x":"SPF","y":"DMARC","color":"Empresas"},
-            title="Empresas por combinación SPF / DMARC",
-            height=320,
-        )
-        fig_hm.update_coloraxes(showscale=False)
-        st.plotly_chart(fig_hm, use_container_width=True, key="fig_heatmap")
+            for _col in ["✅ Presente","❌ Ausente"]:
+                if _col not in _hm.columns: _hm[_col] = 0
+            for _idx in ["✅ Presente","❌ Ausente"]:
+                if _idx not in _hm.index: _hm.loc[_idx] = 0
+            _hm = _hm.loc[["✅ Presente","❌ Ausente"], ["✅ Presente","❌ Ausente"]]
+            fig_hm = px.imshow(
+                _hm, text_auto=True,
+                color_continuous_scale=["#dc2626","#fef08a","#22c55e"],
+                labels={"x":"SPF","y":"DMARC","color":"Empresas"},
+                title="Cobertura SPF × DMARC",
+                height=380,
+            )
+            fig_hm.update_coloraxes(showscale=False)
+            st.plotly_chart(fig_hm, use_container_width=True, key="fig_heatmap")
 
         st.divider()
 
