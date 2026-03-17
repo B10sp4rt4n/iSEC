@@ -784,68 +784,67 @@ with tab5:
                                annotation_text=f"Prom: {avg_score}")
             st.plotly_chart(fig_hist, use_container_width=True, key="fig_score")
 
-        # ── Score promedio por vendor ─────────────────────────────────────────
-        vend_score = (
-            df_r.groupby("vendor")["score"]
-            .agg(["mean","count"])
-            .reset_index()
-            .rename(columns={"vendor":"Vendor","mean":"Score promedio","count":"Empresas"})
-            .sort_values("Score promedio", ascending=False)
-        )
-        vend_score["Score promedio"] = vend_score["Score promedio"].round(1)
-        vend_score["Etiqueta"] = vend_score.apply(
-            lambda r: f"{r['Score promedio']} ({int(r['Empresas'])} emp.)", axis=1
-        )
-        fig_vend_score = px.bar(
-            vend_score, x="Vendor", y="Score promedio",
-            color="Score promedio",
-            color_continuous_scale=["#dc2626","#eab308","#22c55e"],
-            range_color=[0, 100],
-            text="Etiqueta",
-            title="Score promedio por plataforma de correo",
-            height=320,
-            labels={"Score promedio":"Score promedio (0–100)"},
-        )
-        fig_vend_score.update_traces(textposition="outside")
-        fig_vend_score.update_layout(coloraxis_showscale=False, showlegend=False)
-        st.plotly_chart(fig_vend_score, use_container_width=True, key="fig_vend_score")
+        # ── Score promedio por vendor  +  Distribución de riesgo ────────────
+        col_vs, col_pie = st.columns(2)
 
-        st.divider()
+        with col_vs:
+            vend_score = (
+                df_r.groupby("vendor")["score"]
+                .agg(["mean","count"])
+                .reset_index()
+                .rename(columns={"vendor":"Vendor","mean":"Score promedio","count":"Empresas"})
+                .sort_values("Score promedio", ascending=False)
+            )
+            vend_score["Score promedio"] = vend_score["Score promedio"].round(1)
+            vend_score["Etiqueta"] = vend_score.apply(
+                lambda r: f"{r['Score promedio']} ({int(r['Empresas'])} emp.)", axis=1
+            )
+            fig_vend_score = px.bar(
+                vend_score, x="Vendor", y="Score promedio",
+                color="Score promedio",
+                color_continuous_scale=["#dc2626","#eab308","#22c55e"],
+                range_color=[0, 100],
+                text="Etiqueta",
+                title="Score promedio por plataforma",
+                height=380,
+                labels={"Score promedio":"Score promedio (0–100)"},
+            )
+            fig_vend_score.update_traces(textposition="outside")
+            fig_vend_score.update_layout(coloraxis_showscale=False, showlegend=False)
+            st.plotly_chart(fig_vend_score, use_container_width=True, key="fig_vend_score")
 
-        # ── Pie: distribución de score por rango ──────────────────────────────
-        st.subheader("🥧 Distribución de riesgo del evento")
-        st.caption("Proporción de empresas por rango de score DNS · Color = nivel de exposición")
-
-        df_pie = df_r.copy()
-        df_pie["Rango"] = pd.cut(
-            df_pie["score"],
-            bins=[0, 20, 40, 60, 80, 100],
-            labels=["0–20 Crítico","21–40 Alto","41–60 Medio","61–80 Bajo","81–100 Mínimo"],
-            include_lowest=True
-        )
-        pie_data = df_pie["Rango"].value_counts().reset_index()
-        pie_data.columns = ["Rango","Empresas"]
-        COLOR_PIE = {
-            "0–20 Crítico":  "#dc2626",
-            "21–40 Alto":    "#f97316",
-            "41–60 Medio":   "#eab308",
-            "61–80 Bajo":    "#22c55e",
-            "81–100 Mínimo": "#15803d",
-        }
-        RANGO_ORDER_PIE = ["0–20 Crítico","21–40 Alto","41–60 Medio","61–80 Bajo","81–100 Mínimo"]
-        fig_pie_score = px.pie(
-            pie_data, names="Rango", values="Empresas",
-            color="Rango", color_discrete_map=COLOR_PIE,
-            category_orders={"Rango": RANGO_ORDER_PIE},
-            height=380,
-        )
-        fig_pie_score.update_traces(
-            textinfo="percent+label",
-            textposition="inside",
-            pull=[0.05]*5,
-        )
-        fig_pie_score.update_layout(showlegend=True, legend_title_text="Rango de score")
-        st.plotly_chart(fig_pie_score, use_container_width=True, key="fig_pie_score")
+        with col_pie:
+            st.markdown("**🥧 Distribución de riesgo del evento**")
+            df_pie = df_r.copy()
+            df_pie["Rango"] = pd.cut(
+                df_pie["score"],
+                bins=[0, 20, 40, 60, 80, 100],
+                labels=["0–20 Crítico","21–40 Alto","41–60 Medio","61–80 Bajo","81–100 Mínimo"],
+                include_lowest=True
+            )
+            pie_data = df_pie["Rango"].value_counts().reset_index()
+            pie_data.columns = ["Rango","Empresas"]
+            COLOR_PIE = {
+                "0–20 Crítico":  "#dc2626",
+                "21–40 Alto":    "#f97316",
+                "41–60 Medio":   "#eab308",
+                "61–80 Bajo":    "#22c55e",
+                "81–100 Mínimo": "#15803d",
+            }
+            RANGO_ORDER_PIE = ["0–20 Crítico","21–40 Alto","41–60 Medio","61–80 Bajo","81–100 Mínimo"]
+            fig_pie_score = px.pie(
+                pie_data, names="Rango", values="Empresas",
+                color="Rango", color_discrete_map=COLOR_PIE,
+                category_orders={"Rango": RANGO_ORDER_PIE},
+                height=380,
+            )
+            fig_pie_score.update_traces(
+                textinfo="percent+label",
+                textposition="inside",
+                pull=[0.05]*5,
+            )
+            fig_pie_score.update_layout(showlegend=True, legend_title_text="Rango de score")
+            st.plotly_chart(fig_pie_score, use_container_width=True, key="fig_pie_score")
 
         st.divider()
 
