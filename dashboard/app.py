@@ -746,6 +746,32 @@ with tab5:
                                annotation_text=f"Prom: {avg_score}")
             st.plotly_chart(fig_hist, use_container_width=True, key="fig_score")
 
+        # ── Score promedio por vendor ─────────────────────────────────────────
+        vend_score = (
+            df_r.groupby("vendor")["score"]
+            .agg(["mean","count"])
+            .reset_index()
+            .rename(columns={"mean":"Score promedio","count":"Empresas"})
+            .sort_values("Score promedio", ascending=False)
+        )
+        vend_score["Score promedio"] = vend_score["Score promedio"].round(1)
+        vend_score["Etiqueta"] = vend_score.apply(
+            lambda r: f"{r['Score promedio']} ({int(r['Empresas'])} emp.)", axis=1
+        )
+        fig_vend_score = px.bar(
+            vend_score, x="Vendor", y="Score promedio",
+            color="Score promedio",
+            color_continuous_scale=["#dc2626","#eab308","#22c55e"],
+            range_color=[0, 100],
+            text="Etiqueta",
+            title="Score promedio por plataforma de correo",
+            height=320,
+            labels={"Score promedio":"Score promedio (0–100)"},
+        )
+        fig_vend_score.update_traces(textposition="outside")
+        fig_vend_score.update_layout(coloraxis_showscale=False, showlegend=False)
+        st.plotly_chart(fig_vend_score, use_container_width=True, key="fig_vend_score")
+
         st.divider()
 
         # ── Pie: distribución de score por rango ──────────────────────────────
