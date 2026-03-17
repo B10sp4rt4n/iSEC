@@ -632,6 +632,27 @@ with tab5:
         k4.metric("🟡 Intermedia",     int(posturas.get("Intermedia", 0)))
         k5.metric("🔴 Básica",         int(posturas.get("Básica", 0)))
 
+        # ── Alertas automáticas ───────────────────────────────────────────────
+        total_a      = len(df_r)
+        sin_ambos    = int(((~df_r["spf"]) & (~df_r["dmarc"])).sum())
+        criticos     = int((df_r["score"] < 20).sum())
+        puertos_exp  = int((df_r["open_ports"].apply(len) > 2).sum())
+        pct_sin_spf  = round((~df_r["spf"]).sum() / total_a * 100)
+        pct_sin_dmc  = round((~df_r["dmarc"]).sum() / total_a * 100)
+
+        if criticos:
+            st.error(f"🚨 **{criticos} dominio{'s' if criticos > 1 else ''} con score crítico (<20)** — riesgo de exposición severa.")
+        if sin_ambos:
+            st.error(f"🚨 **{sin_ambos} empresa{'s' if sin_ambos > 1 else ''} sin SPF ni DMARC** — completamente expuestas a spoofing.")
+        if pct_sin_spf >= 50:
+            st.warning(f"⚠️ **{pct_sin_spf}% de los dominios sin SPF** — más de la mitad sin autenticación básica de remitente.")
+        if pct_sin_dmc >= 50:
+            st.warning(f"⚠️ **{pct_sin_dmc}% de los dominios sin DMARC** — sin política de rechazo/cuarentena de correo falso.")
+        if puertos_exp:
+            st.warning(f"⚠️ **{puertos_exp} dominio{'s' if puertos_exp > 1 else ''} con más de 2 puertos TCP expuestos** — superficie de ataque ampliada.")
+        if criticos == 0 and sin_ambos == 0 and pct_sin_spf < 50 and pct_sin_dmc < 50 and puertos_exp == 0:
+            st.success("✅ Sin alertas críticas en este conjunto de dominios.")
+
         st.divider()
 
         # ── Resumen ejecutivo ─────────────────────────────────────────────────
