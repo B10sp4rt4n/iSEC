@@ -694,13 +694,27 @@ with tab5:
             "empresa","dominio","edad_dominio","vendor","gateway",
             "spf","dmarc","dmarc_policy","envio","open_ports","score","postura"
         ]].copy()
+
+        # Delta score vs. último registro en security_exposure
+        try:
+            _prev = load_exposure()[["domain","score"]].set_index("domain")["score"].to_dict()
+        except Exception:
+            _prev = {}
+        def _delta_label(row):
+            prev = _prev.get(row["dominio"])
+            if prev is None:
+                return "—"
+            d = int(row["score"]) - int(prev)
+            return f"↑ +{d}" if d > 0 else (f"↓ {d}" if d < 0 else "= 0")
+        df_show["delta"] = df_show.apply(_delta_label, axis=1)
+
         df_show["spf"]        = df_show["spf"].map({True:"✅", False:"❌"})
         df_show["dmarc"]      = df_show["dmarc"].map({True:"✅", False:"❌"})
         df_show["open_ports"] = df_show["open_ports"].apply(lambda p: ", ".join(map(str, p)) if p else "—")
         df_show["postura"]    = df_show["postura"].apply(lambda p: f"{POSTURA_ICON.get(p,'')} {p}")
         df_show.columns = [
             "Empresa","Dominio","Antigüedad","Vendor","Gateway",
-            "SPF","DMARC","Política DMARC","Servicios Envío","Puertos","Score","Postura"
+            "SPF","DMARC","Política DMARC","Servicios Envío","Puertos","Score","Postura","Δ Score"
         ]
         st.dataframe(df_show, use_container_width=True, hide_index=True, height=420)
 
