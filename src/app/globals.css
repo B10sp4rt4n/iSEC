@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&family=Space+Grotesk:wght@300..700&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -8,6 +9,8 @@
   --accent: #0a8f79;
   --accent-strong: #066d5c;
   --ring: rgba(10, 143, 121, 0.26);
+  --font-manrope: 'Manrope', sans-serif;
+  --font-space-grotesk: 'Space Grotesk', sans-serif;
 }
 
 @theme inline {

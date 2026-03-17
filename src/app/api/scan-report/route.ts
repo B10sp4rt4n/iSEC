@@ -176,6 +176,19 @@ function buildEmailHtml(
   const barColor =
     scan.score >= 70 ? "#16a34a" : scan.score >= 45 ? "#ca8a04" : "#dc2626";
 
+  // DMARC policy scoring helpers
+  const isStrongPolicy = scan.dmarc && (scan.dmarcPolicy === "reject" || scan.dmarcPolicy === "quarantine");
+  const isMonitorPolicy = scan.dmarc && scan.dmarcPolicy === "none";
+  const policyPts = isStrongPolicy ? "+10" : isMonitorPolicy ? "+5" : "0";
+  const policyColor = isStrongPolicy ? "#16a34a" : isMonitorPolicy ? "#ca8a04" : "#94a3b8";
+  const policyDetail = scan.dmarcPolicy === "reject"
+    ? "Máxima protección — correos no autenticados rechazados"
+    : scan.dmarcPolicy === "quarantine"
+      ? "Protección media — correos van a spam"
+      : scan.dmarc
+        ? "Política p=none — solo monitoreo, sin bloqueo"
+        : "No aplica";
+
   return `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -273,6 +286,7 @@ function buildEmailHtml(
                 <tr style="background:#f1f5f9">
                   <th style="padding:10px 14px;text-align:left;color:#64748b;font-weight:600">Control</th>
                   <th style="padding:10px 14px;text-align:left;color:#64748b;font-weight:600">Estado</th>
+                  <th style="padding:10px 14px;text-align:left;color:#64748b;font-weight:600">Ponderación</th>
                   <th style="padding:10px 14px;text-align:left;color:#64748b;font-weight:600">Detalle</th>
                 </tr>
               </thead>
@@ -280,6 +294,9 @@ function buildEmailHtml(
                 <tr style="border-top:1px solid #e2e8f0">
                   <td style="padding:10px 14px;color:#1e293b;font-weight:600">SPF</td>
                   <td style="padding:10px 14px">${checkIcon(scan.spf)}</td>
+                  <td style="padding:10px 14px;font-size:12px;font-weight:700;color:${scan.spf ? "#16a34a" : "#dc2626"}">
+                    ${scan.spf ? "+10" : "−5"}/10 pts
+                  </td>
                   <td style="padding:10px 14px;color:#64748b;font-size:12px">
                     ${scan.spf ? "Registro v=spf1 encontrado" : "Sin política de remitentes autorizados"}
                   </td>
@@ -287,6 +304,9 @@ function buildEmailHtml(
                 <tr style="border-top:1px solid #e2e8f0;background:#fafafa">
                   <td style="padding:10px 14px;color:#1e293b;font-weight:600">DMARC</td>
                   <td style="padding:10px 14px">${checkIcon(scan.dmarc)}</td>
+                  <td style="padding:10px 14px;font-size:12px;font-weight:700;color:${scan.dmarc ? "#16a34a" : "#dc2626"}">
+                    ${scan.dmarc ? "+15" : "−5"}/15 pts
+                  </td>
                   <td style="padding:10px 14px;color:#64748b;font-size:12px">
                     ${scan.dmarc ? "Registro v=DMARC1 encontrado" : "Sin política de autenticación de correo"}
                   </td>
@@ -294,27 +314,28 @@ function buildEmailHtml(
                 <tr style="border-top:1px solid #e2e8f0">
                   <td style="padding:10px 14px;color:#1e293b;font-weight:600">Política DMARC</td>
                   <td style="padding:10px 14px">${policyTag}</td>
+                  <td style="padding:10px 14px;font-size:12px;font-weight:700;color:${policyColor}">
+                    ${policyPts}/10 pts
+                  </td>
                   <td style="padding:10px 14px;color:#64748b;font-size:12px">
-                    ${
-                      scan.dmarcPolicy === "reject"
-                        ? "Máxima protección — correos no autenticados rechazados"
-                        : scan.dmarcPolicy === "quarantine"
-                          ? "Protección media — correos van a spam"
-                          : scan.dmarc
-                            ? "Política p=none — solo monitoreo, sin bloqueo"
-                            : "No aplica"
-                    }
+                    ${policyDetail}
                   </td>
                 </tr>
                 <tr style="border-top:1px solid #e2e8f0;background:#fafafa">
                   <td style="padding:10px 14px;color:#1e293b;font-weight:600">Gateway de correo</td>
                   <td style="padding:10px 14px">${gatewayTag}</td>
+                  <td style="padding:10px 14px;font-size:12px;font-weight:700;color:${scan.gateway ? "#16a34a" : "#94a3b8"}">
+                    ${scan.gateway ? "+10" : "0"}/10 pts
+                  </td>
                   <td style="padding:10px 14px;color:#64748b;font-size:12px">
                     ${scan.gateway ? "Solución de filtrado detectada vía MX" : "Sin gateway de seguridad identificado"}
                   </td>
                 </tr>
               </tbody>
             </table>
+            <p style="margin:8px 0 0;font-size:11px;color:#94a3b8">
+              Puntuación base: 50 pts · Máximo alcanzable: 95 pts · Total obtenido: ${scan.score}/100
+            </p>
           </td>
         </tr>
 
