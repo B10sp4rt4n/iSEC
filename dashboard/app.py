@@ -768,6 +768,7 @@ with tab5:
                              height=300, title="Postura de seguridad")
             fig_pos.update_traces(textposition="outside")
             fig_pos.update_layout(showlegend=False)
+            fig_pos.update_yaxes(range=[0, pos_df["Dominios"].max() * 1.25])
             st.plotly_chart(fig_pos, use_container_width=True, key="fig_postura")
         with gc2:
             vend_df = df_r["vendor"].value_counts().reset_index()
