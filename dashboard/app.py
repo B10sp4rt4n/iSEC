@@ -811,6 +811,38 @@ with tab5:
 
         st.divider()
 
+        # ── Heatmap SPF × DMARC ───────────────────────────────────────────────
+        st.subheader("🔲 Cobertura SPF × DMARC")
+        st.caption("Cruce de presencia de SPF y DMARC — cada celda muestra el nº de empresas.")
+        _hm = (
+            df_r.assign(
+                SPF=df_r["spf"].map({True:"✅ Presente", False:"❌ Ausente"}),
+                DMARC=df_r["dmarc"].map({True:"✅ Presente", False:"❌ Ausente"}),
+            )
+            .groupby(["DMARC","SPF"])
+            .size()
+            .unstack(fill_value=0)
+        )
+        # Asegurar ambas columnas existen
+        for _col in ["✅ Presente","❌ Ausente"]:
+            if _col not in _hm.columns:
+                _hm[_col] = 0
+        for _idx in ["✅ Presente","❌ Ausente"]:
+            if _idx not in _hm.index:
+                _hm.loc[_idx] = 0
+        _hm = _hm.loc[["✅ Presente","❌ Ausente"], ["✅ Presente","❌ Ausente"]]
+        fig_hm = px.imshow(
+            _hm, text_auto=True,
+            color_continuous_scale=["#dc2626","#fef08a","#22c55e"],
+            labels={"x":"SPF","y":"DMARC","color":"Empresas"},
+            title="Empresas por combinación SPF / DMARC",
+            height=320,
+        )
+        fig_hm.update_coloraxes(showscale=False)
+        st.plotly_chart(fig_hm, use_container_width=True, key="fig_heatmap")
+
+        st.divider()
+
         # ── Event Security Map ────────────────────────────────────────────────
         st.subheader("🗺️ Event Security Map")
         st.caption("X = Score · Color = Postura · Hover = detalle  \n"
