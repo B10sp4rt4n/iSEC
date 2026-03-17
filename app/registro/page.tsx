@@ -28,24 +28,37 @@ interface FieldErrors {
 // (easy to update per event without touching the rest of the code)
 // ---------------------------------------------------------------------------
 
-const PREGUNTA_CERRADA_1 = {
+interface QuestionOption {
+  label: string;
+  score: number;
+}
+
+interface ClosedQuestion {
+  label: string;
+  maxScore: number;
+  options: QuestionOption[];
+}
+
+const PREGUNTA_CERRADA_1: ClosedQuestion = {
   label: "¿Cuál es el tamaño de tu empresa?",
+  maxScore: 10,
   options: [
-    "1 – 10 empleados",
-    "11 – 50 empleados",
-    "51 – 200 empleados",
-    "Más de 200 empleados",
+    { label: "1 – 10 empleados", score: 2 },
+    { label: "11 – 50 empleados", score: 5 },
+    { label: "51 – 200 empleados", score: 8 },
+    { label: "Más de 200 empleados", score: 10 },
   ],
 };
 
-const PREGUNTA_CERRADA_2 = {
+const PREGUNTA_CERRADA_2: ClosedQuestion = {
   label: "¿En qué área usas o te interesa usar tecnología?",
+  maxScore: 15,
   options: [
-    "Finanzas y Contabilidad",
-    "Operaciones y Logística",
-    "Ventas y CRM",
-    "Recursos Humanos",
-    "Toda la empresa (ERP)",
+    { label: "Finanzas y Contabilidad", score: 10 },
+    { label: "Operaciones y Logística", score: 10 },
+    { label: "Ventas y CRM", score: 11 },
+    { label: "Recursos Humanos", score: 10 },
+    { label: "Toda la empresa (ERP)", score: 15 },
   ],
 };
 
@@ -269,6 +282,7 @@ export default function RegistroPage() {
             <RadioGroup
               label={`${PREGUNTA_CERRADA_1.label} *`}
               options={PREGUNTA_CERRADA_1.options}
+              maxScore={PREGUNTA_CERRADA_1.maxScore}
               selected={form.respuesta_cerrada_1}
               onChange={(v) => handleRadio("respuesta_cerrada_1", v)}
               error={fieldErrors.respuesta_cerrada_1}
@@ -279,6 +293,7 @@ export default function RegistroPage() {
           <RadioGroup
             label={`${PREGUNTA_CERRADA_2.label} *`}
             options={PREGUNTA_CERRADA_2.options}
+            maxScore={PREGUNTA_CERRADA_2.maxScore}
             selected={form.respuesta_cerrada_2}
             onChange={(v) => handleRadio("respuesta_cerrada_2", v)}
             error={fieldErrors.respuesta_cerrada_2}
@@ -376,12 +391,14 @@ function RadioGroup({
   selected,
   onChange,
   error,
+  maxScore,
 }: {
   label: string;
-  options: string[];
+  options: QuestionOption[];
   selected: string;
   onChange: (value: string) => void;
   error?: string;
+  maxScore?: number;
 }) {
   return (
     <div>
@@ -389,25 +406,34 @@ function RadioGroup({
       <div className="space-y-2 mt-1">
         {options.map((opt) => (
           <button
-            key={opt}
+            key={opt.label}
             type="button"
-            onClick={() => onChange(opt)}
-            className={`radio-option w-full text-left ${selected === opt ? "selected" : ""}`}
+            onClick={() => onChange(opt.label)}
+            className={`radio-option w-full text-left ${selected === opt.label ? "selected" : ""}`}
           >
             <span
               className="w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center"
               style={{
-                borderColor: selected === opt ? "var(--primary)" : "var(--gray-200)",
+                borderColor: selected === opt.label ? "var(--primary)" : "var(--gray-200)",
               }}
             >
-              {selected === opt && (
+              {selected === opt.label && (
                 <span
                   className="w-2 h-2 rounded-full"
                   style={{ background: "var(--primary)" }}
                 />
               )}
             </span>
-            {opt}
+            <span className="flex-1">{opt.label}</span>
+            <span
+              className="text-xs font-semibold px-1.5 py-0.5 rounded ml-auto flex-shrink-0"
+              style={{
+                background: selected === opt.label ? "rgba(15, 76, 129, 0.12)" : "var(--gray-100)",
+                color: selected === opt.label ? "var(--primary)" : "var(--gray-600)",
+              }}
+            >
+              {opt.score}{maxScore != null ? `/${maxScore}` : " pts"}
+            </span>
           </button>
         ))}
       </div>
