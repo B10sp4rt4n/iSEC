@@ -12,6 +12,7 @@ import io
 import pandas as pd
 import streamlit as st
 import plotly.express as px
+import plotly.graph_objects as go
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 
@@ -888,3 +889,44 @@ El score se calcula con base en controles de seguridad de correo reconocidos int
                     df_desglose = pd.DataFrame(desglose)
                     df_desglose.loc[len(df_desglose)] = ["**TOTAL**", "", "", score_sel]
                     st.dataframe(df_desglose, use_container_width=True, hide_index=True)
+
+                    # Gráfico bullet: calificación llenando la barra del máximo posible
+                    MAX_POR_CONTROL = [10, 15, 10, 10, 0, 50]
+                    actual_pts  = desglose["Puntos"]
+                    controles   = desglose["Control"]
+                    actual_colors = ["#16a34a" if p >= 0 else "#dc2626" for p in actual_pts]
+
+                    fig_desglose = go.Figure()
+                    # Fondo: barra del máximo posible (se renderiza primero = queda abajo)
+                    fig_desglose.add_trace(go.Bar(
+                        name="Máximo posible",
+                        y=controles,
+                        x=MAX_POR_CONTROL,
+                        orientation="h",
+                        marker_color="rgba(148,163,184,0.30)",
+                        marker_line_color="rgba(148,163,184,0.70)",
+                        marker_line_width=1,
+                        hovertemplate="%{y}: máximo %{x} pts<extra></extra>",
+                    ))
+                    # Frente: barra de calificación real (llena el fondo)
+                    fig_desglose.add_trace(go.Bar(
+                        name="Calificación",
+                        y=controles,
+                        x=actual_pts,
+                        orientation="h",
+                        marker_color=actual_colors,
+                        text=[f"{'+' if p > 0 else ''}{p} pts" for p in actual_pts],
+                        textposition="outside",
+                        textfont_size=12,
+                        hovertemplate="%{y}: %{x} pts<extra></extra>",
+                    ))
+                    fig_desglose.update_layout(
+                        barmode="overlay",
+                        title=f"Calificación vs. máximo posible — score actual: {score_sel}/100",
+                        xaxis_title="Puntos",
+                        yaxis_title=None,
+                        legend_title=None,
+                        height=380,
+                        margin=dict(l=0, r=80, t=40, b=0),
+                    )
+                    st.plotly_chart(fig_desglose, use_container_width=True)
