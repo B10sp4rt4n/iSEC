@@ -704,6 +704,20 @@ with tab5:
         ]
         st.dataframe(df_show, use_container_width=True, hide_index=True, height=420)
 
+        # Botones de descarga
+        _xl_buf = io.BytesIO()
+        df_show.to_excel(_xl_buf, index=False, engine="openpyxl")
+        _xl_buf.seek(0)
+        _csv_bytes = df_show.to_csv(index=False).encode("utf-8")
+        dl1, dl2, _ = st.columns([1, 1, 4])
+        dl1.download_button("⬇️ Excel", data=_xl_buf,
+                            file_name="isec_seguridad.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key="dl_excel")
+        dl2.download_button("⬇️ CSV", data=_csv_bytes,
+                            file_name="isec_seguridad.csv",
+                            mime="text/csv", key="dl_csv")
+
         st.divider()
 
         # ── Gráficas ──────────────────────────────────────────────────────────
