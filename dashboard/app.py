@@ -839,7 +839,10 @@ with tab5:
                 height=380,
             )
             fig_pie_score.update_traces(textinfo="percent+label", textposition="inside", pull=[0.05]*5)
-            fig_pie_score.update_layout(showlegend=True, legend_title_text="Rango de score")
+            fig_pie_score.update_layout(
+                showlegend=True,
+                legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5, title=None),
+            )
             st.plotly_chart(fig_pie_score, use_container_width=True, key="fig_pie_score")
 
         with col_hm:
@@ -865,6 +868,7 @@ with tab5:
                 height=380,
             )
             fig_hm.update_coloraxes(showscale=False)
+            fig_hm.update_traces(xgap=3, ygap=3)
             st.plotly_chart(fig_hm, use_container_width=True, key="fig_heatmap")
 
         st.divider()
