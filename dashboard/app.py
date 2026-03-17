@@ -634,6 +634,39 @@ with tab5:
 
         st.divider()
 
+        # ── Resumen ejecutivo ─────────────────────────────────────────────────
+        total        = len(df_r)
+        sin_spf      = int((~df_r["spf"]).sum())
+        sin_dmarc    = int((~df_r["dmarc"]).sum())
+        con_puertos  = int((df_r["open_ports"].apply(len) > 0).sum())
+        n_basica     = int(posturas.get("Básica", 0))
+        peor         = df_r.loc[df_r["score"].idxmin()]
+        nivel_riesgo = "alto" if avg_score < 40 else "moderado" if avg_score < 65 else "bajo"
+
+        resumen_md = f"""
+**{total} empresa{'s' if total != 1 else ''} analizadas · Score promedio: {avg_score}/100 · Riesgo {nivel_riesgo}**
+
+- **{sin_spf} de {total}** ({round(sin_spf/total*100)}%) sin SPF — expuestas a suplantación de dominio.
+- **{sin_dmarc} de {total}** ({round(sin_dmarc/total*100)}%) sin DMARC — sin política de autenticación de correo.
+- **{n_basica} empresa{'s' if n_basica != 1 else ''}** ({round(n_basica/total*100)}%) con postura **Básica**, el nivel de mayor exposición.
+- **{con_puertos} dominio{'s' if con_puertos != 1 else ''}** con puertos TCP expuestos públicamente.
+- Mayor exposición: **{peor['empresa']}** ({peor['dominio']}) — score **{peor['score']}/100**.
+"""
+        resumen_txt = (
+            f"{total} empresa{'s' if total != 1 else ''} analizadas. "
+            f"Score promedio: {avg_score}/100 (riesgo {nivel_riesgo}).\n"
+            f"- {sin_spf} de {total} ({round(sin_spf/total*100)}%) sin SPF.\n"
+            f"- {sin_dmarc} de {total} ({round(sin_dmarc/total*100)}%) sin DMARC.\n"
+            f"- {n_basica} empresa{'s' if n_basica != 1 else ''} ({round(n_basica/total*100)}%) con postura Básica.\n"
+            f"- {con_puertos} dominio{'s' if con_puertos != 1 else ''} con puertos expuestos.\n"
+            f"- Mayor exposición: {peor['empresa']} ({peor['dominio']}) — score {peor['score']}/100."
+        )
+        with st.expander("📝 Resumen ejecutivo", expanded=True):
+            st.markdown(resumen_md)
+            st.text_area("Versión copiable (plain text)", value=resumen_txt, height=130, key="resumen_txt")
+
+        st.divider()
+
         # ── Tabla maestra ─────────────────────────────────────────────────────
         st.subheader("📋 Tabla maestra de seguridad")
         df_show = df_r[[
