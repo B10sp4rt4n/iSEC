@@ -284,6 +284,7 @@ with tab1:
         fig3 = px.bar(p1, x="Respuesta", y="Votos",
                       color="Votos", color_continuous_scale="Teal", text="Votos")
         fig3.update_traces(textposition="outside")
+        fig3.update_yaxes(range=[0, p1["Votos"].max() * 1.25])
         st.plotly_chart(fig3, use_container_width=True, key="fig_p1")
 
     with col4:
@@ -293,6 +294,7 @@ with tab1:
         fig4 = px.bar(p2, x="Respuesta", y="Votos",
                       color="Votos", color_continuous_scale="Teal", text="Votos")
         fig4.update_traces(textposition="outside")
+        fig4.update_yaxes(range=[0, p2["Votos"].max() * 1.25])
         st.plotly_chart(fig4, use_container_width=True, key="fig_p2")
 
     st.divider()
@@ -302,6 +304,7 @@ with tab1:
     fig_p3 = px.bar(p3, x="Prioridad", y="Votos",
                     color="Votos", color_continuous_scale="Teal", text="Votos")
     fig_p3.update_traces(textposition="outside")
+    fig_p3.update_yaxes(range=[0, p3["Votos"].max() * 1.25])
     st.plotly_chart(fig_p3, use_container_width=True, key="fig_p3")
 
     if total > 0:
@@ -812,6 +815,7 @@ with tab5:
             )
             fig_vend_score.update_traces(textposition="outside")
             fig_vend_score.update_layout(coloraxis_showscale=False, showlegend=False)
+            fig_vend_score.update_yaxes(range=[0, min(vend_score["Score promedio"].max() * 1.25, 105)])
             st.plotly_chart(fig_vend_score, use_container_width=True, key="fig_vend_score")
 
         with col_pie:
