@@ -14,6 +14,46 @@ type FormState = {
   dolor_reto: string;
 };
 
+// ---------------------------------------------------------------------------
+// Scoring types & question configuration
+// ---------------------------------------------------------------------------
+
+type QuestionOption = {
+  value: string;
+  label: string;
+  score: number;
+};
+
+type ClosedQuestion = {
+  label: string;
+  name: keyof FormState;
+  maxScore: number;
+  options: QuestionOption[];
+};
+
+const PREGUNTA_CERRADA_1: ClosedQuestion = {
+  label: "1. ¿Qué riesgo te preocupa más en tu empresa?",
+  name: "pregunta_cerrada_1",
+  maxScore: 10,
+  options: [
+    { value: "ransomware",  label: "Ransomware",                            score: 10 },
+    { value: "phishing",    label: "Phishing o correo malicioso",           score: 8  },
+    { value: "visibilidad", label: "Falta de visibilidad sobre equipos",    score: 5  },
+    { value: "navegacion",  label: "Navegación o acceso a sitios riesgosos", score: 3 },
+  ],
+};
+
+const PREGUNTA_CERRADA_2: ClosedQuestion = {
+  label: "2. ¿Tu empresa tiene forma de detectar qué pasó dentro de un equipo cuando ocurre algo sospechoso?",
+  name: "pregunta_cerrada_2",
+  maxScore: 10,
+  options: [
+    { value: "no",        label: "No",               score: 10 },
+    { value: "no_seguro", label: "No estoy seguro",   score: 7  },
+    { value: "si",        label: "Sí",                score: 2  },
+  ],
+};
+
 const initialState: FormState = {
   nombre: "",
   empresa: "",
@@ -61,6 +101,10 @@ export default function LeadForm() {
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = event.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const setField = (name: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -218,41 +262,22 @@ export default function LeadForm() {
             placeholder="Ej. +52 55 1234 5678"
           />
         </label>
+      </div>
 
-        <label className="space-y-1 text-sm font-medium md:col-span-2">
-          1. ¿Qué riesgo te preocupa más en tu empresa?
-          <select
-            required
-            name="pregunta_cerrada_1"
-            value={form.pregunta_cerrada_1}
-            onChange={onChange}
-            className="field"
-          >
-            <option value="">Selecciona una opción</option>
-            <option value="phishing">Phishing o correo malicioso</option>
-            <option value="ransomware">Ransomware</option>
-            <option value="visibilidad">Falta de visibilidad sobre equipos</option>
-            <option value="navegacion">Navegación o acceso a sitios riesgosos</option>
-          </select>
-        </label>
+      <div className="mt-4 flex flex-col gap-5">
+        <RadioGroup
+          question={PREGUNTA_CERRADA_1}
+          selected={form.pregunta_cerrada_1}
+          onChange={(v) => setField("pregunta_cerrada_1", v)}
+        />
 
-        <label className="space-y-1 text-sm font-medium md:col-span-2">
-          2. ¿Tu empresa tiene forma de detectar qué pasó dentro de un equipo cuando ocurre algo sospechoso?
-          <select
-            required
-            name="pregunta_cerrada_2"
-            value={form.pregunta_cerrada_2}
-            onChange={onChange}
-            className="field"
-          >
-            <option value="">Selecciona una opción</option>
-            <option value="si">Sí</option>
-            <option value="no">No</option>
-            <option value="no_seguro">No estoy seguro</option>
-          </select>
-        </label>
+        <RadioGroup
+          question={PREGUNTA_CERRADA_2}
+          selected={form.pregunta_cerrada_2}
+          onChange={(v) => setField("pregunta_cerrada_2", v)}
+        />
 
-        <label className="space-y-1 text-sm font-medium md:col-span-2">
+        <label className="space-y-1 text-sm font-medium">
           3. Cuando evalúan ciberseguridad, ¿qué pesa más para ustedes?
           <select
             required
@@ -280,5 +305,57 @@ export default function LeadForm() {
         {isSaving ? "Guardando..." : "Enviar registro"}
       </button>
     </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// RadioGroup sub-component — renders options with score/maxScore badges
+// ---------------------------------------------------------------------------
+
+function RadioGroup({
+  question,
+  selected,
+  onChange,
+}: {
+  question: ClosedQuestion;
+  selected: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <fieldset>
+      <legend className="mb-2 text-sm font-medium">{question.label}</legend>
+      <div className="flex flex-col gap-2">
+        {question.options.map((opt) => {
+          const isSelected = selected === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange(opt.value)}
+              className={`radio-option${isSelected ? " radio-option--selected" : ""}`}
+              aria-pressed={isSelected}
+            >
+              <span className="radio-dot" data-selected={isSelected}>
+                {isSelected && <span className="radio-dot-inner" />}
+              </span>
+              <span className="flex-1 text-left text-sm">{opt.label}</span>
+              <span className={`score-badge${isSelected ? " score-badge--selected" : ""}`}>
+                {opt.score}/{question.maxScore}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {/* Hidden input keeps browser required-validation working */}
+      <input
+        type="text"
+        name={question.name}
+        value={selected}
+        required
+        readOnly
+        className="sr-only"
+        tabIndex={-1}
+      />
+    </fieldset>
   );
 }
