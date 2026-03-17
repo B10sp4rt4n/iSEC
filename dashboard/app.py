@@ -726,7 +726,7 @@ with tab5:
             color_discrete_map=COLOR_MAP, hover_name="empresa",
             hover_data={"dominio":True,"score":True,"spf":True,"dmarc":True,
                         "dmarc_policy":True,"gateway":True,"postura":False},
-            category_orders={"postura":["Básica","Intermedia","Avanzada"]},
+            category_orders={"postura":["Avanzada","Intermedia","Básica"]},
             labels={"score":"Security Score","postura":"Postura"},
             title="Event Security Map — iSEC ThreatDown", height=380,
         )
