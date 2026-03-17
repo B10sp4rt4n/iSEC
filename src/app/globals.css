@@ -68,3 +68,65 @@ body {
   background: var(--accent-strong);
   transform: translateY(-1px);
 }
+
+/* Radio option rows for scoring questions */
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid #cfc2ab;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.radio-option:hover {
+  border-color: var(--accent);
+}
+
+.radio-option--selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.radio-dot {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  border: 2px solid #cfc2ab;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 150ms ease;
+}
+
+.radio-option--selected .radio-dot {
+  border-color: var(--accent);
+}
+
+.radio-dot-inner {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--accent);
+}
+
+.score-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: #f0eadf;
+  color: #6b5e4a;
+  flex-shrink: 0;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.score-badge--selected {
+  background: rgba(10, 143, 121, 0.14);
+  color: var(--accent-strong);
+}
