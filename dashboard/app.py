@@ -789,7 +789,7 @@ with tab5:
             df_r.groupby("vendor")["score"]
             .agg(["mean","count"])
             .reset_index()
-            .rename(columns={"mean":"Score promedio","count":"Empresas"})
+            .rename(columns={"vendor":"Vendor","mean":"Score promedio","count":"Empresas"})
             .sort_values("Score promedio", ascending=False)
         )
         vend_score["Score promedio"] = vend_score["Score promedio"].round(1)
