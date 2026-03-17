@@ -564,6 +564,86 @@ with tab5:
             "edad_dominio": _domain_age(domain),
         }
 
+    # ── Caché en DB ──────────────────────────────────────────────────────────
+    def _init_scan_cache():
+        with get_engine().begin() as conn:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS security_scan_cache (
+                    domain       TEXT PRIMARY KEY,
+                    score        INTEGER,
+                    spf          BOOLEAN,
+                    dmarc        BOOLEAN,
+                    dmarc_policy TEXT,
+                    open_ports   TEXT,
+                    vendor       TEXT,
+                    gateway      TEXT,
+                    envio        TEXT,
+                    edad_dominio TEXT,
+                    scanned_at   TIMESTAMPTZ DEFAULT NOW()
+                )
+            """))
+
+    def _save_to_cache(results: list[dict]):
+        with get_engine().begin() as conn:
+            for r in results:
+                conn.execute(text("""
+                    INSERT INTO security_scan_cache
+                        (domain, score, spf, dmarc, dmarc_policy, open_ports,
+                         vendor, gateway, envio, edad_dominio, scanned_at)
+                    VALUES
+                        (:domain, :score, :spf, :dmarc, :dmarc_policy, :open_ports,
+                         :vendor, :gateway, :envio, :edad_dominio, NOW())
+                    ON CONFLICT (domain) DO UPDATE SET
+                        score        = EXCLUDED.score,
+                        spf          = EXCLUDED.spf,
+                        dmarc        = EXCLUDED.dmarc,
+                        dmarc_policy = EXCLUDED.dmarc_policy,
+                        open_ports   = EXCLUDED.open_ports,
+                        vendor       = EXCLUDED.vendor,
+                        gateway      = EXCLUDED.gateway,
+                        envio        = EXCLUDED.envio,
+                        edad_dominio = EXCLUDED.edad_dominio,
+                        scanned_at   = NOW()
+                """), {
+                    "domain":       r["dominio"],
+                    "score":        r["score"],
+                    "spf":          r["spf"],
+                    "dmarc":        r["dmarc"],
+                    "dmarc_policy": r["dmarc_policy"],
+                    "open_ports":   json.dumps(r["open_ports"]),
+                    "vendor":       r["vendor"],
+                    "gateway":      r["gateway"],
+                    "envio":        r["envio"],
+                    "edad_dominio": r["edad_dominio"],
+                })
+
+    def _load_from_cache(domains: list[str]) -> dict[str, dict]:
+        if not domains:
+            return {}
+        with get_engine().connect() as conn:
+            rows = conn.execute(text("""
+                SELECT domain, score, spf, dmarc, dmarc_policy, open_ports,
+                       vendor, gateway, envio, edad_dominio
+                FROM security_scan_cache
+                WHERE domain = ANY(:domains)
+            """), {"domains": domains}).fetchall()
+        return {
+            row[0]: {
+                "dominio":      row[0],
+                "score":        row[1],
+                "spf":          bool(row[2]),
+                "dmarc":        bool(row[3]),
+                "dmarc_policy": row[4] or "none",
+                "open_ports":   json.loads(row[5]) if row[5] else [],
+                "vendor":       row[6] or "Desconocido",
+                "gateway":      row[7] or "Sin gateway",
+                "envio":        row[8] or "—",
+                "edad_dominio": row[9] or "N/D",
+                "postura":      _postura(bool(row[2]), bool(row[3]), row[4] or "none", row[7] or "Sin gateway"),
+            }
+            for row in rows
+        }
+
     # ── Aviso legal ──────────────────────────────────────────────────────────
     with st.expander("⚖️ Aviso legal y alcance", expanded=False):
         st.markdown("""
@@ -599,24 +679,46 @@ with tab5:
 
     st.info(f"📂 **{len(dominios_lista)}** dominios corporativos detectados en el evento")
 
-    if st.button("▶️ Ejecutar análisis completo", key="seg_run"):
-        progreso = st.progress(0)
-        estado   = st.empty()
-        resultados: list[dict] = []
-        with _cf.ThreadPoolExecutor(max_workers=_PS_MAX_WORKERS) as ex:
-            futuros = {ex.submit(_analizar, d): d for d in dominios_lista}
-            for i, fut in enumerate(_cf.as_completed(futuros)):
-                dom = futuros[fut]
-                try:
-                    resultados.append(fut.result())
-                except Exception as exc:
-                    st.warning(f"⚠️ Error en {dom}: {exc}")
-                progreso.progress((i + 1) / max(len(dominios_lista), 1))
-                estado.text(f"Analizando: {dom}")
-        estado.success("✅ Análisis completado")
-        st.session_state["seg_resultados"] = resultados
+    _init_scan_cache()
+    cached = _load_from_cache(dominios_lista)
+    nuevos = [d for d in dominios_lista if d not in cached]
 
-    resultados = st.session_state.get("seg_resultados")
+    if nuevos:
+        with st.spinner(f"Analizando {len(nuevos)} dominio(s) nuevo(s)…"):
+            nuevos_resultados: list[dict] = []
+            with _cf.ThreadPoolExecutor(max_workers=_PS_MAX_WORKERS) as ex:
+                futuros = {ex.submit(_analizar, d): d for d in nuevos}
+                for fut in _cf.as_completed(futuros):
+                    try:
+                        nuevos_resultados.append(fut.result())
+                    except Exception as exc:
+                        st.warning(f"⚠️ Error: {exc}")
+            _save_to_cache(nuevos_resultados)
+            cached = _load_from_cache(dominios_lista)
+
+    resultados = list(cached.values())
+    st.session_state["seg_resultados"] = resultados
+
+    if cached:
+        n_nuevos = len(nuevos)
+        msg = f"✅ {len(cached)} dominios cargados desde caché"
+        if n_nuevos:
+            msg += f" · {n_nuevos} nuevo(s) analizados y guardados"
+        st.success(msg)
+
+    if st.button("🔄 Forzar re-scan completo", key="seg_rescan",
+                 help="Re-analiza todos los dominios y actualiza el caché"):
+        with st.spinner("Re-analizando todos los dominios…"):
+            todos: list[dict] = []
+            with _cf.ThreadPoolExecutor(max_workers=_PS_MAX_WORKERS) as ex:
+                futuros = {ex.submit(_analizar, d): d for d in dominios_lista}
+                for fut in _cf.as_completed(futuros):
+                    try:
+                        todos.append(fut.result())
+                    except Exception as exc:
+                        st.warning(f"⚠️ Error: {exc}")
+            _save_to_cache(todos)
+        st.rerun()
 
     if resultados:
         POSTURA_ICON = {"Avanzada": "🟢", "Intermedia": "🟡", "Básica": "🔴"}
