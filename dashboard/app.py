@@ -688,6 +688,30 @@ with tab5:
 
         st.divider()
 
+        # ── Filtros interactivos ──────────────────────────────────────────────
+        with st.expander("🔍 Filtrar resultados", expanded=False):
+            fc1, fc2, fc3 = st.columns(3)
+            f_posturas = fc1.multiselect(
+                "Postura", options=["Avanzada","Intermedia","Básica"],
+                default=["Avanzada","Intermedia","Básica"], key="f_postura"
+            )
+            f_vendors = fc2.multiselect(
+                "Plataforma", options=sorted(df_r["vendor"].unique()),
+                default=list(df_r["vendor"].unique()), key="f_vendor"
+            )
+            f_score = fc3.slider(
+                "Rango de score", min_value=0, max_value=100,
+                value=(0, 100), key="f_score"
+            )
+        df_r = df_r[
+            df_r["postura"].isin(f_posturas) &
+            df_r["vendor"].isin(f_vendors) &
+            df_r["score"].between(f_score[0], f_score[1])
+        ]
+        if len(df_r) == 0:
+            st.warning("⚠️ Ningún dominio coincide con los filtros aplicados.")
+            st.stop()
+
         # ── Tabla maestra ─────────────────────────────────────────────────────
         st.subheader("📋 Tabla maestra de seguridad")
         df_show = df_r[[
