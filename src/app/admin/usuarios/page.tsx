@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type User = {
   user_id: string;
@@ -162,6 +162,91 @@ function CreateUserForm({ adminToken, onCreated }: { adminToken: string; onCreat
   );
 }
 
+// ─── formulario bootstrap (primer usuario, sin login) ────────────────────
+function BootstrapCreateForm({
+  onCreated,
+}: {
+  onCreated: (u: User, alias: string, password: string) => void;
+}) {
+  const [alias, setAlias] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
+  const [password, setPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleCreate() {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ alias: alias.trim(), nombre: nombre.trim(), apellido: apellido.trim(), password }),
+      });
+      const data = await res.json() as { user?: User; error?: string };
+      if (!res.ok || !data.user) {
+        setError(data.error ?? "Error al crear usuario.");
+        return;
+      }
+      onCreated(data.user, alias.trim(), password);
+    } catch {
+      setError("Fallo de conexión.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const canSave = alias.trim().length >= 2 && nombre.trim().length >= 1 && apellido.trim().length >= 1 && password.length >= 8;
+
+  return (
+    <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: "0.75rem", padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+      <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 700, color: "#38bdf8", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        👤 Crear usuario administrador
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+        <input
+          type="text"
+          value={alias}
+          onChange={(e) => setAlias(e.target.value)}
+          placeholder="Alias (ej. salvador)"
+          autoCapitalize="none"
+          style={{ padding: "0.55rem 0.75rem", borderRadius: "0.5rem", border: "1px solid #334155", background: "#1e293b", color: "#f1f5f9", fontSize: "0.82rem" }}
+        />
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Contraseña (mín. 8 car.)"
+          style={{ padding: "0.55rem 0.75rem", borderRadius: "0.5rem", border: "1px solid #334155", background: "#1e293b", color: "#f1f5f9", fontSize: "0.82rem" }}
+        />
+        <input
+          type="text"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          placeholder="Nombre"
+          style={{ padding: "0.55rem 0.75rem", borderRadius: "0.5rem", border: "1px solid #334155", background: "#1e293b", color: "#f1f5f9", fontSize: "0.82rem" }}
+        />
+        <input
+          type="text"
+          value={apellido}
+          onChange={(e) => setApellido(e.target.value)}
+          placeholder="Apellido"
+          style={{ padding: "0.55rem 0.75rem", borderRadius: "0.5rem", border: "1px solid #334155", background: "#1e293b", color: "#f1f5f9", fontSize: "0.82rem" }}
+        />
+      </div>
+      {error && <p style={{ color: "#f87171", fontSize: "0.78rem", margin: 0 }}>{error}</p>}
+      <button
+        onClick={handleCreate}
+        disabled={saving || !canSave}
+        style={{ alignSelf: "flex-end", padding: "0.5rem 1.25rem", borderRadius: "0.5rem", background: saving ? "#334155" : "#0ea5e9", color: "#fff", fontSize: "0.82rem", fontWeight: 700, border: "none", cursor: !canSave ? "not-allowed" : "pointer", opacity: !canSave ? 0.5 : 1 }}
+      >
+        {saving ? "Creando…" : "Crear y entrar"}
+      </button>
+    </div>
+  );
+}
+
 // ─── página principal ─────────────────────────────────────────────────────
 export default function AdminUsuariosPage() {
   const [session, setSession] = useState<LoginState | null>(null);
@@ -169,6 +254,16 @@ export default function AdminUsuariosPage() {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // bootstrap: null = cargando, true = hay usuarios, false = no hay usuarios
+  const [hasUsers, setHasUsers] = useState<boolean | null>(null);
+
+  // Verificar si ya existe algún usuario en la BD
+  useEffect(() => {
+    fetch("/api/users/bootstrap")
+      .then((r) => r.json())
+      .then((d: { hasUsers?: boolean }) => setHasUsers(d.hasUsers ?? true))
+      .catch(() => setHasUsers(true));
+  }, []);
 
   async function fetchUsers(token: string) {
     setLoadingUsers(true);
@@ -186,6 +281,25 @@ export default function AdminUsuariosPage() {
   function handleLogin(s: LoginState) {
     setSession(s);
     fetchUsers(s.adminToken);
+  }
+
+  // Después de crear el primer usuario en modo bootstrap, hacer login automático
+  async function handleBootstrapCreated(u: User, alias: string, password: string) {
+    setHasUsers(true);
+    setUsers([u]);
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ alias, password }),
+      });
+      const data = await res.json() as { ok?: boolean; nombre?: string; adminToken?: string };
+      if (data.ok && data.adminToken) {
+        setSession({ adminToken: data.adminToken, agenteName: data.nombre ?? alias });
+      }
+    } catch {
+      // Si falla el auto-login, el usuario puede entrar manual
+    }
   }
 
   async function deleteUser(userId: string) {
@@ -226,8 +340,26 @@ export default function AdminUsuariosPage() {
           </a>
         </div>
 
-        {!session ? (
+        {/* estado cargando bootstrap */}
+        {hasUsers === null ? (
+          <p style={{ fontSize: "0.85rem", color: "#475569" }}>Cargando…</p>
+
+        /* modo bootstrap: no hay usuarios, mostrar formulario sin login */
+        ) : hasUsers === false && !session ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <div style={{ background: "#1e293b", border: "1px solid #f59e0b44", borderRadius: "0.75rem", padding: "0.85rem 1.1rem" }}>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "#fbbf24" }}>
+                ⚡ Primera vez — no hay usuarios registrados. Crea el usuario administrador para comenzar.
+              </p>
+            </div>
+            <BootstrapCreateForm onCreated={handleBootstrapCreated} />
+          </div>
+
+        /* no autenticado y sí hay usuarios */
+        ) : !session ? (
           <LoginGate onLogin={handleLogin} />
+
+        /* autenticado */
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
