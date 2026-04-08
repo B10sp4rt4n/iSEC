@@ -153,7 +153,7 @@ type Note = {
 };
 
 // ─── panel de notas ──────────────────────────────────────────────────────
-function NotesPanel({ prospectId, adminKey }: { prospectId: string; adminKey: string }) {
+function NotesPanel({ prospectId, adminKey, agenteName }: { prospectId: string; adminKey: string; agenteName: string }) {
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(false);
@@ -185,7 +185,7 @@ function NotesPanel({ prospectId, adminKey }: { prospectId: string; adminKey: st
       const res = await fetch(`/api/prospects/${prospectId}/notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-        body: JSON.stringify({ contenido: text.trim() }),
+        body: JSON.stringify({ contenido: text.trim(), autor: agenteName }),
       });
       const d = (await res.json()) as { note?: Note };
       if (d.note) setNotes((prev) => [...prev, d.note!]);
@@ -314,7 +314,7 @@ function NotesPanel({ prospectId, adminKey }: { prospectId: string; adminKey: st
 }
 
 // ─── componente tarjeta ───────────────────────────────────────────────────
-function ProspectCard({ p, adminKey }: { p: Prospect; adminKey: string }) {
+function ProspectCard({ p, adminKey, agenteName }: { p: Prospect; adminKey: string; agenteName: string }) {
   const [copied, setCopied] = useState<"tel" | "email" | "msg" | null>(null);
   const postura = calcPostura(p.pregunta_cerrada_1, p.pregunta_cerrada_2);
   const prioridad = getPrioridad(postura, p.cargo);
@@ -472,7 +472,7 @@ function ProspectCard({ p, adminKey }: { p: Prospect; adminKey: string }) {
         </div>
 
         {/* ── panel de notas ── */}
-        <NotesPanel prospectId={p.id} adminKey={adminKey} />
+        <NotesPanel prospectId={p.id} adminKey={adminKey} agenteName={agenteName} />
 
       </div>
     </article>
@@ -490,26 +490,43 @@ const FILTER_OPTIONS = [
 
 // ─── página principal ─────────────────────────────────────────────────────
 export default function ProspectosPage() {
+  const [alias, setAlias] = useState("");
+  const [password, setPassword] = useState("");
   const [adminKey, setAdminKey] = useState("");
+  const [agenteName, setAgenteName] = useState("");
   const [prospects, setProspects] = useState<Prospect[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterNivel, setFilterNivel] = useState("all");
 
-  async function fetchProspects() {
+  async function handleLogin() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/prospects", {
-        headers: { "x-admin-key": adminKey.trim() },
+      const loginRes = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ alias: alias.trim(), password }),
       });
-      const data = await res.json() as { ok?: boolean; prospects?: Prospect[]; error?: string };
-      if (!res.ok || !data.ok) {
-        setError(data.error ?? "No autorizado o error de servidor.");
+      const loginData = await loginRes.json() as { ok?: boolean; nombre?: string; adminToken?: string; error?: string };
+      if (!loginRes.ok || !loginData.ok) {
+        setError(loginData.error ?? "Alias o contraseña incorrectos.");
         return;
       }
-      setProspects(data.prospects ?? []);
+      const token = loginData.adminToken!;
+      setAdminKey(token);
+      setAgenteName(loginData.nombre ?? alias.trim());
+
+      const prosRes = await fetch("/api/prospects", {
+        headers: { "x-admin-key": token },
+      });
+      const prosData = await prosRes.json() as { ok?: boolean; prospects?: Prospect[]; error?: string };
+      if (!prosRes.ok || !prosData.ok) {
+        setError(prosData.error ?? "Error al cargar prospectos.");
+        return;
+      }
+      setProspects(prosData.prospects ?? []);
     } catch {
       setError("Fallo de conexión.");
     } finally {
@@ -547,37 +564,56 @@ export default function ProspectosPage() {
 
         {/* ── gate de acceso ── */}
         {!prospects ? (
-          <div style={{ maxWidth: "480px" }}>
-            <div style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: "1rem", padding: "2rem" }}>
-              <p style={{ margin: "0 0 1rem", fontSize: "0.85rem", color: "#94a3b8" }}>
-                Ingresa tu clave de administrador para cargar los perfiles
+          <div style={{ maxWidth: "400px" }}>
+            <div style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: "1rem", padding: "2rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              <p style={{ margin: 0, fontSize: "0.85rem", color: "#94a3b8" }}>
+                Inicia sesión para acceder a los perfiles
               </p>
               <input
-                type="password"
-                value={adminKey}
-                onChange={(e) => setAdminKey(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && fetchProspects()}
-                placeholder="Clave de administrador"
+                type="text"
+                value={alias}
+                onChange={(e) => setAlias(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                placeholder="Tu alias (ej. salvador)"
+                autoCapitalize="none"
                 style={{
                   width: "100%", boxSizing: "border-box",
-                  padding: "0.75rem 1rem", borderRadius: "0.6rem",
+                  padding: "0.7rem 1rem", borderRadius: "0.6rem",
                   border: "1px solid #334155", background: "#0f172a",
-                  color: "#f1f5f9", fontSize: "0.9rem", marginBottom: "0.75rem",
+                  color: "#f1f5f9", fontSize: "0.9rem",
                 }}
               />
-              {error && <p style={{ color: "#f87171", fontSize: "0.8rem", margin: "0 0 0.75rem" }}>{error}</p>}
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                placeholder="Contraseña"
+                style={{
+                  width: "100%", boxSizing: "border-box",
+                  padding: "0.7rem 1rem", borderRadius: "0.6rem",
+                  border: "1px solid #334155", background: "#0f172a",
+                  color: "#f1f5f9", fontSize: "0.9rem",
+                }}
+              />
+              {error && <p style={{ color: "#f87171", fontSize: "0.8rem", margin: 0 }}>{error}</p>}
               <button
-                onClick={fetchProspects}
-                disabled={loading || adminKey.trim().length === 0}
+                onClick={handleLogin}
+                disabled={loading || alias.trim().length === 0 || password.length === 0}
                 style={{
                   width: "100%", padding: "0.75rem", borderRadius: "0.6rem",
                   background: loading ? "#334155" : "#0ea5e9",
                   color: "#fff", fontSize: "0.9rem", fontWeight: 700,
                   border: "none", cursor: loading ? "not-allowed" : "pointer",
+                  opacity: alias.trim().length === 0 || password.length === 0 ? 0.5 : 1,
                 }}
               >
-                {loading ? "Cargando…" : "Ver perfiles"}
+                {loading ? "Ingresando…" : "Entrar"}
               </button>
+              <p style={{ margin: 0, fontSize: "0.7rem", color: "#475569", textAlign: "center" }}>
+                ¿No tienes usuario?{" "}
+                <a href="/admin/usuarios" style={{ color: "#38bdf8", textDecoration: "none" }}>Gestionar usuarios →</a>
+              </p>
             </div>
           </div>
         ) : (
@@ -616,8 +652,14 @@ export default function ProspectosPage() {
               <span style={{ fontSize: "0.78rem", color: "#475569", whiteSpace: "nowrap" }}>
                 {filtered.length} de {prospects.length} prospectos
               </span>
+              <a
+                href="/admin/usuarios"
+                style={{ padding: "0.4rem 0.85rem", borderRadius: "0.5rem", background: "#1e293b", color: "#38bdf8", border: "1px solid #334155", fontSize: "0.75rem", textDecoration: "none", whiteSpace: "nowrap" }}
+              >
+                👥 Usuarios
+              </a>
               <button
-                onClick={() => { setProspects(null); setSearch(""); setFilterNivel("all"); }}
+                onClick={() => { setProspects(null); setSearch(""); setFilterNivel("all"); setAlias(""); setPassword(""); setAdminKey(""); setAgenteName(""); }}
                 style={{ padding: "0.4rem 0.85rem", borderRadius: "0.5rem", background: "#1e293b", color: "#64748b", border: "1px solid #334155", cursor: "pointer", fontSize: "0.75rem" }}
               >
                 Cerrar sesión
@@ -634,7 +676,7 @@ export default function ProspectosPage() {
                 gap: "1.25rem",
               }}>
                 {filtered.map((p) => (
-                  <ProspectCard key={p.id} p={p} adminKey={adminKey} />
+                  <ProspectCard key={p.id} p={p} adminKey={adminKey} agenteName={agenteName} />
                 ))}
               </div>
             )}

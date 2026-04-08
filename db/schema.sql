@@ -46,3 +46,17 @@ CREATE TABLE IF NOT EXISTS security_exposure (
 
 CREATE INDEX IF NOT EXISTS idx_security_exposure_score
   ON security_exposure (score ASC);
+
+-- ── Usuarios ───────────────────────────────────────────────────────────────
+-- Tabla de usuarios internos que pueden crear y gestionar sus cotizaciones.
+CREATE TABLE IF NOT EXISTS usuarios (
+  user_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  alias         VARCHAR(60) NOT NULL UNIQUE,
+  nombre        VARCHAR(120) NOT NULL,
+  apellido      VARCHAR(120) NOT NULL,
+  password_hash TEXT NOT NULL DEFAULT '',
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_usuarios_alias
+  ON usuarios (alias);
