@@ -4,6 +4,43 @@ import { promises as dns } from "dns";
 import { Resend } from "resend";
 import { ensureEventSchema, getSqlClient } from "@/lib/db";
 
+// GET /api/prospects — lista todos los prospectos (requiere x-admin-key)
+export async function GET(request: Request) {
+  const adminKey = process.env.RAFFLE_ADMIN_KEY;
+  if (!adminKey || request.headers.get("x-admin-key") !== adminKey) {
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
+
+  try {
+    const sql = getSqlClient();
+    await ensureEventSchema(sql);
+
+    const rows = await sql`
+      SELECT
+        id,
+        folio,
+        nombre,
+        empresa,
+        cargo,
+        correo,
+        telefono,
+        pregunta_cerrada_1,
+        pregunta_cerrada_2,
+        dolor_reto,
+        created_at
+      FROM event_prospects
+      ORDER BY created_at DESC
+    `;
+
+    return NextResponse.json({ ok: true, prospects: rows }, {
+      headers: { "Cache-Control": "no-store" },
+    });
+  } catch (err) {
+    console.error("[GET /api/prospects]", err);
+    return NextResponse.json({ error: "Error al obtener prospectos." }, { status: 500 });
+  }
+}
+
 const FREE_DOMAINS = new Set([
   "gmail.com", "googlemail.com",
   "hotmail.com", "hotmail.es", "hotmail.mx",
