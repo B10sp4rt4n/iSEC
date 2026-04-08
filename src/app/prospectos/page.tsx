@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 // ─── tipos ────────────────────────────────────────────────────────────────
 type Prospect = {
@@ -144,8 +144,177 @@ function buildApproach(p: Prospect): string {
   return `${intro}${riskMsg[pregunta_cerrada_1] ?? ""}${detMsg[pregunta_cerrada_2] ?? ""}${painSnippet}${cta}`;
 }
 
+// ─── tipo de nota ────────────────────────────────────────────────────────
+type Note = {
+  id: string;
+  autor: string;
+  contenido: string;
+  created_at: string;
+};
+
+// ─── panel de notas ──────────────────────────────────────────────────────
+function NotesPanel({ prospectId, adminKey }: { prospectId: string; adminKey: string }) {
+  const [open, setOpen] = useState(false);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [genAI, setGenAI] = useState(false);
+  const [text, setText] = useState("");
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    fetch(`/api/prospects/${prospectId}/notes`, {
+      headers: { "x-admin-key": adminKey },
+    })
+      .then((r) => r.json())
+      .then((d: { notes?: Note[] }) => setNotes(d.notes ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [open, prospectId, adminKey]);
+
+  useEffect(() => {
+    if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [notes, open]);
+
+  async function saveNote() {
+    if (!text.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/prospects/${prospectId}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ contenido: text.trim() }),
+      });
+      const d = (await res.json()) as { note?: Note };
+      if (d.note) setNotes((prev) => [...prev, d.note!]);
+      setText("");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function generateAI() {
+    setGenAI(true);
+    try {
+      const res = await fetch(`/api/prospects/${prospectId}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ generar_ia: true }),
+      });
+      const d = (await res.json()) as { note?: Note };
+      if (d.note) setNotes((prev) => [...prev, d.note!]);
+    } finally {
+      setGenAI(false);
+    }
+  }
+
+  const noteCount = notes.length;
+
+  return (
+    <div style={{ borderTop: "1px solid #1e3a5f", marginTop: "0.25rem" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: "100%", background: "none", border: "none", cursor: "pointer",
+          padding: "0.75rem 0", display: "flex", alignItems: "center", justifyContent: "space-between",
+          color: "#64748b", fontSize: "0.78rem", fontWeight: 600,
+        }}
+      >
+        <span>📋 Notas y seguimiento{noteCount > 0 ? ` (${noteCount})` : ""}</span>
+        <span style={{ fontSize: "0.7rem" }}>{open ? "▲ Cerrar" : "▼ Ver"}</span>
+      </button>
+
+      {open && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", paddingBottom: "0.5rem" }}>
+          {/* lista de notas */}
+          {loading ? (
+            <p style={{ fontSize: "0.75rem", color: "#475569", margin: 0 }}>Cargando notas…</p>
+          ) : notes.length === 0 ? (
+            <p style={{ fontSize: "0.75rem", color: "#475569", margin: 0, fontStyle: "italic" }}>Sin notas aún. Agrega la primera.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "280px", overflowY: "auto" }}>
+              {notes.map((n) => (
+                <div
+                  key={n.id}
+                  style={{
+                    borderLeft: `3px solid ${n.autor === "ia" ? "#818cf8" : "#38bdf8"}`,
+                    paddingLeft: "0.75rem",
+                    background: "#0f172a",
+                    borderRadius: "0 0.5rem 0.5rem 0",
+                    padding: "0.6rem 0.75rem",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.3rem" }}>
+                    <span style={{
+                      fontSize: "0.65rem", fontWeight: 700, padding: "0.1rem 0.5rem",
+                      borderRadius: "99px",
+                      background: n.autor === "ia" ? "#312e81" : "#0c4a6e",
+                      color: n.autor === "ia" ? "#a5b4fc" : "#7dd3fc",
+                    }}>
+                      {n.autor === "ia" ? "✦ IA" : `👤 ${n.autor}`}
+                    </span>
+                    <span style={{ fontSize: "0.65rem", color: "#475569" }}>
+                      {new Date(n.created_at).toLocaleDateString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: "0.78rem", color: "#cbd5e1", lineHeight: 1.6 }}>{n.contenido}</p>
+                </div>
+              ))}
+              <div ref={bottomRef} />
+            </div>
+          )}
+
+          {/* input para nueva nota */}
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Escribe una nota de seguimiento…"
+            rows={2}
+            style={{
+              width: "100%", boxSizing: "border-box", resize: "none",
+              padding: "0.6rem 0.75rem", borderRadius: "0.5rem",
+              border: "1px solid #334155", background: "#0f172a",
+              color: "#f1f5f9", fontSize: "0.8rem", lineHeight: 1.5,
+            }}
+          />
+
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <button
+              onClick={saveNote}
+              disabled={saving || !text.trim()}
+              style={{
+                flex: 1, padding: "0.45rem 0.8rem", borderRadius: "0.5rem",
+                background: saving ? "#334155" : "#0ea5e9",
+                color: "#fff", fontSize: "0.75rem", fontWeight: 600,
+                border: "none", cursor: saving || !text.trim() ? "not-allowed" : "pointer",
+                opacity: !text.trim() ? 0.5 : 1,
+              }}
+            >
+              {saving ? "Guardando…" : "💾 Guardar nota"}
+            </button>
+            <button
+              onClick={generateAI}
+              disabled={genAI}
+              style={{
+                flex: 1, padding: "0.45rem 0.8rem", borderRadius: "0.5rem",
+                background: genAI ? "#312e81" : "#4338ca",
+                color: "#c7d2fe", fontSize: "0.75rem", fontWeight: 600,
+                border: "none", cursor: genAI ? "not-allowed" : "pointer",
+              }}
+            >
+              {genAI ? "Generando…" : "✦ Sugerir con IA"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── componente tarjeta ───────────────────────────────────────────────────
-function ProspectCard({ p }: { p: Prospect }) {
+function ProspectCard({ p, adminKey }: { p: Prospect; adminKey: string }) {
   const [copied, setCopied] = useState<"tel" | "email" | "msg" | null>(null);
   const postura = calcPostura(p.pregunta_cerrada_1, p.pregunta_cerrada_2);
   const prioridad = getPrioridad(postura, p.cargo);
@@ -187,9 +356,27 @@ function ProspectCard({ p }: { p: Prospect }) {
 
         {/* ── empresa + nombre ── */}
         <div>
-          <p style={{ fontSize: "1.4rem", fontWeight: 800, color: "#f1f5f9", lineHeight: 1.15, margin: 0 }}>
-            {p.empresa}
-          </p>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.5rem" }}>
+            <p style={{ fontSize: "1.4rem", fontWeight: 800, color: "#f1f5f9", lineHeight: 1.15, margin: 0 }}>
+              {p.empresa}
+            </p>
+            {/* link al portal web */}
+            <a
+              href={`https://www.${p.correo.split("@")[1]}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`Visitar ${p.correo.split("@")[1]}`}
+              style={{
+                flexShrink: 0, fontSize: "0.65rem", padding: "0.2rem 0.6rem",
+                borderRadius: "99px", background: "#0c4a6e", color: "#7dd3fc",
+                border: "1px solid #1e3a5f", textDecoration: "none", fontWeight: 600,
+                display: "flex", alignItems: "center", gap: "0.25rem", marginTop: "0.15rem",
+                whiteSpace: "nowrap",
+              }}
+            >
+              🌐 {p.correo.split("@")[1]}
+            </a>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.35rem", flexWrap: "wrap" }}>
             <span style={{ fontSize: "1rem", color: "#cbd5e1", fontWeight: 600 }}>{p.nombre}</span>
             <span style={{
@@ -283,6 +470,9 @@ function ProspectCard({ p }: { p: Prospect }) {
             {approachMsg}
           </p>
         </div>
+
+        {/* ── panel de notas ── */}
+        <NotesPanel prospectId={p.id} adminKey={adminKey} />
 
       </div>
     </article>
@@ -444,7 +634,7 @@ export default function ProspectosPage() {
                 gap: "1.25rem",
               }}>
                 {filtered.map((p) => (
-                  <ProspectCard key={p.id} p={p} />
+                  <ProspectCard key={p.id} p={p} adminKey={adminKey} />
                 ))}
               </div>
             )}

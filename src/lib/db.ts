@@ -66,4 +66,43 @@ export async function ensureEventSchema(sql: ReturnType<typeof getSqlClient>) {
     CREATE INDEX IF NOT EXISTS idx_event_raffle_winners_position
     ON event_raffle_winners (prize_position);
   `;
+
+  // ── Notas de seguimiento por prospecto ──────────────────────────────────
+  await sql`
+    CREATE TABLE IF NOT EXISTS prospect_notes (
+      id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      prospect_id  UUID NOT NULL REFERENCES event_prospects(id) ON DELETE CASCADE,
+      autor        VARCHAR(120) NOT NULL DEFAULT 'usuario',
+      contenido    TEXT NOT NULL,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_prospect_notes_prospect_id
+    ON prospect_notes (prospect_id, created_at ASC);
+  `;
+}
+
+export async function ensureUsersSchema(sql: ReturnType<typeof getSqlClient>) {
+  await sql`
+    CREATE TABLE IF NOT EXISTS usuarios (
+      user_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      alias         VARCHAR(60) NOT NULL UNIQUE,
+      nombre        VARCHAR(120) NOT NULL,
+      apellido      VARCHAR(120) NOT NULL,
+      password_hash TEXT NOT NULL DEFAULT '',
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `;
+
+  await sql`
+    ALTER TABLE usuarios
+    ADD COLUMN IF NOT EXISTS password_hash TEXT NOT NULL DEFAULT '';
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_usuarios_alias
+    ON usuarios (alias);
+  `;
 }
