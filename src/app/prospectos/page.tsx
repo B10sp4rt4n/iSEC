@@ -490,8 +490,12 @@ const FILTER_OPTIONS = [
 
 // ─── página principal ─────────────────────────────────────────────────────
 export default function ProspectosPage() {
+  const [mode, setMode] = useState<"login" | "register">("login");
   const [alias, setAlias] = useState("");
   const [password, setPassword] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [adminKey, setAdminKey] = useState("");
   const [agenteName, setAgenteName] = useState("");
   const [prospects, setProspects] = useState<Prospect[] | null>(null);
@@ -500,33 +504,78 @@ export default function ProspectosPage() {
   const [search, setSearch] = useState("");
   const [filterNivel, setFilterNivel] = useState("all");
 
+  function switchMode(m: "login" | "register") {
+    setMode(m);
+    setError(null);
+    setAlias("");
+    setPassword("");
+    setNombre("");
+    setApellido("");
+    setConfirmPassword("");
+  }
+
+  async function doLogin(aliasVal: string, passVal: string) {
+    const loginRes = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ alias: aliasVal.trim(), password: passVal }),
+    });
+    const loginData = await loginRes.json() as { ok?: boolean; nombre?: string; adminToken?: string; error?: string };
+    if (!loginRes.ok || !loginData.ok) {
+      setError(loginData.error ?? "Alias o contraseña incorrectos.");
+      return;
+    }
+    const token = loginData.adminToken!;
+    setAdminKey(token);
+    setAgenteName(loginData.nombre ?? aliasVal.trim());
+
+    const prosRes = await fetch("/api/prospects", {
+      headers: { "x-admin-key": token },
+    });
+    const prosData = await prosRes.json() as { ok?: boolean; prospects?: Prospect[]; error?: string };
+    if (!prosRes.ok || !prosData.ok) {
+      setError(prosData.error ?? "Error al cargar prospectos.");
+      return;
+    }
+    setProspects(prosData.prospects ?? []);
+  }
+
   async function handleLogin() {
     setLoading(true);
     setError(null);
     try {
-      const loginRes = await fetch("/api/admin/login", {
+      await doLogin(alias, password);
+    } catch {
+      setError("Fallo de conexión.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRegister() {
+    if (password !== confirmPassword) {
+      setError("Las contraseñas no coinciden.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const regRes = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ alias: alias.trim(), password }),
+        body: JSON.stringify({ alias: alias.trim(), nombre: nombre.trim(), apellido: apellido.trim(), password }),
       });
-      const loginData = await loginRes.json() as { ok?: boolean; nombre?: string; adminToken?: string; error?: string };
-      if (!loginRes.ok || !loginData.ok) {
-        setError(loginData.error ?? "Alias o contraseña incorrectos.");
+      const regData = await regRes.json() as { user?: unknown; error?: string };
+      if (!regRes.ok) {
+        setError(regData.error ?? "Error al crear usuario.");
         return;
       }
-      const token = loginData.adminToken!;
-      setAdminKey(token);
-      setAgenteName(loginData.nombre ?? alias.trim());
-
-      const prosRes = await fetch("/api/prospects", {
-        headers: { "x-admin-key": token },
-      });
-      const prosData = await prosRes.json() as { ok?: boolean; prospects?: Prospect[]; error?: string };
-      if (!prosRes.ok || !prosData.ok) {
-        setError(prosData.error ?? "Error al cargar prospectos.");
-        return;
-      }
-      setProspects(prosData.prospects ?? []);
+      // Registro exitoso → login automático
+      await doLogin(alias, password);
     } catch {
       setError("Fallo de conexión.");
     } finally {
@@ -566,54 +615,100 @@ export default function ProspectosPage() {
         {!prospects ? (
           <div style={{ maxWidth: "400px" }}>
             <div style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: "1rem", padding: "2rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-              <p style={{ margin: 0, fontSize: "0.85rem", color: "#94a3b8" }}>
-                Inicia sesión para acceder a los perfiles
+
+              {/* tabs login / registro */}
+              <div style={{ display: "flex", borderRadius: "0.5rem", overflow: "hidden", border: "1px solid #334155" }}>
+                {(["login", "register"] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => switchMode(m)}
+                    style={{
+                      flex: 1, padding: "0.5rem", fontSize: "0.8rem", fontWeight: 700,
+                      border: "none", cursor: "pointer",
+                      background: mode === m ? "#0ea5e9" : "#0f172a",
+                      color: mode === m ? "#fff" : "#64748b",
+                    }}
+                  >
+                    {m === "login" ? "Iniciar sesión" : "Registrarse"}
+                  </button>
+                ))}
+              </div>
+
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "#94a3b8" }}>
+                {mode === "login" ? "Ingresa con tu alias y contraseña." : "Crea tu acceso la primera vez."}
               </p>
+
+              {/* campos extra sólo en registro */}
+              {mode === "register" && (
+                <>
+                  <input
+                    type="text"
+                    value={nombre}
+                    onChange={(e) => setNombre(e.target.value)}
+                    placeholder="Nombre"
+                    style={{ width: "100%", boxSizing: "border-box", padding: "0.7rem 1rem", borderRadius: "0.6rem", border: "1px solid #334155", background: "#0f172a", color: "#f1f5f9", fontSize: "0.9rem" }}
+                  />
+                  <input
+                    type="text"
+                    value={apellido}
+                    onChange={(e) => setApellido(e.target.value)}
+                    placeholder="Apellido"
+                    style={{ width: "100%", boxSizing: "border-box", padding: "0.7rem 1rem", borderRadius: "0.6rem", border: "1px solid #334155", background: "#0f172a", color: "#f1f5f9", fontSize: "0.9rem" }}
+                  />
+                </>
+              )}
+
               <input
                 type="text"
                 value={alias}
                 onChange={(e) => setAlias(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                placeholder="Tu alias (ej. salvador)"
+                onKeyDown={(e) => e.key === "Enter" && mode === "login" && handleLogin()}
+                placeholder="Alias (ej. salvador)"
                 autoCapitalize="none"
-                style={{
-                  width: "100%", boxSizing: "border-box",
-                  padding: "0.7rem 1rem", borderRadius: "0.6rem",
-                  border: "1px solid #334155", background: "#0f172a",
-                  color: "#f1f5f9", fontSize: "0.9rem",
-                }}
+                style={{ width: "100%", boxSizing: "border-box", padding: "0.7rem 1rem", borderRadius: "0.6rem", border: "1px solid #334155", background: "#0f172a", color: "#f1f5f9", fontSize: "0.9rem" }}
               />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                placeholder="Contraseña"
-                style={{
-                  width: "100%", boxSizing: "border-box",
-                  padding: "0.7rem 1rem", borderRadius: "0.6rem",
-                  border: "1px solid #334155", background: "#0f172a",
-                  color: "#f1f5f9", fontSize: "0.9rem",
-                }}
+                onKeyDown={(e) => e.key === "Enter" && mode === "login" && handleLogin()}
+                placeholder="Contraseña (mín. 8 caracteres)"
+                style={{ width: "100%", boxSizing: "border-box", padding: "0.7rem 1rem", borderRadius: "0.6rem", border: "1px solid #334155", background: "#0f172a", color: "#f1f5f9", fontSize: "0.9rem" }}
               />
+
+              {/* confirmar contraseña solo en registro */}
+              {mode === "register" && (
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirmar contraseña"
+                  style={{ width: "100%", boxSizing: "border-box", padding: "0.7rem 1rem", borderRadius: "0.6rem", border: "1px solid #334155", background: "#0f172a", color: "#f1f5f9", fontSize: "0.9rem" }}
+                />
+              )}
+
               {error && <p style={{ color: "#f87171", fontSize: "0.8rem", margin: 0 }}>{error}</p>}
+
               <button
-                onClick={handleLogin}
-                disabled={loading || alias.trim().length === 0 || password.length === 0}
+                onClick={mode === "login" ? handleLogin : handleRegister}
+                disabled={
+                  loading ||
+                  alias.trim().length === 0 ||
+                  password.length === 0 ||
+                  (mode === "register" && (nombre.trim().length === 0 || apellido.trim().length === 0 || confirmPassword.length === 0))
+                }
                 style={{
                   width: "100%", padding: "0.75rem", borderRadius: "0.6rem",
                   background: loading ? "#334155" : "#0ea5e9",
                   color: "#fff", fontSize: "0.9rem", fontWeight: 700,
                   border: "none", cursor: loading ? "not-allowed" : "pointer",
-                  opacity: alias.trim().length === 0 || password.length === 0 ? 0.5 : 1,
                 }}
               >
-                {loading ? "Ingresando…" : "Entrar"}
+                {loading
+                  ? mode === "login" ? "Ingresando…" : "Registrando…"
+                  : mode === "login" ? "Entrar" : "Crear cuenta y entrar"}
               </button>
-              <p style={{ margin: 0, fontSize: "0.7rem", color: "#475569", textAlign: "center" }}>
-                ¿No tienes usuario?{" "}
-                <a href="/admin/usuarios" style={{ color: "#38bdf8", textDecoration: "none" }}>Gestionar usuarios →</a>
-              </p>
+
             </div>
           </div>
         ) : (
@@ -659,7 +754,7 @@ export default function ProspectosPage() {
                 👥 Usuarios
               </a>
               <button
-                onClick={() => { setProspects(null); setSearch(""); setFilterNivel("all"); setAlias(""); setPassword(""); setAdminKey(""); setAgenteName(""); }}
+                onClick={() => { setProspects(null); setSearch(""); setFilterNivel("all"); setAlias(""); setPassword(""); setAdminKey(""); setAgenteName(""); setMode("login"); setNombre(""); setApellido(""); setConfirmPassword(""); setError(null); }}
                 style={{ padding: "0.4rem 0.85rem", borderRadius: "0.5rem", background: "#1e293b", color: "#64748b", border: "1px solid #334155", cursor: "pointer", fontSize: "0.75rem" }}
               >
                 Cerrar sesión
