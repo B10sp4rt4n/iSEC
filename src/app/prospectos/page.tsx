@@ -259,7 +259,7 @@ function NotesPanel({ prospectId, adminKey, agenteName }: { prospectId: string; 
                       {new Date(n.created_at).toLocaleDateString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
-                  <p style={{ margin: 0, fontSize: "0.78rem", color: "#cbd5e1", lineHeight: 1.6 }}>{n.contenido}</p>
+                  <p style={{ margin: 0, fontSize: "0.78rem", color: "#cbd5e1", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{n.contenido}</p>
                 </div>
               ))}
               <div ref={bottomRef} />
