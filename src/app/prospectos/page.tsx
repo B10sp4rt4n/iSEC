@@ -332,11 +332,62 @@ function NotesPanel({ prospectId, adminKey, agenteName }: { prospectId: string; 
   );
 }
 
+// ─── helpers de calendario ──────────────────────────────────────────────
+function googleCalendarUrl(titulo: string, nota: string, start: Date, empresa: string, nombre: string): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const fmt = (d: Date) =>
+    `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
+  const end = new Date(start.getTime() + 30 * 60 * 1000);
+  const details = `Empresa: ${empresa}\nContacto: ${nombre}${nota ? `\n\nNotas: ${nota}` : ""}`;
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: `${titulo} — ${empresa}`,
+    dates: `${fmt(start)}/${fmt(end)}`,
+    details,
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+function icsContent(titulo: string, nota: string, start: Date, empresa: string, nombre: string): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const fmt = (d: Date) =>
+    `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
+  const end = new Date(start.getTime() + 30 * 60 * 1000);
+  const uid = `${start.getTime()}@isec-prospectos`;
+  const description = `Empresa: ${empresa}\\nContacto: ${nombre}${nota ? `\\nNotas: ${nota}` : ""}`;
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//iSEC Prospectos//ES",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${fmt(new Date())}`,
+    `DTSTART:${fmt(start)}`,
+    `DTEND:${fmt(end)}`,
+    `SUMMARY:${titulo} — ${empresa}`,
+    `DESCRIPTION:${description}`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+}
+
+function downloadIcs(titulo: string, nota: string, start: Date, empresa: string, nombre: string) {
+  const content = icsContent(titulo, nota, start, empresa, nombre);
+  const blob = new Blob([content], { type: "text/calendar" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `recordatorio-${empresa.replace(/\s+/g, "-").toLowerCase()}.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ─── panel de alertas / calendario ──────────────────────────────────────
 function AlertPanel({
-  prospectId, adminKey, agenteName, onAlertChanged,
+  prospectId, adminKey, agenteName, prospectNombre, prospectEmpresa, onAlertChanged,
 }: {
-  prospectId: string; adminKey: string; agenteName: string; onAlertChanged?: () => void;
+  prospectId: string; adminKey: string; agenteName: string;
+  prospectNombre: string; prospectEmpresa: string; onAlertChanged?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -346,6 +397,7 @@ function AlertPanel({
   const [time, setTime] = useState("");
   const [titulo, setTitulo] = useState("Llamada de seguimiento");
   const [nota, setNota] = useState("");
+  const [lastSaved, setLastSaved] = useState<Alert | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -374,6 +426,7 @@ function AlertPanel({
         setAlerts((prev) => [...prev, d.alert!].sort(
           (a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
         ));
+        setLastSaved(d.alert!);
         setDate("");
         setTime("");
         setNota("");
@@ -580,6 +633,39 @@ function AlertPanel({
             >
               {saving ? "Guardando…" : "📅 Programar recordatorio"}
             </button>
+
+            {/* botones de calendario tras guardar */}
+            {lastSaved && (
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", paddingTop: "0.25rem" }}>
+                <p style={{ margin: 0, width: "100%", fontSize: "0.68rem", color: "#4ade80", fontWeight: 600 }}>
+                  ✓ Recordatorio guardado — agrégalo a tu calendario:
+                </p>
+                <a
+                  href={googleCalendarUrl(lastSaved.titulo, lastSaved.nota, new Date(lastSaved.scheduled_at), prospectEmpresa, prospectNombre)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem",
+                    padding: "0.45rem 0.75rem", borderRadius: "0.5rem",
+                    background: "#1e3a5f", color: "#7dd3fc", fontSize: "0.75rem", fontWeight: 700,
+                    border: "1px solid #1e3a5f", textDecoration: "none", whiteSpace: "nowrap",
+                  }}
+                >
+                  📆 Google Calendar
+                </a>
+                <button
+                  onClick={() => downloadIcs(lastSaved!.titulo, lastSaved!.nota, new Date(lastSaved!.scheduled_at), prospectEmpresa, prospectNombre)}
+                  style={{
+                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem",
+                    padding: "0.45rem 0.75rem", borderRadius: "0.5rem",
+                    background: "#312e81", color: "#a5b4fc", fontSize: "0.75rem", fontWeight: 700,
+                    border: "1px solid #312e81", cursor: "pointer", whiteSpace: "nowrap",
+                  }}
+                >
+                  ⬇ Outlook / Apple Cal (.ics)
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -931,7 +1017,7 @@ function ProspectRow({
           <NotesPanel prospectId={p.id} adminKey={adminKey} agenteName={agenteName} />
 
           {/* ── panel de alertas / calendario ── */}
-          <AlertPanel prospectId={p.id} adminKey={adminKey} agenteName={agenteName} onAlertChanged={onAlertChanged} />
+          <AlertPanel prospectId={p.id} adminKey={adminKey} agenteName={agenteName} prospectNombre={p.nombre} prospectEmpresa={p.empresa} onAlertChanged={onAlertChanged} />
 
         </div>
       )}
