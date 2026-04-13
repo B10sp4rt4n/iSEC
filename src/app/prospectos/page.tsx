@@ -313,13 +313,18 @@ function NotesPanel({ prospectId, adminKey, agenteName }: { prospectId: string; 
   );
 }
 
-// ─── componente tarjeta ───────────────────────────────────────────────────
-function ProspectCard({ p, adminKey, agenteName }: { p: Prospect; adminKey: string; agenteName: string }) {
+// ─── componente fila accordion ───────────────────────────────────────────
+function ProspectRow({
+  p, adminKey, agenteName, expanded, onToggle,
+}: {
+  p: Prospect; adminKey: string; agenteName: string; expanded: boolean; onToggle: () => void;
+}) {
   const [copied, setCopied] = useState<"tel" | "email" | "msg" | null>(null);
   const postura = calcPostura(p.pregunta_cerrada_1, p.pregunta_cerrada_2);
   const prioridad = getPrioridad(postura, p.cargo);
   const approachMsg = buildApproach(p);
   const ps = POSTURA_STYLE[postura.nivel];
+  const rowRef = useRef<HTMLDivElement>(null);
 
   const copy = useCallback((text: string, key: "tel" | "email" | "msg") => {
     navigator.clipboard.writeText(text).then(() => {
@@ -332,150 +337,218 @@ function ProspectCard({ p, adminKey, agenteName }: { p: Prospect; adminKey: stri
     day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
 
+  useEffect(() => {
+    if (expanded) rowRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [expanded]);
+
   return (
-    <article
+    <div
+      ref={rowRef}
       style={{
+        width: "100%",
         background: "#1e293b",
-        border: `1px solid ${ps.ring}`,
-        boxShadow: `0 0 0 1px ${ps.ring}22, 0 8px 24px #00000055`,
-        borderRadius: "1.25rem",
+        border: `1px solid ${expanded ? ps.ring : "#334155"}`,
+        borderRadius: "0.875rem",
         overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
+        transition: "border-color 0.2s",
       }}
     >
-      {/* ── banda superior ── */}
-      <div style={{ background: ps.badge, padding: "0.5rem 1.2rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
-        <span style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.1em", color: ps.text, textTransform: "uppercase" }}>
+      {/* ── Encabezado clickable ── */}
+      <button
+        onClick={onToggle}
+        style={{
+          width: "100%", background: expanded ? ps.badge : "transparent",
+          border: "none", cursor: "pointer", padding: "0.875rem 1.25rem",
+          display: "flex", alignItems: "center", gap: "0.75rem",
+          textAlign: "left", transition: "background 0.2s",
+        }}
+      >
+        {/* folio */}
+        <span style={{ fontSize: "0.68rem", color: "#475569", fontFamily: "monospace", flexShrink: 0 }}>
+          #{String(p.folio).padStart(4, "0")}
+        </span>
+
+        {/* prioridad badge */}
+        <span style={{
+          fontSize: "0.62rem", fontWeight: 700, padding: "0.15rem 0.6rem",
+          borderRadius: "99px", background: ps.badge, color: ps.text,
+          border: `1px solid ${ps.ring}55`, flexShrink: 0, whiteSpace: "nowrap",
+        }}>
           {prioridad.label}
         </span>
-        <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}>#{String(p.folio).padStart(4, "0")} · {fecha}</span>
-      </div>
 
-      <div style={{ padding: "1.25rem 1.4rem", flex: 1, display: "flex", flexDirection: "column", gap: "1rem" }}>
+        {/* empresa + nombre + cargo */}
+        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "0.65rem", minWidth: 0, overflow: "hidden" }}>
+          <span style={{
+            fontSize: "1rem", fontWeight: 800, color: "#f1f5f9",
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+          }}>
+            {p.empresa}
+          </span>
+          <span style={{ fontSize: "0.82rem", color: "#94a3b8", whiteSpace: "nowrap", flexShrink: 0 }}>
+            {p.nombre}
+          </span>
+          <span style={{
+            display: "none", fontSize: "0.62rem", fontWeight: 600, padding: "0.1rem 0.45rem",
+            borderRadius: "99px", background: "#334155", color: "#64748b",
+            flexShrink: 0,
+          }}
+            className="cargo-badge"
+          >
+            {CARGO_LABEL[p.cargo] ?? p.cargo}
+          </span>
+        </div>
 
-        {/* ── empresa + nombre ── */}
-        <div>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.5rem" }}>
-            <p style={{ fontSize: "1.4rem", fontWeight: 800, color: "#f1f5f9", lineHeight: 1.15, margin: 0 }}>
-              {p.empresa}
-            </p>
-            {/* link al portal web */}
+        {/* postura */}
+        <span style={{
+          fontSize: "0.68rem", fontWeight: 700, padding: "0.15rem 0.6rem",
+          borderRadius: "99px", background: ps.badge, color: ps.text,
+          flexShrink: 0, whiteSpace: "nowrap",
+        }}>
+          {postura.label}
+        </span>
+
+        {/* fecha */}
+        <span style={{ fontSize: "0.62rem", color: "#475569", flexShrink: 0, whiteSpace: "nowrap" }}>
+          {fecha}
+        </span>
+
+        {/* flecha */}
+        <span style={{
+          fontSize: "1rem", color: ps.text, flexShrink: 0,
+          transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+          transition: "transform 0.25s",
+          display: "inline-block",
+        }}>
+          ▾
+        </span>
+      </button>
+
+      {/* ── Cuerpo expandible ── */}
+      {expanded && (
+        <div style={{ borderTop: `1px solid ${ps.ring}44`, padding: "1.5rem 1.5rem 1.25rem" }}>
+
+          {/* ── fila superior: empresa + link + cargo ── */}
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", marginBottom: "1.25rem" }}>
+            <div>
+              <p style={{ fontSize: "1.5rem", fontWeight: 800, color: "#f1f5f9", lineHeight: 1.15, margin: 0 }}>
+                {p.empresa}
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.35rem", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "1rem", color: "#cbd5e1", fontWeight: 600 }}>{p.nombre}</span>
+                <span style={{
+                  fontSize: "0.65rem", fontWeight: 700, padding: "0.15rem 0.55rem",
+                  borderRadius: "99px", background: "#334155", color: "#94a3b8",
+                  textTransform: "uppercase", letterSpacing: "0.08em",
+                }}>
+                  {CARGO_LABEL[p.cargo] ?? p.cargo}
+                </span>
+              </div>
+            </div>
             <a
               href={`https://www.${p.correo.split("@")[1]}`}
               target="_blank"
               rel="noopener noreferrer"
               title={`Visitar ${p.correo.split("@")[1]}`}
               style={{
-                flexShrink: 0, fontSize: "0.65rem", padding: "0.2rem 0.6rem",
+                flexShrink: 0, fontSize: "0.65rem", padding: "0.25rem 0.7rem",
                 borderRadius: "99px", background: "#0c4a6e", color: "#7dd3fc",
                 border: "1px solid #1e3a5f", textDecoration: "none", fontWeight: 600,
-                display: "flex", alignItems: "center", gap: "0.25rem", marginTop: "0.15rem",
+                display: "flex", alignItems: "center", gap: "0.25rem",
                 whiteSpace: "nowrap",
               }}
             >
               🌐 {p.correo.split("@")[1]}
             </a>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.35rem", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "1rem", color: "#cbd5e1", fontWeight: 600 }}>{p.nombre}</span>
-            <span style={{
-              fontSize: "0.65rem", fontWeight: 700, padding: "0.15rem 0.55rem",
-              borderRadius: "99px", background: "#334155", color: "#94a3b8",
-              textTransform: "uppercase", letterSpacing: "0.08em",
-            }}>
-              {CARGO_LABEL[p.cargo] ?? p.cargo}
-            </span>
-          </div>
-        </div>
 
-        {/* ── contacto estilo contact center ── */}
-        <div style={{ background: "#0f172a", borderRadius: "0.75rem", padding: "0.875rem 1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-          {/* teléfono */}
-          {p.telefono && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                <span style={{ fontSize: "1.05rem" }}>📞</span>
-                <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#4ade80", letterSpacing: "0.04em", fontFamily: "monospace" }}>
-                  {p.telefono}
+          {/* ── dos columnas: contacto | respuestas ── */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem", marginBottom: "1.25rem" }}>
+
+            {/* contacto */}
+            <div style={{ background: "#0f172a", borderRadius: "0.75rem", padding: "0.875rem 1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              {p.telefono && (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                    <span style={{ fontSize: "1.05rem" }}>📞</span>
+                    <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#4ade80", letterSpacing: "0.04em", fontFamily: "monospace" }}>
+                      {p.telefono}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => copy(p.telefono!, "tel")}
+                    style={{ fontSize: "0.65rem", padding: "0.2rem 0.6rem", borderRadius: "6px", background: "#1e293b", color: copied === "tel" ? "#4ade80" : "#64748b", border: "1px solid #334155", cursor: "pointer" }}
+                  >
+                    {copied === "tel" ? "✓ Copiado" : "Copiar"}
+                  </button>
+                </div>
+              )}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", minWidth: 0 }}>
+                  <span style={{ fontSize: "1rem" }}>✉️</span>
+                  <span style={{ fontSize: "0.82rem", color: "#7dd3fc", wordBreak: "break-all" }}>{p.correo}</span>
+                </div>
+                <button
+                  onClick={() => copy(p.correo, "email")}
+                  style={{ flexShrink: 0, fontSize: "0.65rem", padding: "0.2rem 0.6rem", borderRadius: "6px", background: "#1e293b", color: copied === "email" ? "#4ade80" : "#64748b", border: "1px solid #334155", cursor: "pointer" }}
+                >
+                  {copied === "email" ? "✓ Copiado" : "Copiar"}
+                </button>
+              </div>
+            </div>
+
+            {/* respuestas + postura */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <div style={{ flex: 1, height: "6px", borderRadius: "99px", background: "#334155", overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${(postura.puntos / 20) * 100}%`, background: ps.ring, borderRadius: "99px" }} />
+                </div>
+                <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "0.15rem 0.6rem", borderRadius: "99px", background: ps.badge, color: ps.text, whiteSpace: "nowrap" }}>
+                  {postura.label}
                 </span>
               </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+                <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.8rem" }}>
+                  <span style={{ color: "#64748b", flexShrink: 0 }}>Riesgo principal:</span>
+                  <span style={{ color: "#e2e8f0", fontWeight: 600 }}>{RIESGO_LABEL[p.pregunta_cerrada_1] ?? p.pregunta_cerrada_1}</span>
+                </div>
+                <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.8rem" }}>
+                  <span style={{ color: "#64748b", flexShrink: 0 }}>Detección interna:</span>
+                  <span style={{ color: "#e2e8f0", fontWeight: 600 }}>{DETECCION_LABEL[p.pregunta_cerrada_2] ?? p.pregunta_cerrada_2}</span>
+                </div>
+              </div>
+              {p.dolor_reto && (
+                <blockquote style={{ margin: 0, borderLeft: "2px solid #334155", paddingLeft: "0.75rem", color: "#9daebe", fontSize: "0.78rem", lineHeight: 1.5, fontStyle: "italic" }}>
+                  "{p.dolor_reto}"
+                </blockquote>
+              )}
+            </div>
+          </div>
+
+          {/* ── mensaje de approach ── */}
+          <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: "0.75rem", padding: "0.875rem 1rem", marginBottom: "1.25rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem" }}>
+              <p style={{ margin: 0, fontSize: "0.7rem", fontWeight: 700, color: "#38bdf8", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                💬 Mensaje de approach
+              </p>
               <button
-                onClick={() => copy(p.telefono!, "tel")}
-                style={{ fontSize: "0.65rem", padding: "0.2rem 0.6rem", borderRadius: "6px", background: "#1e293b", color: copied === "tel" ? "#4ade80" : "#64748b", border: "1px solid #334155", cursor: "pointer" }}
+                onClick={() => copy(approachMsg, "msg")}
+                style={{ fontSize: "0.65rem", padding: "0.2rem 0.7rem", borderRadius: "6px", background: copied === "msg" ? "#1e3a5f" : "#1e293b", color: copied === "msg" ? "#4ade80" : "#38bdf8", border: "1px solid #1e3a5f", cursor: "pointer", fontWeight: 600 }}
               >
-                {copied === "tel" ? "✓ Copiado" : "Copiar"}
+                {copied === "msg" ? "✓ Copiado" : "Copiar mensaje"}
               </button>
             </div>
-          )}
-          {/* correo */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", minWidth: 0 }}>
-              <span style={{ fontSize: "1rem" }}>✉️</span>
-              <span style={{ fontSize: "0.82rem", color: "#7dd3fc", wordBreak: "break-all" }}>{p.correo}</span>
-            </div>
-            <button
-              onClick={() => copy(p.correo, "email")}
-              style={{ flexShrink: 0, fontSize: "0.65rem", padding: "0.2rem 0.6rem", borderRadius: "6px", background: "#1e293b", color: copied === "email" ? "#4ade80" : "#64748b", border: "1px solid #334155", cursor: "pointer" }}
-            >
-              {copied === "email" ? "✓ Copiado" : "Copiar"}
-            </button>
-          </div>
-        </div>
-
-        {/* ── postura de seguridad ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <div style={{ flex: 1, height: "6px", borderRadius: "99px", background: "#1e293b", overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${(postura.puntos / 20) * 100}%`, background: ps.ring, borderRadius: "99px", transition: "width 0.4s" }} />
-          </div>
-          <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "0.15rem 0.6rem", borderRadius: "99px", background: ps.badge, color: ps.text, whiteSpace: "nowrap" }}>
-            {postura.label}
-          </span>
-        </div>
-
-        {/* ── respuestas ── */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem" }}>
-          <p style={{ margin: 0, fontSize: "0.7rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.1em" }}>Respuestas</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-            <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.8rem" }}>
-              <span style={{ color: "#64748b", flexShrink: 0 }}>Riesgo principal:</span>
-              <span style={{ color: "#e2e8f0", fontWeight: 600 }}>{RIESGO_LABEL[p.pregunta_cerrada_1] ?? p.pregunta_cerrada_1}</span>
-            </div>
-            <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.8rem" }}>
-              <span style={{ color: "#64748b", flexShrink: 0 }}>Detección interna:</span>
-              <span style={{ color: "#e2e8f0", fontWeight: 600 }}>{DETECCION_LABEL[p.pregunta_cerrada_2] ?? p.pregunta_cerrada_2}</span>
-            </div>
-          </div>
-          {p.dolor_reto && (
-            <blockquote style={{ margin: "0.3rem 0 0", borderLeft: "2px solid #334155", paddingLeft: "0.75rem", color: "#9daebe", fontSize: "0.78rem", lineHeight: 1.5, fontStyle: "italic" }}>
-              "{p.dolor_reto}"
-            </blockquote>
-          )}
-        </div>
-
-        {/* ── mensaje de approach ── */}
-        <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: "0.75rem", padding: "0.875rem 1rem" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem" }}>
-            <p style={{ margin: 0, fontSize: "0.7rem", fontWeight: 700, color: "#38bdf8", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-              💬 Mensaje de approach
+            <p style={{ margin: 0, fontSize: "0.8rem", color: "#cbd5e1", lineHeight: 1.65 }}>
+              {approachMsg}
             </p>
-            <button
-              onClick={() => copy(approachMsg, "msg")}
-              style={{ fontSize: "0.65rem", padding: "0.2rem 0.7rem", borderRadius: "6px", background: copied === "msg" ? "#1e3a5f" : "#1e293b", color: copied === "msg" ? "#4ade80" : "#38bdf8", border: "1px solid #1e3a5f", cursor: "pointer", fontWeight: 600 }}
-            >
-              {copied === "msg" ? "✓ Copiado" : "Copiar mensaje"}
-            </button>
           </div>
-          <p style={{ margin: 0, fontSize: "0.8rem", color: "#cbd5e1", lineHeight: 1.65 }}>
-            {approachMsg}
-          </p>
+
+          {/* ── panel de notas ── */}
+          <NotesPanel prospectId={p.id} adminKey={adminKey} agenteName={agenteName} />
+
         </div>
-
-        {/* ── panel de notas ── */}
-        <NotesPanel prospectId={p.id} adminKey={adminKey} agenteName={agenteName} />
-
-      </div>
-    </article>
+      )}
+    </div>
   );
 }
 
@@ -503,6 +576,8 @@ export default function ProspectosPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterNivel, setFilterNivel] = useState("all");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<string>("");
 
   function switchMode(m: "login" | "register") {
     setMode(m);
@@ -714,11 +789,11 @@ export default function ProspectosPage() {
         ) : (
           <>
             {/* ── barra de controles ── */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center", marginBottom: "1.5rem" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center", marginBottom: "1rem" }}>
               <input
                 type="text"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setSelectedAccount(""); setExpandedId(null); }}
                 placeholder="Buscar por nombre, empresa o correo…"
                 style={{
                   flex: 1, minWidth: "220px", padding: "0.55rem 0.9rem",
@@ -730,7 +805,7 @@ export default function ProspectosPage() {
                 {FILTER_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
-                    onClick={() => setFilterNivel(opt.value)}
+                    onClick={() => { setFilterNivel(opt.value); setSelectedAccount(""); setExpandedId(null); }}
                     style={{
                       padding: "0.4rem 0.85rem", borderRadius: "99px", fontSize: "0.75rem",
                       fontWeight: 600, border: "1px solid",
@@ -754,24 +829,64 @@ export default function ProspectosPage() {
                 👥 Usuarios
               </a>
               <button
-                onClick={() => { setProspects(null); setSearch(""); setFilterNivel("all"); setAlias(""); setPassword(""); setAdminKey(""); setAgenteName(""); setMode("login"); setNombre(""); setApellido(""); setConfirmPassword(""); setError(null); }}
+                onClick={() => { setProspects(null); setSearch(""); setFilterNivel("all"); setSelectedAccount(""); setExpandedId(null); setAlias(""); setPassword(""); setAdminKey(""); setAgenteName(""); setMode("login"); setNombre(""); setApellido(""); setConfirmPassword(""); setError(null); }}
                 style={{ padding: "0.4rem 0.85rem", borderRadius: "0.5rem", background: "#1e293b", color: "#64748b", border: "1px solid #334155", cursor: "pointer", fontSize: "0.75rem" }}
               >
                 Cerrar sesión
               </button>
             </div>
 
-            {/* ── grid de tarjetas ── */}
+            {/* ── selector de cuenta ── */}
+            {filtered.length > 0 && (
+              <div style={{ marginBottom: "1.25rem" }}>
+                <select
+                  value={selectedAccount}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedAccount(val);
+                    setExpandedId(val || null);
+                  }}
+                  style={{
+                    width: "100%", padding: "0.65rem 1rem",
+                    borderRadius: "0.75rem", border: "1px solid #334155",
+                    background: "#1e293b", color: "#f1f5f9",
+                    fontSize: "0.9rem", cursor: "pointer",
+                    appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: "no-repeat", backgroundPosition: "right 1rem center",
+                    paddingRight: "2.5rem",
+                  }}
+                >
+                  <option value="">— Ver todas las cuentas ({filtered.length}) —</option>
+                  {filtered.map((p) => {
+                    const pos = calcPostura(p.pregunta_cerrada_1, p.pregunta_cerrada_2);
+                    const nivelEmoji = { critica: "🔴", alta: "🟠", media: "🟡", basica: "🟢" }[pos.nivel];
+                    return (
+                      <option key={p.id} value={p.id}>
+                        {nivelEmoji} #{String(p.folio).padStart(4, "0")} · {p.empresa} — {p.nombre}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            )}
+
+            {/* ── lista accordion ── */}
             {filtered.length === 0 ? (
               <p style={{ color: "#475569", fontSize: "0.9rem" }}>No hay prospectos que coincidan con los filtros.</p>
             ) : (
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))",
-                gap: "1.25rem",
-              }}>
-                {filtered.map((p) => (
-                  <ProspectCard key={p.id} p={p} adminKey={adminKey} agenteName={agenteName} />
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                {(selectedAccount
+                  ? filtered.filter((p) => p.id === selectedAccount)
+                  : filtered
+                ).map((p) => (
+                  <ProspectRow
+                    key={p.id}
+                    p={p}
+                    adminKey={adminKey}
+                    agenteName={agenteName}
+                    expanded={expandedId === p.id}
+                    onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)}
+                  />
                 ))}
               </div>
             )}
