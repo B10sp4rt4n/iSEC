@@ -333,12 +333,19 @@ function NotesPanel({ prospectId, adminKey, agenteName }: { prospectId: string; 
 }
 
 // ─── helpers de calendario ──────────────────────────────────────────────
-function googleCalendarUrl(titulo: string, nota: string, start: Date, empresa: string, nombre: string): string {
+function googleCalendarUrl(titulo: string, nota: string, start: Date, empresa: string, nombre: string, telefono: string | null, correo: string): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   const fmt = (d: Date) =>
     `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
   const end = new Date(start.getTime() + 30 * 60 * 1000);
-  const details = `Empresa: ${empresa}\nContacto: ${nombre}${nota ? `\n\nNotas: ${nota}` : ""}`;
+  const lines = [
+    `Empresa: ${empresa}`,
+    `Contacto: ${nombre}`,
+    ...(telefono ? [`Tel: ${telefono}`] : []),
+    `Correo: ${correo}`,
+    ...(nota ? [``, `Notas: ${nota}`] : []),
+  ];
+  const details = lines.join("\n");
   const params = new URLSearchParams({
     action: "TEMPLATE",
     text: `${titulo} — ${empresa}`,
@@ -348,13 +355,20 @@ function googleCalendarUrl(titulo: string, nota: string, start: Date, empresa: s
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
-function icsContent(titulo: string, nota: string, start: Date, empresa: string, nombre: string): string {
+function icsContent(titulo: string, nota: string, start: Date, empresa: string, nombre: string, telefono: string | null, correo: string): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   const fmt = (d: Date) =>
     `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
   const end = new Date(start.getTime() + 30 * 60 * 1000);
   const uid = `${start.getTime()}@isec-prospectos`;
-  const description = `Empresa: ${empresa}\\nContacto: ${nombre}${nota ? `\\nNotas: ${nota}` : ""}`;
+  const lines = [
+    `Empresa: ${empresa}`,
+    `Contacto: ${nombre}`,
+    ...(telefono ? [`Tel: ${telefono}`] : []),
+    `Correo: ${correo}`,
+    ...(nota ? [``, `Notas: ${nota}`] : []),
+  ];
+  const description = lines.join("\\n");
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -371,8 +385,8 @@ function icsContent(titulo: string, nota: string, start: Date, empresa: string, 
   ].join("\r\n");
 }
 
-function downloadIcs(titulo: string, nota: string, start: Date, empresa: string, nombre: string) {
-  const content = icsContent(titulo, nota, start, empresa, nombre);
+function downloadIcs(titulo: string, nota: string, start: Date, empresa: string, nombre: string, telefono: string | null, correo: string) {
+  const content = icsContent(titulo, nota, start, empresa, nombre, telefono, correo);
   const blob = new Blob([content], { type: "text/calendar" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -384,10 +398,12 @@ function downloadIcs(titulo: string, nota: string, start: Date, empresa: string,
 
 // ─── panel de alertas / calendario ──────────────────────────────────────
 function AlertPanel({
-  prospectId, adminKey, agenteName, prospectNombre, prospectEmpresa, onAlertChanged,
+  prospectId, adminKey, agenteName, prospectNombre, prospectEmpresa, prospectTelefono, prospectCorreo, onAlertChanged,
 }: {
   prospectId: string; adminKey: string; agenteName: string;
-  prospectNombre: string; prospectEmpresa: string; onAlertChanged?: () => void;
+  prospectNombre: string; prospectEmpresa: string;
+  prospectTelefono: string | null; prospectCorreo: string;
+  onAlertChanged?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -563,7 +579,7 @@ function AlertPanel({
                   {!a.completado && (
                     <div style={{ display: "flex", gap: "0.4rem", paddingLeft: "1.75rem" }}>
                       <a
-                        href={googleCalendarUrl(a.titulo, a.nota, new Date(a.scheduled_at), prospectEmpresa, prospectNombre)}
+                        href={googleCalendarUrl(a.titulo, a.nota, new Date(a.scheduled_at), prospectEmpresa, prospectNombre, prospectTelefono, prospectCorreo)}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
@@ -576,7 +592,7 @@ function AlertPanel({
                         📆 Google Calendar
                       </a>
                       <button
-                        onClick={() => downloadIcs(a.titulo, a.nota, new Date(a.scheduled_at), prospectEmpresa, prospectNombre)}
+                        onClick={() => downloadIcs(a.titulo, a.nota, new Date(a.scheduled_at), prospectEmpresa, prospectNombre, prospectTelefono, prospectCorreo)}
                         style={{
                           flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem",
                           padding: "0.3rem 0.6rem", borderRadius: "0.4rem",
@@ -1016,7 +1032,7 @@ function ProspectRow({
           <NotesPanel prospectId={p.id} adminKey={adminKey} agenteName={agenteName} />
 
           {/* ── panel de alertas / calendario ── */}
-          <AlertPanel prospectId={p.id} adminKey={adminKey} agenteName={agenteName} prospectNombre={p.nombre} prospectEmpresa={p.empresa} onAlertChanged={onAlertChanged} />
+          <AlertPanel prospectId={p.id} adminKey={adminKey} agenteName={agenteName} prospectNombre={p.nombre} prospectEmpresa={p.empresa} prospectTelefono={p.telefono ?? null} prospectCorreo={p.correo} onAlertChanged={onAlertChanged} />
 
         </div>
       )}
