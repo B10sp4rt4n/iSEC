@@ -82,6 +82,31 @@ export async function ensureEventSchema(sql: ReturnType<typeof getSqlClient>) {
     CREATE INDEX IF NOT EXISTS idx_prospect_notes_prospect_id
     ON prospect_notes (prospect_id, created_at ASC);
   `;
+
+  // ── Alertas / calendario de contacto ────────────────────────────────────
+  await sql`
+    CREATE TABLE IF NOT EXISTS prospect_alerts (
+      id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      prospect_id  UUID NOT NULL REFERENCES event_prospects(id) ON DELETE CASCADE,
+      scheduled_at TIMESTAMPTZ NOT NULL,
+      titulo       VARCHAR(200) NOT NULL DEFAULT 'Llamada de seguimiento',
+      nota         TEXT NOT NULL DEFAULT '',
+      completado   BOOLEAN NOT NULL DEFAULT FALSE,
+      created_by   VARCHAR(120) NOT NULL,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_prospect_alerts_prospect_id
+    ON prospect_alerts (prospect_id, scheduled_at ASC);
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_prospect_alerts_scheduled
+    ON prospect_alerts (scheduled_at ASC)
+    WHERE completado = FALSE;
+  `;
 }
 
 export async function ensureUsersSchema(sql: ReturnType<typeof getSqlClient>) {

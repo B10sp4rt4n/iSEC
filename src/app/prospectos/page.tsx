@@ -152,6 +152,25 @@ type Note = {
   created_at: string;
 };
 
+// ─── tipo de alerta ──────────────────────────────────────────────────────
+type Alert = {
+  id: string;
+  prospect_id: string;
+  scheduled_at: string;
+  titulo: string;
+  nota: string;
+  completado: boolean;
+  created_by: string;
+  created_at: string;
+};
+
+type AlertWithProspect = Alert & {
+  prospect_nombre: string;
+  prospect_empresa: string;
+  prospect_telefono: string | null;
+  prospect_correo: string;
+};
+
 // ─── panel de notas ──────────────────────────────────────────────────────
 function NotesPanel({ prospectId, adminKey, agenteName }: { prospectId: string; adminKey: string; agenteName: string }) {
   const [open, setOpen] = useState(false);
@@ -313,11 +332,376 @@ function NotesPanel({ prospectId, adminKey, agenteName }: { prospectId: string; 
   );
 }
 
-// ─── componente fila accordion ───────────────────────────────────────────
-function ProspectRow({
-  p, adminKey, agenteName, expanded, onToggle,
+// ─── panel de alertas / calendario ──────────────────────────────────────
+function AlertPanel({
+  prospectId, adminKey, agenteName, onAlertChanged,
 }: {
-  p: Prospect; adminKey: string; agenteName: string; expanded: boolean; onToggle: () => void;
+  prospectId: string; adminKey: string; agenteName: string; onAlertChanged?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [titulo, setTitulo] = useState("Llamada de seguimiento");
+  const [nota, setNota] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    fetch(`/api/prospects/${prospectId}/alerts`, {
+      headers: { "x-admin-key": adminKey },
+    })
+      .then((r) => r.json())
+      .then((d: { alerts?: Alert[] }) => setAlerts(d.alerts ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [open, prospectId, adminKey]);
+
+  async function saveAlert() {
+    if (!date || !time) return;
+    setSaving(true);
+    try {
+      const scheduled_at = new Date(`${date}T${time}:00`).toISOString();
+      const res = await fetch(`/api/prospects/${prospectId}/alerts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ scheduled_at, titulo, nota, created_by: agenteName }),
+      });
+      const d = (await res.json()) as { alert?: Alert };
+      if (d.alert) {
+        setAlerts((prev) => [...prev, d.alert!].sort(
+          (a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
+        ));
+        setDate("");
+        setTime("");
+        setNota("");
+        setTitulo("Llamada de seguimiento");
+        onAlertChanged?.();
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleComplete(alertId: string, completado: boolean) {
+    const res = await fetch(`/api/prospects/${prospectId}/alerts`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+      body: JSON.stringify({ alertId, completado: !completado }),
+    });
+    const d = (await res.json()) as { alert?: Alert };
+    if (d.alert) {
+      setAlerts((prev) => prev.map((a) => (a.id === alertId ? d.alert! : a)));
+      onAlertChanged?.();
+    }
+  }
+
+  const now = new Date();
+  const pendingCount = alerts.filter((a) => !a.completado).length;
+  const overdueCount = alerts.filter((a) => !a.completado && new Date(a.scheduled_at) < now).length;
+
+  function alertIcon(a: Alert) {
+    if (a.completado) return "✅";
+    if (new Date(a.scheduled_at) < now) return "⚠️";
+    return "📅";
+  }
+
+  function alertColor(a: Alert): string {
+    if (a.completado) return "#334155";
+    if (new Date(a.scheduled_at) < now) return "#7f1d1d";
+    const diff = new Date(a.scheduled_at).getTime() - now.getTime();
+    if (diff < 24 * 60 * 60 * 1000) return "#422006";
+    return "#0c4a6e";
+  }
+
+  function alertTextColor(a: Alert): string {
+    if (a.completado) return "#64748b";
+    if (new Date(a.scheduled_at) < now) return "#fca5a5";
+    const diff = new Date(a.scheduled_at).getTime() - now.getTime();
+    if (diff < 24 * 60 * 60 * 1000) return "#fdba74";
+    return "#7dd3fc";
+  }
+
+  // Fecha mínima: hoy
+  const minDate = now.toISOString().slice(0, 10);
+
+  return (
+    <div style={{ borderTop: "1px solid #1e3a5f", marginTop: "0.25rem" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: "100%", background: "none", border: "none", cursor: "pointer",
+          padding: "0.75rem 0", display: "flex", alignItems: "center", justifyContent: "space-between",
+          color: overdueCount > 0 ? "#fca5a5" : "#64748b", fontSize: "0.78rem", fontWeight: 600,
+        }}
+      >
+        <span>
+          📅 Recordatorios
+          {pendingCount > 0 && (
+            <span style={{
+              marginLeft: "0.4rem", fontSize: "0.65rem", padding: "0.1rem 0.45rem",
+              borderRadius: "99px",
+              background: overdueCount > 0 ? "#7f1d1d" : "#0c4a6e",
+              color: overdueCount > 0 ? "#fca5a5" : "#7dd3fc",
+            }}>
+              {overdueCount > 0 ? `⚠️ ${overdueCount} vencido${overdueCount > 1 ? "s" : ""}` : `${pendingCount} pendiente${pendingCount > 1 ? "s" : ""}`}
+            </span>
+          )}
+        </span>
+        <span style={{ fontSize: "0.7rem" }}>{open ? "▲ Cerrar" : "▼ Ver"}</span>
+      </button>
+
+      {open && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", paddingBottom: "0.75rem" }}>
+
+          {/* lista de alertas */}
+          {loading ? (
+            <p style={{ fontSize: "0.75rem", color: "#475569", margin: 0 }}>Cargando recordatorios…</p>
+          ) : alerts.length === 0 ? (
+            <p style={{ fontSize: "0.75rem", color: "#475569", margin: 0, fontStyle: "italic" }}>Sin recordatorios. Programa el primer contacto.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+              {alerts.map((a) => (
+                <div
+                  key={a.id}
+                  style={{
+                    display: "flex", alignItems: "flex-start", gap: "0.75rem",
+                    background: alertColor(a),
+                    borderRadius: "0.5rem", padding: "0.6rem 0.75rem",
+                    opacity: a.completado ? 0.6 : 1,
+                  }}
+                >
+                  <span style={{ fontSize: "1rem", flexShrink: 0 }}>{alertIcon(a)}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                      <span style={{ fontSize: "0.78rem", fontWeight: 700, color: alertTextColor(a), textDecoration: a.completado ? "line-through" : "none" }}>
+                        {a.titulo}
+                      </span>
+                      <span style={{ fontSize: "0.65rem", color: "#94a3b8" }}>
+                        {new Date(a.scheduled_at).toLocaleDateString("es-MX", {
+                          weekday: "short", day: "2-digit", month: "short",
+                          hour: "2-digit", minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                    {a.nota && (
+                      <p style={{ margin: "0.2rem 0 0", fontSize: "0.72rem", color: "#94a3b8", lineHeight: 1.4 }}>{a.nota}</p>
+                    )}
+                    <p style={{ margin: "0.15rem 0 0", fontSize: "0.62rem", color: "#475569" }}>por {a.created_by}</p>
+                  </div>
+                  <button
+                    onClick={() => toggleComplete(a.id, a.completado)}
+                    title={a.completado ? "Marcar pendiente" : "Marcar completado"}
+                    style={{
+                      flexShrink: 0, fontSize: "0.65rem", padding: "0.2rem 0.5rem",
+                      borderRadius: "6px", border: "1px solid #334155",
+                      background: "#1e293b", color: a.completado ? "#64748b" : "#4ade80",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {a.completado ? "↩ Reabrir" : "✓ Listo"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* formulario nuevo recordatorio */}
+          <div style={{ background: "#0f172a", borderRadius: "0.75rem", padding: "0.875rem 1rem", display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+            <p style={{ margin: 0, fontSize: "0.7rem", fontWeight: 700, color: "#38bdf8", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              ＋ Nuevo recordatorio
+            </p>
+            <input
+              type="text"
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              placeholder="Motivo (ej. Llamada de seguimiento)"
+              maxLength={200}
+              style={{
+                width: "100%", boxSizing: "border-box", padding: "0.5rem 0.75rem",
+                borderRadius: "0.5rem", border: "1px solid #334155",
+                background: "#1e293b", color: "#f1f5f9", fontSize: "0.8rem",
+              }}
+            />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+              <div>
+                <label style={{ fontSize: "0.65rem", color: "#64748b", display: "block", marginBottom: "0.25rem" }}>Fecha</label>
+                <input
+                  type="date"
+                  value={date}
+                  min={minDate}
+                  onChange={(e) => setDate(e.target.value)}
+                  style={{
+                    width: "100%", boxSizing: "border-box", padding: "0.5rem 0.6rem",
+                    borderRadius: "0.5rem", border: "1px solid #334155",
+                    background: "#1e293b", color: "#f1f5f9", fontSize: "0.8rem",
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: "0.65rem", color: "#64748b", display: "block", marginBottom: "0.25rem" }}>Hora</label>
+                <input
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  style={{
+                    width: "100%", boxSizing: "border-box", padding: "0.5rem 0.6rem",
+                    borderRadius: "0.5rem", border: "1px solid #334155",
+                    background: "#1e293b", color: "#f1f5f9", fontSize: "0.8rem",
+                  }}
+                />
+              </div>
+            </div>
+            <textarea
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
+              placeholder="Nota opcional: qué hablar, objetivo de la llamada…"
+              rows={2}
+              maxLength={1000}
+              style={{
+                width: "100%", boxSizing: "border-box", resize: "none",
+                padding: "0.5rem 0.75rem", borderRadius: "0.5rem",
+                border: "1px solid #334155", background: "#1e293b",
+                color: "#f1f5f9", fontSize: "0.78rem", lineHeight: 1.5,
+              }}
+            />
+            <button
+              onClick={saveAlert}
+              disabled={saving || !date || !time || !titulo.trim()}
+              style={{
+                padding: "0.5rem 1rem", borderRadius: "0.5rem",
+                background: saving || !date || !time ? "#334155" : "#0ea5e9",
+                color: "#fff", fontSize: "0.78rem", fontWeight: 700,
+                border: "none", cursor: saving || !date || !time ? "not-allowed" : "pointer",
+                opacity: !date || !time ? 0.5 : 1,
+              }}
+            >
+              {saving ? "Guardando…" : "📅 Programar recordatorio"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── barra global de alertas ─────────────────────────────────────────────
+function AlertsBar({
+  adminKey, version, onNavigate,
+}: {
+  adminKey: string; version: number; onNavigate: (prospectId: string) => void;
+}) {
+  const [alerts, setAlerts] = useState<AlertWithProspect[]>([]);
+  const [open, setOpen] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/alerts", { headers: { "x-admin-key": adminKey } })
+      .then((r) => r.json())
+      .then((d: { alerts?: AlertWithProspect[] }) => setAlerts(d.alerts ?? []))
+      .catch(() => {});
+  }, [adminKey, version]);
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfToday   = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+  const endOfWeek    = new Date(startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  const overdue  = alerts.filter((a) => new Date(a.scheduled_at) < startOfToday);
+  const today    = alerts.filter((a) => new Date(a.scheduled_at) >= startOfToday && new Date(a.scheduled_at) < endOfToday);
+  const upcoming = alerts.filter((a) => new Date(a.scheduled_at) >= endOfToday && new Date(a.scheduled_at) < endOfWeek);
+  const later    = alerts.filter((a) => new Date(a.scheduled_at) >= endOfWeek);
+
+  if (alerts.length === 0) return null;
+
+  function AlertItem({ a, accent }: { a: AlertWithProspect; accent: string }) {
+    return (
+      <button
+        onClick={() => onNavigate(a.prospect_id)}
+        style={{
+          width: "100%", textAlign: "left", background: "none", border: "none",
+          cursor: "pointer", padding: "0.5rem 0.75rem",
+          borderRadius: "0.5rem", display: "flex", alignItems: "center", gap: "0.75rem",
+          transition: "background 0.15s",
+        }}
+        onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "#1e293b")}
+        onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "none")}
+      >
+        <span style={{ flexShrink: 0, fontSize: "0.75rem", fontFamily: "monospace", color: accent, fontWeight: 700, minWidth: "5.5rem" }}>
+          {new Date(a.scheduled_at).toLocaleDateString("es-MX", { day: "2-digit", month: "short" })}
+          {" "}
+          {new Date(a.scheduled_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#e2e8f0", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {a.prospect_empresa} — {a.prospect_nombre}
+          </span>
+          <span style={{ fontSize: "0.7rem", color: "#64748b" }}>{a.titulo}</span>
+        </div>
+        {a.prospect_telefono && (
+          <span style={{ flexShrink: 0, fontSize: "0.7rem", color: "#4ade80", fontFamily: "monospace" }}>
+            📞 {a.prospect_telefono}
+          </span>
+        )}
+        <span style={{ flexShrink: 0, fontSize: "0.65rem", color: "#475569" }}>▶</span>
+      </button>
+    );
+  }
+
+  function Section({ title, items, accent, bg }: { title: string; items: AlertWithProspect[]; accent: string; bg: string }) {
+    if (items.length === 0) return null;
+    return (
+      <div>
+        <p style={{ margin: "0 0 0.3rem", fontSize: "0.65rem", fontWeight: 700, color: accent, textTransform: "uppercase", letterSpacing: "0.1em", paddingLeft: "0.75rem" }}>
+          {title} ({items.length})
+        </p>
+        <div style={{ background: bg, borderRadius: "0.5rem", overflow: "hidden" }}>
+          {items.map((a) => <AlertItem key={a.id} a={a} accent={accent} />)}
+        </div>
+      </div>
+    );
+  }
+
+  const totalLabel = overdue.length > 0
+    ? `⚠️ ${overdue.length} vencida${overdue.length > 1 ? "s" : ""} · ${alerts.length} total`
+    : `${alerts.length} recordatorio${alerts.length > 1 ? "s" : ""} pendiente${alerts.length > 1 ? "s" : ""}`;
+
+  return (
+    <div style={{
+      background: "#1e293b", border: `1px solid ${overdue.length > 0 ? "#b91c1c" : "#334155"}`,
+      borderRadius: "0.875rem", marginBottom: "1.25rem", overflow: "hidden",
+    }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: "100%", background: overdue.length > 0 ? "#450a0a" : "#0f172a",
+          border: "none", cursor: "pointer", padding: "0.75rem 1.25rem",
+          display: "flex", alignItems: "center", gap: "0.75rem", textAlign: "left",
+        }}
+      >
+        <span style={{ fontSize: "1rem" }}>🔔</span>
+        <span style={{ flex: 1, fontSize: "0.82rem", fontWeight: 700, color: overdue.length > 0 ? "#fca5a5" : "#e2e8f0" }}>
+          {totalLabel}
+        </span>
+        <span style={{ fontSize: "0.7rem", color: "#64748b" }}>{open ? "▲ Cerrar" : "▼ Ver agenda"}</span>
+      </button>
+
+      {open && (
+        <div style={{ padding: "0.75rem 1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <Section title="Vencidas" items={overdue}  accent="#f87171" bg="#450a0a22" />
+          <Section title="Hoy"     items={today}    accent="#fbbf24" bg="#42200622" />
+          <Section title="Esta semana" items={upcoming} accent="#38bdf8" bg="#0c4a6e22" />
+          <Section title="Más adelante" items={later}  accent="#818cf8" bg="#1e1b4b22" />
+        </div>
+      )}
+    </div>
+  );
+}
+function ProspectRow({
+  p, adminKey, agenteName, expanded, onToggle, onAlertChanged,
+}: {
+  p: Prospect; adminKey: string; agenteName: string; expanded: boolean; onToggle: () => void; onAlertChanged?: () => void;
 }) {
   const [copied, setCopied] = useState<"tel" | "email" | "msg" | null>(null);
   const postura = calcPostura(p.pregunta_cerrada_1, p.pregunta_cerrada_2);
@@ -546,6 +930,9 @@ function ProspectRow({
           {/* ── panel de notas ── */}
           <NotesPanel prospectId={p.id} adminKey={adminKey} agenteName={agenteName} />
 
+          {/* ── panel de alertas / calendario ── */}
+          <AlertPanel prospectId={p.id} adminKey={adminKey} agenteName={agenteName} onAlertChanged={onAlertChanged} />
+
         </div>
       )}
     </div>
@@ -578,6 +965,9 @@ export default function ProspectosPage() {
   const [filterNivel, setFilterNivel] = useState("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<string>("");
+  const [alertsVersion, setAlertsVersion] = useState(0);
+
+  const refreshAlerts = useCallback(() => setAlertsVersion((v) => v + 1), []);
 
   function switchMode(m: "login" | "register") {
     setMode(m);
@@ -836,6 +1226,16 @@ export default function ProspectosPage() {
               </button>
             </div>
 
+            {/* ── barra global de alertas ── */}
+            <AlertsBar
+              adminKey={adminKey}
+              version={alertsVersion}
+              onNavigate={(prospectId) => {
+                setSelectedAccount(prospectId);
+                setExpandedId(prospectId);
+              }}
+            />
+
             {/* ── selector de cuenta ── */}
             {filtered.length > 0 && (
               <div style={{ marginBottom: "1.25rem" }}>
@@ -886,6 +1286,7 @@ export default function ProspectosPage() {
                     agenteName={agenteName}
                     expanded={expandedId === p.id}
                     onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)}
+                    onAlertChanged={refreshAlerts}
                   />
                 ))}
               </div>
