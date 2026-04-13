@@ -520,42 +520,74 @@ function AlertPanel({
                 <div
                   key={a.id}
                   style={{
-                    display: "flex", alignItems: "flex-start", gap: "0.75rem",
                     background: alertColor(a),
                     borderRadius: "0.5rem", padding: "0.6rem 0.75rem",
                     opacity: a.completado ? 0.6 : 1,
+                    display: "flex", flexDirection: "column", gap: "0.4rem",
                   }}
                 >
-                  <span style={{ fontSize: "1rem", flexShrink: 0 }}>{alertIcon(a)}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                      <span style={{ fontSize: "0.78rem", fontWeight: 700, color: alertTextColor(a), textDecoration: a.completado ? "line-through" : "none" }}>
-                        {a.titulo}
-                      </span>
-                      <span style={{ fontSize: "0.65rem", color: "#94a3b8" }}>
-                        {new Date(a.scheduled_at).toLocaleDateString("es-MX", {
-                          weekday: "short", day: "2-digit", month: "short",
-                          hour: "2-digit", minute: "2-digit",
-                        })}
-                      </span>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem" }}>
+                    <span style={{ fontSize: "1rem", flexShrink: 0 }}>{alertIcon(a)}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                        <span style={{ fontSize: "0.78rem", fontWeight: 700, color: alertTextColor(a), textDecoration: a.completado ? "line-through" : "none" }}>
+                          {a.titulo}
+                        </span>
+                        <span style={{ fontSize: "0.65rem", color: "#94a3b8" }}>
+                          {new Date(a.scheduled_at).toLocaleDateString("es-MX", {
+                            weekday: "short", day: "2-digit", month: "short",
+                            hour: "2-digit", minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      {a.nota && (
+                        <p style={{ margin: "0.2rem 0 0", fontSize: "0.72rem", color: "#94a3b8", lineHeight: 1.4 }}>{a.nota}</p>
+                      )}
+                      <p style={{ margin: "0.15rem 0 0", fontSize: "0.62rem", color: "#475569" }}>por {a.created_by}</p>
                     </div>
-                    {a.nota && (
-                      <p style={{ margin: "0.2rem 0 0", fontSize: "0.72rem", color: "#94a3b8", lineHeight: 1.4 }}>{a.nota}</p>
-                    )}
-                    <p style={{ margin: "0.15rem 0 0", fontSize: "0.62rem", color: "#475569" }}>por {a.created_by}</p>
+                    <button
+                      onClick={() => toggleComplete(a.id, a.completado)}
+                      title={a.completado ? "Marcar pendiente" : "Marcar completado"}
+                      style={{
+                        flexShrink: 0, fontSize: "0.65rem", padding: "0.2rem 0.5rem",
+                        borderRadius: "6px", border: "1px solid #334155",
+                        background: "#1e293b", color: a.completado ? "#64748b" : "#4ade80",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {a.completado ? "↩ Reabrir" : "✓ Listo"}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => toggleComplete(a.id, a.completado)}
-                    title={a.completado ? "Marcar pendiente" : "Marcar completado"}
-                    style={{
-                      flexShrink: 0, fontSize: "0.65rem", padding: "0.2rem 0.5rem",
-                      borderRadius: "6px", border: "1px solid #334155",
-                      background: "#1e293b", color: a.completado ? "#64748b" : "#4ade80",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {a.completado ? "↩ Reabrir" : "✓ Listo"}
-                  </button>
+
+                  {/* botones de calendario siempre visibles */}
+                  {!a.completado && (
+                    <div style={{ display: "flex", gap: "0.4rem", paddingLeft: "1.75rem" }}>
+                      <a
+                        href={googleCalendarUrl(a.titulo, a.nota, new Date(a.scheduled_at), prospectEmpresa, prospectNombre)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem",
+                          padding: "0.3rem 0.6rem", borderRadius: "0.4rem",
+                          background: "#0c4a6e", color: "#7dd3fc", fontSize: "0.68rem", fontWeight: 700,
+                          border: "1px solid #1e3a5f", textDecoration: "none", whiteSpace: "nowrap",
+                        }}
+                      >
+                        📆 Google Calendar
+                      </a>
+                      <button
+                        onClick={() => downloadIcs(a.titulo, a.nota, new Date(a.scheduled_at), prospectEmpresa, prospectNombre)}
+                        style={{
+                          flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem",
+                          padding: "0.3rem 0.6rem", borderRadius: "0.4rem",
+                          background: "#1e1b4b", color: "#a5b4fc", fontSize: "0.68rem", fontWeight: 700,
+                          border: "1px solid #312e81", cursor: "pointer", whiteSpace: "nowrap",
+                        }}
+                      >
+                        ⬇ Outlook / Apple (.ics)
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -633,39 +665,6 @@ function AlertPanel({
             >
               {saving ? "Guardando…" : "📅 Programar recordatorio"}
             </button>
-
-            {/* botones de calendario tras guardar */}
-            {lastSaved && (
-              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", paddingTop: "0.25rem" }}>
-                <p style={{ margin: 0, width: "100%", fontSize: "0.68rem", color: "#4ade80", fontWeight: 600 }}>
-                  ✓ Recordatorio guardado — agrégalo a tu calendario:
-                </p>
-                <a
-                  href={googleCalendarUrl(lastSaved.titulo, lastSaved.nota, new Date(lastSaved.scheduled_at), prospectEmpresa, prospectNombre)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem",
-                    padding: "0.45rem 0.75rem", borderRadius: "0.5rem",
-                    background: "#1e3a5f", color: "#7dd3fc", fontSize: "0.75rem", fontWeight: 700,
-                    border: "1px solid #1e3a5f", textDecoration: "none", whiteSpace: "nowrap",
-                  }}
-                >
-                  📆 Google Calendar
-                </a>
-                <button
-                  onClick={() => downloadIcs(lastSaved!.titulo, lastSaved!.nota, new Date(lastSaved!.scheduled_at), prospectEmpresa, prospectNombre)}
-                  style={{
-                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem",
-                    padding: "0.45rem 0.75rem", borderRadius: "0.5rem",
-                    background: "#312e81", color: "#a5b4fc", fontSize: "0.75rem", fontWeight: 700,
-                    border: "1px solid #312e81", cursor: "pointer", whiteSpace: "nowrap",
-                  }}
-                >
-                  ⬇ Outlook / Apple Cal (.ics)
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}
