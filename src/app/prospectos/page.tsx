@@ -799,6 +799,159 @@ function AlertsBar({
     </div>
   );
 }
+
+// ─── envío individual de Email 1 por prospecto ──────────────────────────
+function EmailCampaignRow({ prospectId, adminKey }: { prospectId: string; adminKey: string }) {
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  async function sendEmail() {
+    setSending(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/campaign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ prospect_id: prospectId }),
+      });
+      const d = await res.json() as { ok?: boolean; sent_to?: string; error?: string };
+      if (!res.ok || !d.ok) {
+        setResult({ ok: false, msg: d.error ?? "Error al enviar." });
+      } else {
+        setResult({ ok: true, msg: `Enviado a ${d.sent_to}` });
+      }
+    } catch {
+      setResult({ ok: false, msg: "Error de conexión." });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div style={{ borderTop: "1px solid #1e3a5f", marginTop: "0.25rem", paddingTop: "0.75rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+      <button
+        onClick={sendEmail}
+        disabled={sending}
+        style={{
+          padding: "0.4rem 1rem", borderRadius: "0.5rem",
+          border: "1px solid #0c4a6e", background: "#0f172a",
+          color: "#38bdf8", fontSize: "0.75rem", fontWeight: 700,
+          cursor: sending ? "not-allowed" : "pointer",
+        }}
+      >
+        {sending ? "Enviando…" : "📧 Enviar Email 1"}
+      </button>
+      {result && (
+        <span style={{ fontSize: "0.72rem", color: result.ok ? "#4ade80" : "#f87171" }}>
+          {result.ok ? "✓" : "✗"} {result.msg}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ─── panel de campaña ────────────────────────────────────────────────────
+function CampaignPanel({ adminKey, totalProspects }: { adminKey: string; totalProspects: number }) {
+  const [open, setOpen] = useState(false);
+  const [sending, setSending] = useState<"test" | "broadcast" | null>(null);
+  const [result, setResult] = useState<{ msg: string; ok: boolean } | null>(null);
+
+  async function send(mode: "test" | "broadcast") {
+    if (mode === "broadcast") {
+      if (!window.confirm(`¿Enviar Email 1 a ${totalProspects} prospectos? Esta acción no se puede deshacer.`)) return;
+    }
+    setSending(mode);
+    setResult(null);
+    try {
+      const body = mode === "test" ? { test: true } : { broadcast: true };
+      const res = await fetch("/api/campaign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify(body),
+      });
+      const d = await res.json() as { ok?: boolean; sent_to?: string; sent?: number; failed?: number; error?: string };
+      if (!res.ok || !d.ok) {
+        setResult({ ok: false, msg: d.error ?? "Error al enviar." });
+      } else if (mode === "test") {
+        setResult({ ok: true, msg: `Prueba enviada a ${d.sent_to}. Revisa tu bandeja.` });
+      } else {
+        setResult({ ok: true, msg: `Enviado a ${d.sent} prospectos${d.failed ? ` · ${d.failed} fallidos` : ""}.` });
+      }
+    } catch {
+      setResult({ ok: false, msg: "Error de conexión." });
+    } finally {
+      setSending(null);
+    }
+  }
+
+  return (
+    <div style={{ marginBottom: "1rem", background: "#1e293b", border: "1px solid #334155", borderRadius: "0.875rem", overflow: "hidden" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: "100%", background: "none", border: "none", cursor: "pointer",
+          padding: "0.75rem 1.25rem", display: "flex", alignItems: "center",
+          justifyContent: "space-between", color: "#38bdf8", fontSize: "0.8rem", fontWeight: 700,
+        }}
+      >
+        <span>📧 Campaña de correo — Email 1: State of Malware 2026</span>
+        <span style={{ fontSize: "0.7rem", color: "#64748b" }}>{open ? "▲ Cerrar" : "▼ Abrir"}</span>
+      </button>
+
+      {open && (
+        <div style={{ padding: "0 1.25rem 1.25rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <div style={{ background: "#0f172a", borderRadius: "0.75rem", padding: "0.875rem 1rem" }}>
+            <p style={{ margin: "0 0 4px", fontSize: "0.75rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em" }}>Asunto</p>
+            <p style={{ margin: "0 0 12px", fontSize: "0.85rem", color: "#e2e8f0" }}>El 86% del ransomware ya se ejecuta de forma remota</p>
+            <p style={{ margin: "0 0 4px", fontSize: "0.75rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em" }}>Adjunto</p>
+            <p style={{ margin: 0, fontSize: "0.85rem", color: "#e2e8f0" }}>📎 2026_ThreatDown_State_of_Malware.pdf</p>
+          </div>
+
+          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+            <button
+              onClick={() => send("test")}
+              disabled={!!sending}
+              style={{
+                flex: 1, minWidth: "180px", padding: "0.65rem 1.2rem",
+                borderRadius: "0.6rem", border: "1px solid #0c4a6e",
+                background: sending === "test" ? "#0c4a6e" : "#0f172a",
+                color: "#38bdf8", fontSize: "0.82rem", fontWeight: 700,
+                cursor: sending ? "not-allowed" : "pointer",
+              }}
+            >
+              {sending === "test" ? "Enviando prueba…" : "🧪 Enviar prueba a salvador.ruiz@synappssys.com"}
+            </button>
+            <button
+              onClick={() => send("broadcast")}
+              disabled={!!sending}
+              style={{
+                flex: 1, minWidth: "180px", padding: "0.65rem 1.2rem",
+                borderRadius: "0.6rem", border: "1px solid #334155",
+                background: sending === "broadcast" ? "#334155" : "#1e293b",
+                color: "#94a3b8", fontSize: "0.82rem", fontWeight: 700,
+                cursor: sending ? "not-allowed" : "pointer",
+              }}
+            >
+              {sending === "broadcast" ? "Enviando a todos…" : `🚀 Enviar a todos los prospectos (${totalProspects})`}
+            </button>
+          </div>
+
+          {result && (
+            <p style={{
+              margin: 0, padding: "0.6rem 0.9rem", borderRadius: "0.5rem", fontSize: "0.82rem",
+              background: result.ok ? "#052e16" : "#450a0a",
+              color: result.ok ? "#4ade80" : "#f87171",
+              border: `1px solid ${result.ok ? "#14532d" : "#7f1d1d"}`,
+            }}>
+              {result.ok ? "✓" : "✗"} {result.msg}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProspectRow({
   p, adminKey, agenteName, expanded, onToggle, onAlertChanged,
 }: {
@@ -1033,6 +1186,9 @@ function ProspectRow({
 
           {/* ── panel de alertas / calendario ── */}
           <AlertPanel prospectId={p.id} adminKey={adminKey} agenteName={agenteName} prospectNombre={p.nombre} prospectEmpresa={p.empresa} prospectTelefono={p.telefono ?? null} prospectCorreo={p.correo} onAlertChanged={onAlertChanged} />
+
+          {/* ── envío individual Email 1 ── */}
+          <EmailCampaignRow prospectId={p.id} adminKey={adminKey} />
 
         </div>
       )}
@@ -1336,6 +1492,9 @@ export default function ProspectosPage() {
                 setExpandedId(prospectId);
               }}
             />
+
+            {/* ── panel campaña email ── */}
+            <CampaignPanel adminKey={adminKey} totalProspects={filtered.length} />
 
             {/* ── selector de cuenta ── */}
             {filtered.length > 0 && (
