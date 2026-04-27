@@ -175,9 +175,9 @@ function buildCampaignHtml(nombre: string): string {
             </table>
 
             <p style="margin:0 0 28px;font-size:15px;color:#334155;line-height:1.7">
-              Con gusto puedo compartirte el reporte completo (adjunto a este correo),
-              o agendar <strong>30 minutos</strong> para revisar cómo tu EDR actual
-              respondería ante estos escenarios.
+              Con gusto te comparto el reporte completo (adjunto a este correo).
+              Así también te propongo agendar <strong>30 minutos</strong> para revisar
+              cómo tu EDR debería responder ante estos escenarios.
             </p>
 
             <p style="margin:0 0 28px;font-size:15px;color:#334155;line-height:1.7;font-weight:600">
