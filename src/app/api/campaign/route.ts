@@ -311,11 +311,11 @@ export async function POST(request: Request) {
 
   // ── Modo prospecto individual ──────────────────────────────────────────────
   if ("prospect_id" in body) {
-    const rows = await sql<ProspectRow[]>`
+    const rows = (await sql`
       SELECT id, nombre, correo, cargo
       FROM event_prospects
       WHERE id = ${body.prospect_id}
-    `;
+    `) as ProspectRow[];
     const p = rows[0];
     if (!p) {
       return NextResponse.json({ error: "Prospecto no encontrado." }, { status: 404 });
@@ -343,11 +343,11 @@ export async function POST(request: Request) {
   }
 
   // ── Modo broadcast ────────────────────────────────────────────────────────
-  const allProspects = await sql<ProspectRow[]>`
+  const allProspects = (await sql`
     SELECT id, nombre, correo, cargo
     FROM event_prospects
     ORDER BY created_at ASC
-  `;
+  `) as ProspectRow[];
 
   // Excluir canal y correos corporativos vacíos
   const targets = allProspects.filter(
