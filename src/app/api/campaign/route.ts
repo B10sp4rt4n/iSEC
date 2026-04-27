@@ -176,7 +176,7 @@ function buildCampaignHtml(nombre: string): string {
 
             <p style="margin:0 0 28px;font-size:15px;color:#334155;line-height:1.7">
               Con gusto puedo compartirte el reporte completo (adjunto a este correo),
-              o agendar <strong>15 minutos</strong> para revisar cómo tu EDR actual
+              o agendar <strong>30 minutos</strong> para revisar cómo tu EDR actual
               respondería ante estos escenarios.
             </p>
 
@@ -193,7 +193,7 @@ function buildCampaignHtml(nombre: string): string {
                             font-size:15px;font-weight:700;color:#ffffff;
                             text-decoration:none;border-radius:8px;
                             background:#0ea5e9">
-                    Agendar 15 minutos →
+                    Agendar 30 minutos →
                   </a>
                 </td>
               </tr>
