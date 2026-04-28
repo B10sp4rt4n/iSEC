@@ -29,6 +29,8 @@ const bodySchema = z.union([
 const CALENDLY = "https://calendly.com/salvador-ruiz-synappssys";
 const FROM_NAME = "iSEC Infosecurity";
 const SUBJECT = "El 86% del ransomware ya se ejecuta de forma remota";
+const VALIDATOR_EMAIL = "ecotae0@gmail.com";
+const OWNER_EMAIL = "salvador.ruiz@synappssys.com";
 
 // Perfiles de canal — no reciben esta campaña
 const CHANNEL_CARGOS = new Set([
@@ -207,14 +209,38 @@ function buildCampaignHtml(nombre: string): string {
             <table cellpadding="0" cellspacing="0">
               <tr>
                 <td style="border-top:1px solid #e2e8f0;padding-top:24px">
+                  <!-- Firmante 1: Salvador Ruiz -->
                   <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#0f172a">
                     Salvador Ruiz
                   </p>
                   <p style="margin:0 0 2px;font-size:13px;color:#64748b">
                     iSEC Infosecurity — Partner ThreatDown by Malwarebytes
                   </p>
-                  <p style="margin:0;font-size:12px;color:#94a3b8">
+                  <p style="margin:0 0 4px;font-size:12px;color:#0ea5e9">
+                    <a href="mailto:salvador.ruiz@synappssys.com"
+                       style="color:#0ea5e9;text-decoration:none">salvador.ruiz@synappssys.com</a>
+                  </p>
+                  <p style="margin:0 0 16px;font-size:12px;color:#94a3b8">
                     📎 Reporte adjunto: 2026 State of Malware — ThreatDown
+                  </p>
+
+                  <!-- Separador -->
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px">
+                    <tr>
+                      <td style="border-top:1px dashed #e2e8f0;font-size:0;line-height:0">&nbsp;</td>
+                    </tr>
+                  </table>
+
+                  <!-- Firmante 2: Estela Cota -->
+                  <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#0f172a">
+                    Estela Cota
+                  </p>
+                  <p style="margin:0 0 2px;font-size:13px;color:#64748b">
+                    ThreatDown by Malwarebytes — Territory Channel Account Manager, LATAM
+                  </p>
+                  <p style="margin:0;font-size:12px;color:#0ea5e9">
+                    <a href="mailto:ecota@threatdown.com"
+                       style="color:#0ea5e9;text-decoration:none">ecota@threatdown.com</a>
                   </p>
                 </td>
               </tr>
@@ -225,9 +251,15 @@ function buildCampaignHtml(nombre: string): string {
         <!-- Footer -->
         <tr>
           <td style="background:#f8fafc;padding:16px 36px;border-top:1px solid #e2e8f0">
+            <p style="margin:0 0 6px;font-size:11px;color:#94a3b8;line-height:1.6">
+              ⚠️ Este correo fue enviado desde una dirección sin buzón de respuesta.
+              Para cualquier consulta, escribe directamente a
+              <a href="mailto:salvador.ruiz@synappssys.com"
+                 style="color:#94a3b8">salvador.ruiz@synappssys.com</a>.
+            </p>
             <p style="margin:0;font-size:11px;color:#94a3b8;line-height:1.6">
               Recibiste este correo porque te registraste en un evento de iSEC Infosecurity.
-              Si no deseas recibir más comunicaciones, responde a este correo con el asunto
+              Si no deseas recibir más comunicaciones, escríbenos con el asunto
               <em>"No contactar"</em>.
             </p>
           </td>
@@ -354,30 +386,87 @@ export async function POST(request: Request) {
     (p) => !CHANNEL_CARGOS.has(p.cargo) && p.correo.includes("@"),
   );
 
+  // Resend batch: hasta 100 correos por llamada — elimina el loop secuencial
+  // y los 600ms de espera que causaban timeout en Netlify Functions.
+  const BATCH_SIZE = 100;
   const results: { correo: string; ok: boolean; error?: string }[] = [];
 
-  for (const p of targets) {
-    const { error } = await resend.emails.send({
-      from: `${FROM_NAME} <${fromDomain}>`,
-      to: p.correo,
-      subject: SUBJECT,
-      html: buildCampaignHtml(p.nombre),
-      attachments: [
-        {
-          filename: "2026_ThreatDown_State_of_Malware.pdf",
-          content: pdfContent,
-        },
-      ],
-    });
+  for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+    const chunk = targets.slice(i, i + BATCH_SIZE);
+    // Solo el primer correo del primer chunk lleva BCC al validador externo
+    const isFirstChunk = i === 0;
+    const { data, error: batchError } = await resend.batch.send(
+      chunk.map((p, idx) => ({
+        from: `${FROM_NAME} <${fromDomain}>`,
+        to: p.correo,
+        ...(isFirstChunk && idx === 0 ? { bcc: [VALIDATOR_EMAIL] } : {}),
+        subject: SUBJECT,
+        html: buildCampaignHtml(p.nombre),
+        attachments: [
+          {
+            filename: "2026_ThreatDown_State_of_Malware.pdf",
+            content: pdfContent,
+          },
+        ],
+      })),
+    );
 
-    results.push({ correo: p.correo, ok: !error, error: error?.message });
-
-    // Resend rate limit: 2 req/s en plan gratuito
-    await new Promise((r) => setTimeout(r, 600));
+    if (batchError) {
+      // Error a nivel de batch — marcamos todos del chunk como fallidos
+      for (const p of chunk) {
+        results.push({ correo: p.correo, ok: false, error: batchError.message });
+      }
+    } else {
+      // data.data es el array de resultados individuales
+      const items = (data as { data: { id: string }[] } | null)?.data ?? [];
+      chunk.forEach((p, idx) => {
+        results.push({ correo: p.correo, ok: !!items[idx]?.id });
+      });
+    }
   }
 
   const sent = results.filter((r) => r.ok).length;
   const failed = results.filter((r) => !r.ok).length;
+  const sentList = results.filter((r) => r.ok).map((r) => r.correo);
+  const failedList = results.filter((r) => !r.ok).map((r) => r.correo);
+
+  // ── Notificación de resumen al validador y al dueño de la campaña ─────────
+  const sentDate = new Date().toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
+  const notifHtml = `
+    <table style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+      <tr><td style="background:#0f172a;padding:20px 28px">
+        <p style="margin:0;color:#38bdf8;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">iSEC Infosecurity — Reporte de Campaña</p>
+      </td></tr>
+      <tr><td style="padding:24px 28px">
+        <p style="margin:0 0 12px;font-size:15px;color:#0f172a;font-weight:700">Campaña enviada correctamente</p>
+        <p style="margin:0 0 6px;font-size:13px;color:#64748b"><strong>Asunto:</strong> ${SUBJECT}</p>
+        <p style="margin:0 0 6px;font-size:13px;color:#64748b"><strong>Fecha:</strong> ${sentDate}</p>
+        <p style="margin:0 0 18px;font-size:13px;color:#64748b"><strong>Remitente:</strong> ${fromDomain}</p>
+        <table style="border-collapse:collapse;width:100%">
+          <tr style="background:#f1f5f9">
+            <td style="padding:10px 14px;font-size:13px;font-weight:700;color:#0f172a">✅ Enviados</td>
+            <td style="padding:10px 14px;font-size:22px;font-weight:800;color:#16a34a">${sent}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 14px;font-size:13px;font-weight:700;color:#0f172a">❌ Fallidos</td>
+            <td style="padding:10px 14px;font-size:22px;font-weight:800;color:#dc2626">${failed}</td>
+          </tr>
+        </table>
+        ${sentList.length > 0 ? `
+        <p style="margin:18px 0 6px;font-size:12px;color:#64748b;font-weight:700">DESTINATARIOS ENTREGADOS:</p>
+        <p style="margin:0;font-size:12px;color:#475569;line-height:1.8">${sentList.join("<br>")}</p>` : ""}
+        ${failedList.length > 0 ? `
+        <p style="margin:18px 0 6px;font-size:12px;color:#dc2626;font-weight:700">FALLIDOS:</p>
+        <p style="margin:0;font-size:12px;color:#dc2626;line-height:1.8">${failedList.join("<br>")}</p>` : ""}
+      </td></tr>
+    </table>`;
+
+  await resend.emails.send({
+    from: `${FROM_NAME} <${fromDomain}>`,
+    to: [VALIDATOR_EMAIL, OWNER_EMAIL],
+    subject: `[Reporte] Campaña enviada — ${sent} destinatarios · ${sentDate}`,
+    html: notifHtml,
+  });
 
   return NextResponse.json({ ok: true, mode: "broadcast", sent, failed, results });
 }
