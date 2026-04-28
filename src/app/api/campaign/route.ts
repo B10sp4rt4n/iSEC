@@ -386,43 +386,40 @@ export async function POST(request: Request) {
     (p) => !CHANNEL_CARGOS.has(p.cargo) && p.correo.includes("@"),
   );
 
-  // Resend batch: hasta 100 correos por llamada — elimina el loop secuencial
-  // y los 600ms de espera que causaban timeout en Netlify Functions.
-  const BATCH_SIZE = 100;
+  // Enviamos en paralelo por lotes de 5 para evitar que JSON.stringify
+  // intente serializar el PDF (4.6 MB) × N correos en un solo payload,
+  // lo que supera el límite de longitud de string en V8.
+  const BATCH_SIZE = 5;
   const results: { correo: string; ok: boolean; error?: string }[] = [];
+  let globalIdx = 0;
 
   for (let i = 0; i < targets.length; i += BATCH_SIZE) {
     const chunk = targets.slice(i, i + BATCH_SIZE);
-    // Solo el primer correo del primer chunk lleva BCC al validador externo
-    const isFirstChunk = i === 0;
-    const { data, error: batchError } = await resend.batch.send(
-      chunk.map((p, idx) => ({
-        from: `${FROM_NAME} <${fromDomain}>`,
-        to: p.correo,
-        ...(isFirstChunk && idx === 0 ? { bcc: [VALIDATOR_EMAIL] } : {}),
-        subject: SUBJECT,
-        html: buildCampaignHtml(p.nombre),
-        attachments: [
-          {
-            filename: "2026_ThreatDown_State_of_Malware.pdf",
-            content: pdfContent,
-          },
-        ],
-      })),
+
+    const chunkResults = await Promise.all(
+      chunk.map((p) => {
+        const isFirst = globalIdx++ === 0;
+        return resend.emails.send({
+          from: `${FROM_NAME} <${fromDomain}>`,
+          to: p.correo,
+          ...(isFirst ? { bcc: [VALIDATOR_EMAIL] } : {}),
+          subject: SUBJECT,
+          html: buildCampaignHtml(p.nombre),
+          attachments: [
+            {
+              filename: "2026_ThreatDown_State_of_Malware.pdf",
+              content: pdfContent,
+            },
+          ],
+        }).then(({ data, error }) => ({
+          correo: p.correo,
+          ok: !error && !!data?.id,
+          error: error?.message,
+        }));
+      }),
     );
 
-    if (batchError) {
-      // Error a nivel de batch — marcamos todos del chunk como fallidos
-      for (const p of chunk) {
-        results.push({ correo: p.correo, ok: false, error: batchError.message });
-      }
-    } else {
-      // data.data es el array de resultados individuales
-      const items = (data as { data: { id: string }[] } | null)?.data ?? [];
-      chunk.forEach((p, idx) => {
-        results.push({ correo: p.correo, ok: !!items[idx]?.id });
-      });
-    }
+    results.push(...chunkResults);
   }
 
   const sent = results.filter((r) => r.ok).length;
