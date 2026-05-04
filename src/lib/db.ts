@@ -10,6 +10,40 @@ export function getSqlClient() {
   return neon(databaseUrl);
 }
 
+/**
+ * Busca en la knowledge base si el error lanzado coincide con un issue
+ * documentado. Devuelve el primer match (más crítico / más reciente) o null.
+ *
+ * Uso en catch blocks:
+ *   const known = await lookupKnownError(sql, error.message);
+ *   console.error("[kb]", known?.numero, known?.titulo);
+ */
+export async function lookupKnownError(
+  sql: ReturnType<typeof getSqlClient>,
+  errorText: string,
+): Promise<{ numero: string; titulo: string; solucion: string; commit_fix: string | null } | null> {
+  try {
+    const keyword = errorText.slice(0, 120).toLowerCase();
+    const rows = await sql`
+      SELECT numero, titulo, solucion, commit_fix
+      FROM dev_knowledge_base
+      WHERE estado = 'resuelto'
+        AND (
+          contexto_ia ILIKE ${"%" + keyword.split(" ")[0] + "%"}
+          OR sintoma   ILIKE ${"%" + keyword.split(" ")[0] + "%"}
+          OR causa_raiz ILIKE ${"%" + keyword.split(" ")[0] + "%"}
+        )
+      ORDER BY
+        CASE impacto WHEN 'critico' THEN 1 WHEN 'alto' THEN 2 ELSE 3 END
+      LIMIT 1
+    ` as { numero: string; titulo: string; solucion: string; commit_fix: string | null }[];
+    return rows[0] ?? null;
+  } catch {
+    // No bloquear el flujo principal si la KB falla
+    return null;
+  }
+}
+
 export async function ensureEventSchema(sql: ReturnType<typeof getSqlClient>) {
   await sql`
     CREATE TABLE IF NOT EXISTS event_prospects (

@@ -17,7 +17,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { z } from "zod";
 import { Resend } from "resend";
-import { getSqlClient, ensureEventSchema } from "@/lib/db";
+import { getSqlClient, ensureEventSchema, lookupKnownError } from "@/lib/db";
 
 // ─── Validación ─────────────────────────────────────────────────────────────
 const bodySchema = z.union([
@@ -393,33 +393,49 @@ export async function POST(request: Request) {
   const results: { correo: string; ok: boolean; error?: string }[] = [];
   let globalIdx = 0;
 
-  for (let i = 0; i < targets.length; i += BATCH_SIZE) {
-    const chunk = targets.slice(i, i + BATCH_SIZE);
+  try {
+    for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+      const chunk = targets.slice(i, i + BATCH_SIZE);
 
-    const chunkResults = await Promise.all(
-      chunk.map((p) => {
-        const isFirst = globalIdx++ === 0;
-        return resend.emails.send({
-          from: `${FROM_NAME} <${fromDomain}>`,
-          to: p.correo,
-          ...(isFirst ? { bcc: [VALIDATOR_EMAIL] } : {}),
-          subject: SUBJECT,
-          html: buildCampaignHtml(p.nombre),
-          attachments: [
-            {
-              filename: "2026_ThreatDown_State_of_Malware.pdf",
-              content: pdfContent,
-            },
-          ],
-        }).then(({ data, error }) => ({
-          correo: p.correo,
-          ok: !error && !!data?.id,
-          error: error?.message,
-        }));
-      }),
+      const chunkResults = await Promise.all(
+        chunk.map((p) => {
+          const isFirst = globalIdx++ === 0;
+          return resend.emails.send({
+            from: `${FROM_NAME} <${fromDomain}>`,
+            to: p.correo,
+            ...(isFirst ? { bcc: [VALIDATOR_EMAIL] } : {}),
+            subject: SUBJECT,
+            html: buildCampaignHtml(p.nombre),
+            attachments: [
+              {
+                filename: "2026_ThreatDown_State_of_Malware.pdf",
+                content: pdfContent,
+              },
+            ],
+          }).then(({ data, error }) => ({
+            correo: p.correo,
+            ok: !error && !!data?.id,
+            error: error?.message,
+          }));
+        }),
+      );
+
+      results.push(...chunkResults);
+    }
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[campaign] broadcast error:", errMsg);
+
+    // Consultar KB para ver si es un error conocido
+    const known = await lookupKnownError(sql, errMsg);
+    const kbHint = known
+      ? { kb_issue: known.numero, kb_titulo: known.titulo, kb_solucion: known.solucion, kb_commit: known.commit_fix }
+      : null;
+
+    return NextResponse.json(
+      { error: "Error durante el broadcast.", detail: errMsg, known_issue: kbHint },
+      { status: 500 },
     );
-
-    results.push(...chunkResults);
   }
 
   const sent = results.filter((r) => r.ok).length;

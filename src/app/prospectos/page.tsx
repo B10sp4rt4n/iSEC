@@ -854,7 +854,7 @@ function EmailCampaignRow({ prospectId, adminKey }: { prospectId: string; adminK
 function CampaignPanel({ adminKey, totalProspects }: { adminKey: string; totalProspects: number }) {
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState<"test" | "broadcast" | null>(null);
-  const [result, setResult] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [result, setResult] = useState<{ msg: string; ok: boolean; knownIssue?: { numero: string; titulo: string; solucion: string } | null } | null>(null);
 
   async function send(mode: "test" | "broadcast") {
     if (mode === "broadcast") {
@@ -869,9 +869,13 @@ function CampaignPanel({ adminKey, totalProspects }: { adminKey: string; totalPr
         headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
         body: JSON.stringify(body),
       });
-      const d = await res.json() as { ok?: boolean; sent_to?: string; sent?: number; failed?: number; error?: string };
+      const d = await res.json() as { ok?: boolean; sent_to?: string; sent?: number; failed?: number; error?: string; known_issue?: { kb_issue: string; kb_titulo: string; kb_solucion: string } | null };
       if (!res.ok || !d.ok) {
-        setResult({ ok: false, msg: d.error ?? "Error al enviar." });
+        setResult({
+          ok: false,
+          msg: d.error ?? "Error al enviar.",
+          knownIssue: d.known_issue ? { numero: d.known_issue.kb_issue, titulo: d.known_issue.kb_titulo, solucion: d.known_issue.kb_solucion } : null,
+        });
       } else if (mode === "test") {
         setResult({ ok: true, msg: `Prueba enviada a ${d.sent_to}. Revisa tu bandeja.` });
       } else {
@@ -937,14 +941,31 @@ function CampaignPanel({ adminKey, totalProspects }: { adminKey: string; totalPr
           </div>
 
           {result && (
-            <p style={{
-              margin: 0, padding: "0.6rem 0.9rem", borderRadius: "0.5rem", fontSize: "0.82rem",
-              background: result.ok ? "#052e16" : "#450a0a",
-              color: result.ok ? "#4ade80" : "#f87171",
-              border: `1px solid ${result.ok ? "#14532d" : "#7f1d1d"}`,
-            }}>
-              {result.ok ? "✓" : "✗"} {result.msg}
-            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              <p style={{
+                margin: 0, padding: "0.6rem 0.9rem", borderRadius: "0.5rem", fontSize: "0.82rem",
+                background: result.ok ? "#052e16" : "#450a0a",
+                color: result.ok ? "#4ade80" : "#f87171",
+                border: `1px solid ${result.ok ? "#14532d" : "#7f1d1d"}`,
+              }}>
+                {result.ok ? "✓" : "✗"} {result.msg}
+              </p>
+              {!result.ok && result.knownIssue && (
+                <div style={{
+                  padding: "0.75rem 1rem", borderRadius: "0.5rem", fontSize: "0.78rem",
+                  background: "#1c1917", border: "1px solid #854d0e",
+                  color: "#fde68a",
+                }}>
+                  <p style={{ margin: "0 0 4px", fontWeight: 700, color: "#fbbf24" }}>
+                    🔍 Issue conocido {result.knownIssue.numero}
+                  </p>
+                  <p style={{ margin: "0 0 6px", color: "#d97706" }}>{result.knownIssue.titulo}</p>
+                  <p style={{ margin: 0, color: "#fde68a", lineHeight: 1.6 }}>
+                    <strong>Solución:</strong> {result.knownIssue.solucion}
+                  </p>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
