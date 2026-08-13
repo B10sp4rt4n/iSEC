@@ -12,7 +12,7 @@ Cuando el usuario reporte un error, un 500, un crash o cualquier comportamiento 
 1. **Primero** consulta el endpoint de búsqueda:
    ```
    GET /api/kb/search?q=<palabras clave del error>
-   Header: x-admin-key: W341th-isec
+   Header: x-admin-key: <RAFFLE_ADMIN_KEY del entorno>
    ```
    O bien ejecuta directamente en terminal:
    ```bash

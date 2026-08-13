@@ -7,7 +7,10 @@
  * Uso: node scripts/check-campaign-status.mjs
  */
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY ?? "re_Dq6NqMTU_Ld5BiZtLJwYTXRrL4nMnMo49";
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+if (!RESEND_API_KEY) {
+  throw new Error("RESEND_API_KEY no está definida. Exporta la variable antes de correr este script.");
+}
 const CAMPAIGN_SUBJECT = "El 86% del ransomware ya se ejecuta de forma remota";
 const BASE_URL = "https://api.resend.com";
 
