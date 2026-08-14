@@ -105,3 +105,20 @@ Los ganadores se guardan en la tabla `event_raffle_winners` (ver `db/schema.sql`
 
 - **Vercel**: importar repo, agregar `DATABASE_URL` en Project Settings > Environment Variables, deploy.
 - **Netlify**: importar repo, build command `npm run build`, variable `DATABASE_URL`, deploy (incluye `netlify.toml` con plugin Next.js).
+
+## Snapshot de sesión
+Última actualización: 2026-08-13
+
+**En qué estoy trabajando ahora mismo:**
+- Formalizando el hábito de snapshot de contexto en CLAUDE.md para sobrevivir destrucción de codespace
+
+**Últimos cambios aplicados:**
+- `CLAUDE.md` — agregada sección "## Snapshot de sesión" como respaldo de contexto en-repo
+- `c4f3632` — removidos secrets hardcodeados, agregado CLAUDE.md inicial
+- `ff63ea8` — logos ThreatDown y SynAppsSys añadidos a `public/logos`
+
+**Siguiente paso concreto:**
+- Definir qué features o bugs siguen en el roadmap (sorteo, email de confirmación, exportar CSV de prospectos, etc.) y actualizar este snapshot al cerrar sesión
+
+---
+> **Nota:** Este snapshot vive en el repo intencionalmente — sobrevive si el codespace se destruye y se crea uno nuevo. No reemplaza `~/.claude`, lo complementa. Al cerrar cada sesión larga, Claude Code preguntará si actualizar esta sección.
