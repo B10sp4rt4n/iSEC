@@ -425,8 +425,14 @@ async function sendBroadcast(env) {
     console.warn(`Aviso: PDF no encontrado en "${PDF_PATH}" — se envía sin adjunto.`);
   }
 
+  // 5 correos por batch en paralelo, 2 s de pausa + jitter aleatorio entre batches.
+  // Ritmo resultante: ~2.5 correos/seg → debajo del umbral de detección de spam.
+  // Para 661 destinatarios: ~5-6 minutos de envío total.
   const BATCH = 5;
+  const DELAY_MS = 2000;   // pausa base entre batches
+  const JITTER_MS = 600;   // variación aleatoria ±600 ms
   const results = [];
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   for (let i = 0; i < recipients.length; i += BATCH) {
     const chunk = recipients.slice(i, i + BATCH);
@@ -443,8 +449,16 @@ async function sendBroadcast(env) {
       )
     );
     results.push(...chunkResults);
-    const sent = results.filter((r) => r.ok).length;
-    process.stdout.write(`\r  Progreso: ${i + chunk.length}/${recipients.length} enviados (${results.filter(r=>!r.ok).length} fallidos)`);
+
+    const totalSent = results.filter((r) => r.ok).length;
+    const totalFailed = results.filter((r) => !r.ok).length;
+    const pct = Math.round(((i + chunk.length) / recipients.length) * 100);
+    process.stdout.write(`\r  [${pct}%] ${i + chunk.length}/${recipients.length} procesados · ✅ ${totalSent} enviados · ❌ ${totalFailed} fallidos`);
+
+    // Pausa entre batches (excepto el último)
+    if (i + BATCH < recipients.length) {
+      await sleep(DELAY_MS + Math.random() * JITTER_MS);
+    }
   }
 
   console.log("\n");
