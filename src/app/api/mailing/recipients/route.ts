@@ -7,7 +7,6 @@ const CHANNEL_CARGOS = new Set([
 ]);
 
 const EXCLUDE_EMAILS = new Set([
-  "salvador.ruiz@synappssys.com",
   "sruiz@synappssys.com",
   "salvador.ruizesparza.mx@gmail.com",
   "b10sp4rt4n@gmail.com",

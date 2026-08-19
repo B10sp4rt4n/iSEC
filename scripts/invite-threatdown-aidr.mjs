@@ -1,5 +1,7 @@
 import { readFileSync, writeFileSync } from "fs";
 import { Resend } from "resend";
+import { read as xlsxRead, utils as xlsxUtils } from "xlsx";
+import { neon } from "@neondatabase/serverless";
 
 const SUBJECT = "El 78% del Shadow AI en tu empresa ya está en los endpoints";
 const PREHEADER = "ThreatDown AIDR: ve, clasifica y gobierna el uso de IA en tu organización desde hoy.";
@@ -281,9 +283,183 @@ function buildPreviewFile(env) {
   console.log(`CTA URL:  ${CALENDLY}`);
 }
 
+// ─── Listas de destinatarios ──────────────────────────────────────────────────
+
+const CHANNEL_CARGOS = new Set([
+  "reseller", "reseller_ventas", "reseller_preventa", "reseller_gerente",
+  "vendor_am", "vendor_se", "vendor_channel", "vendor_mktg",
+]);
+
+const EXCLUDE_EMAILS = new Set([
+  "sruiz@synappssys.com",
+  "salvador.ruizesparza.mx@gmail.com",
+  "b10sp4rt4n@gmail.com",
+]);
+
+const ALWAYS_INCLUDE = [
+  { correo: "ecota@threatdown.com", nombre: "Estela Cota" },
+  { correo: "ecotae0@gmail.com",    nombre: "Estela Cota" },
+];
+
+const PERSONAL_DOMAINS = new Set([
+  "gmail.com", "hotmail.com", "hotmail.es", "yahoo.com", "yahoo.com.mx",
+  "outlook.com", "live.com", "icloud.com",
+]);
+
+function pickBestEmail(raw) {
+  const parts = raw.split(";").map((s) => s.trim().toLowerCase()).filter((s) => s.includes("@"));
+  const corp = parts.find((e) => !PERSONAL_DOMAINS.has(e.split("@")[1] ?? ""));
+  return corp ?? parts[0] ?? "";
+}
+
+function isCanal(tipo) {
+  return String(tipo).toUpperCase().includes("EMPRESA CANAL IT") &&
+         !String(tipo).toUpperCase().includes("INVITADO VIP");
+}
+
+async function buildRecipientList(env) {
+  const seen = new Set();
+  const list = [];
+
+  function add(correo, nombre) {
+    const email = correo.toLowerCase().trim();
+    if (!email.includes("@") || EXCLUDE_EMAILS.has(email) || seen.has(email)) return;
+    seen.add(email);
+    list.push({ correo: email, nombre });
+  }
+
+  // 1. Base de datos
+  if (env.DATABASE_URL) {
+    const sql = neon(env.DATABASE_URL);
+    const rows = await sql`
+      SELECT nombre, correo, cargo FROM event_prospects ORDER BY created_at ASC
+    `;
+    for (const r of rows) {
+      if (!CHANNEL_CARGOS.has(r.cargo)) add(r.correo, r.nombre);
+    }
+  }
+
+  // 2. Excel Estela Cota
+  try {
+    const wb = xlsxRead(readFileSync("prospeccion_estela_cota (1).xlsx"));
+    const raw = xlsxUtils.sheet_to_json(wb.Sheets["Prospectos"], { header: 1, defval: "" });
+    const h = raw[3].map((x) => String(x).trim().toLowerCase());
+    const ci = h.findIndex((x) => x.includes("correo") || x.includes("email") || x.includes("mail"));
+    const ni = h.findIndex((x) => x.includes("contacto") || x.includes("nombre"));
+    for (const row of raw.slice(4)) add(String(row[ci] ?? "").trim(), String(row[ni] ?? "").trim());
+  } catch {
+    console.warn("Aviso: prospeccion_estela_cota (1).xlsx no encontrado — se omite.");
+  }
+
+  // 3. Excel ISEC Base Deduplicada
+  try {
+    const wb = xlsxRead(readFileSync("ISEC_InfoSecurity_2026_Base_Deduplicada.xlsx"));
+    const raw = xlsxUtils.sheet_to_json(wb.Sheets["Base deduplicada"], { header: 1, defval: "" });
+    for (const row of raw.slice(4)) {
+      if (isCanal(row[1])) continue;
+      const correo = pickBestEmail(String(row[7] ?? ""));
+      const nombre = [String(row[5] ?? "").trim(), String(row[4] ?? "").trim()].filter(Boolean).join(" ");
+      add(correo, nombre);
+    }
+  } catch {
+    console.warn("Aviso: ISEC_InfoSecurity_2026_Base_Deduplicada.xlsx no encontrado — se omite.");
+  }
+
+  // 4. Siempre incluir
+  for (const r of ALWAYS_INCLUDE) {
+    if (!seen.has(r.correo)) {
+      seen.add(r.correo);
+      list.push(r);
+    }
+  }
+
+  return list;
+}
+
+// ─── Broadcast ────────────────────────────────────────────────────────────────
+
+async function sendBroadcast(env) {
+  if (!env.RESEND_API_KEY) throw new Error("RESEND_API_KEY no configurado.");
+
+  const recipients = await buildRecipientList(env);
+  console.log(`\nDestinatarios a enviar: ${recipients.length}`);
+
+  const resend = new Resend(env.RESEND_API_KEY);
+  const from = env.RESEND_FROM ? `ThreatDown Soluciones <${env.RESEND_FROM}>` : FROM_FALLBACK;
+
+  const attachments = [];
+  try {
+    attachments.push({ filename: "ThreatDown AIDR.pdf", content: readFileSync(PDF_PATH) });
+  } catch {
+    console.warn(`Aviso: PDF no encontrado en "${PDF_PATH}" — se envía sin adjunto.`);
+  }
+
+  const BATCH = 5;
+  const results = [];
+
+  for (let i = 0; i < recipients.length; i += BATCH) {
+    const chunk = recipients.slice(i, i + BATCH);
+    const chunkResults = await Promise.all(
+      chunk.map(({ correo }) =>
+        resend.emails.send({
+          from,
+          replyTo: "salvador.ruiz@synappssys.com",
+          to: correo,
+          subject: SUBJECT,
+          html: buildHtml(env, { email: correo }),
+          attachments,
+        }).then(({ data, error }) => ({ correo, ok: !error && !!data?.id, id: data?.id, error: error?.message }))
+      )
+    );
+    results.push(...chunkResults);
+    const sent = results.filter((r) => r.ok).length;
+    process.stdout.write(`\r  Progreso: ${i + chunk.length}/${recipients.length} enviados (${results.filter(r=>!r.ok).length} fallidos)`);
+  }
+
+  console.log("\n");
+  const sent = results.filter((r) => r.ok).length;
+  const failed = results.filter((r) => !r.ok);
+  console.log(`✅ Enviados:  ${sent}`);
+  console.log(`❌ Fallidos: ${failed.length}`);
+  if (failed.length > 0) {
+    console.log("Fallidos:");
+    for (const f of failed) console.log(`  ${f.correo} — ${f.error}`);
+  }
+
+  // Notificación de resumen
+  const sentDate = new Date().toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
+  await resend.emails.send({
+    from,
+    to: ["ecotae0@gmail.com", "salvador.ruiz@synappssys.com"],
+    subject: `[Reporte AIDR] ${sent} enviados · ${sentDate}`,
+    html: `<table style="font-family:Arial,sans-serif;max-width:520px;border:1px solid #1B2D50;border-radius:8px;overflow:hidden">
+      <tr><td style="background:#0D1B3E;padding:16px 24px;color:#63D89A;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em">Reporte · Campaña ThreatDown AIDR</td></tr>
+      <tr><td style="padding:20px 24px;font-family:Arial,sans-serif;font-size:13px;color:#334155">
+        <p style="margin:0 0 8px"><strong>Fecha:</strong> ${sentDate}</p>
+        <p style="margin:0 0 8px"><strong>Asunto:</strong> ${SUBJECT}</p>
+        <p style="margin:0 0 16px"><strong>Fuentes:</strong> BD + Excel Cota + Excel ISEC 2026</p>
+        <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#16a34a">✅ ${sent} enviados</p>
+        <p style="margin:0;font-size:22px;font-weight:800;color:#dc2626">❌ ${failed.length} fallidos</p>
+        ${failed.length > 0 ? `<p style="margin:16px 0 4px;font-size:11px;color:#dc2626;font-weight:700">FALLIDOS:</p><p style="margin:0;font-size:11px;color:#dc2626">${failed.map(f=>f.correo).join("<br>")}</p>` : ""}
+      </td></tr>
+    </table>`,
+  });
+
+  console.log("Reporte enviado a ecotae0@gmail.com y salvador.ruiz@synappssys.com");
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
 async function main() {
   const env = loadEnvLocal();
-  const shouldSend = process.argv.includes("--send-test");
+  const shouldSend    = process.argv.includes("--send-test");
+  const shouldCast    = process.argv.includes("--broadcast");
+  const shouldPreview = process.argv.includes("--preview") || (!shouldSend && !shouldCast);
+
+  if (shouldCast) {
+    await sendBroadcast(env);
+    return;
+  }
 
   if (shouldSend) {
     await sendTest(env);

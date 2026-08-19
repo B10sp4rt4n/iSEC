@@ -18,11 +18,15 @@ const CHANNEL_CARGOS = new Set([
 ]);
 
 const EXCLUDE_EMAILS = new Set([
-  "salvador.ruiz@synappssys.com",
   "sruiz@synappssys.com",
   "salvador.ruizesparza.mx@gmail.com",
   "b10sp4rt4n@gmail.com",
 ]);
+
+const ALWAYS_INCLUDE = [
+  { correo: "ecota@threatdown.com", nombre: "Estela Cota" },
+  { correo: "ecotae0@gmail.com", nombre: "Estela Cota" },
+];
 
 const SUMMARY_RECIPIENTS = ["ecotae0@gmail.com", "salvador.ruiz@synappssys.com"];
 const BATCH_SIZE = 5;
@@ -102,6 +106,14 @@ export async function POST(request: Request) {
     seen.add(email);
     return true;
   });
+
+  // Agregar destinatarios fijos que no estén ya en la lista
+  const seenInTargets = new Set(targets.map((t) => t.correo.toLowerCase()));
+  for (const r of ALWAYS_INCLUDE) {
+    if (!seenInTargets.has(r.correo.toLowerCase())) {
+      targets.push({ id: "", nombre: r.nombre, correo: r.correo, cargo: "" });
+    }
+  }
 
   const results: { correo: string; ok: boolean; id?: string; error?: string }[] = [];
 
