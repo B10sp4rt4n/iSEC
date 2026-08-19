@@ -168,25 +168,56 @@ export function buildAidrHtml(email: string = "preview@synappssys.com"): string 
                 </td>
               </tr>
             </table>
-            <p style="margin:10px 0 0;text-align:center;font-size:11px;color:#3A5070;">Sin compromiso &nbsp;&#8226;&nbsp; 30 minutos &nbsp;&#8226;&nbsp; Valor desde el primer d&iacute;a</p>
-            <p style="margin:10px 0 0;text-align:center;font-size:12px;">
-              <a href="https://www.threatdown.com/products/ai-detection-and-response/" style="color:#63D89A;text-decoration:none;">Conoce m&aacute;s sobre ThreatDown AIDR &rarr;</a>
-            </p>
+            <p style="margin:10px 0 16px;text-align:center;font-size:11px;color:#3A5070;">Sin compromiso &nbsp;&#8226;&nbsp; 30 minutos &nbsp;&#8226;&nbsp; Valor desde el primer d&iacute;a</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td align="center">
+                  <a href="https://www.threatdown.com/products/ai-detection-and-response/" style="display:inline-block;text-decoration:none;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" style="background:#102044;border:1px solid #1E5C38;border-radius:8px;">
+                      <tr valign="middle">
+                        <td style="padding:10px 10px 10px 14px;">
+                          <img src="${logoSrc}" alt="ThreatDown" style="display:block;width:90px;height:auto;" />
+                        </td>
+                        <td style="padding:10px 16px 10px 8px;border-left:1px solid #1B2D50;">
+                          <p style="margin:0;font-size:13px;font-weight:700;color:#63D89A;white-space:nowrap;">Conoce ThreatDown AIDR &nbsp;&#8250;</p>
+                          <p style="margin:2px 0 0;font-size:10px;color:#7A90B0;white-space:nowrap;">AI Detection &amp; Response</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </a>
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
 
         <tr>
-          <td style="padding:22px 36px 28px;border-top:1px solid #1B2D50;background:#0D1B3E;">
+          <td style="padding:24px 36px 28px;border-top:1px solid #1B2D50;background:#0D1B3E;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr><td align="center" style="padding:0 0 14px;">
+              <tr><td align="center" style="padding:0 0 18px;">
                 <img src="${partnerLogoSrc}" alt="SynAppsSys" style="display:block;margin:0 auto;max-width:150px;width:100%;height:auto;" />
               </td></tr>
             </table>
-            <p style="margin:0;font-size:11px;color:#7A90B0;line-height:1.9;text-align:center;">
-              Salvador Ruiz &nbsp;&#124;&nbsp; SynAppsSys &nbsp;&#124;&nbsp; Platinum Partner ThreatDown<br/>
-              <a href="mailto:salvador.ruiz@synappssys.com" style="color:#63D89A;text-decoration:none;">salvador.ruiz@synappssys.com</a> &nbsp;&#124;&nbsp; www.synappssys.com
-            </p>
-            <p style="margin:16px 0 0;font-size:10px;color:#5A7090;text-align:center;line-height:1.6;">
+
+            <!-- Firmantes: 2 columnas simétricas -->
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;">
+              <tr valign="top">
+                <td width="50%" style="padding:0 8px 0 0;text-align:center;border-right:1px solid #1B2D50;">
+                  <p style="margin:0 0 2px;font-size:13px;font-weight:700;color:#F5F7FA;">Estela Cota</p>
+                  <p style="margin:0 0 1px;font-size:10px;color:#7A90B0;">Territory Channel Account Manager</p>
+                  <p style="margin:0 0 4px;font-size:10px;color:#7A90B0;">LATAM &nbsp;&middot;&nbsp; ThreatDown by Malwarebytes</p>
+                  <a href="mailto:ecota@threatdown.com" style="font-size:10px;color:#63D89A;text-decoration:none;">ecota@threatdown.com</a>
+                </td>
+                <td width="50%" style="padding:0 0 0 8px;text-align:center;">
+                  <p style="margin:0 0 2px;font-size:13px;font-weight:700;color:#F5F7FA;">Salvador Ruiz</p>
+                  <p style="margin:0 0 1px;font-size:10px;color:#7A90B0;">Director General &nbsp;&middot;&nbsp; SynAppsSys</p>
+                  <p style="margin:0 0 4px;font-size:10px;color:#7A90B0;">Platinum Partner ThreatDown</p>
+                  <a href="mailto:salvador.ruiz@synappssys.com" style="font-size:10px;color:#63D89A;text-decoration:none;">salvador.ruiz@synappssys.com</a>
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin:0;font-size:10px;color:#5A7090;text-align:center;line-height:1.6;">
               Recibiste este correo porque tuviste contacto con SynAppsSys o asististe a un evento de iSEC.<br/>
               Si no deseas recibir m&aacute;s comunicaciones, <a href="mailto:contacto@synappssys.com?subject=Baja%20de%20lista" style="color:#7A90B0;text-decoration:underline;">da clic aqu&iacute; para darte de baja</a>.
             </p>

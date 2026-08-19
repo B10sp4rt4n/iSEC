@@ -205,26 +205,57 @@ function buildHtml(env, { email }) {
                 </td>
               </tr>
             </table>
-            <p style="margin:10px 0 0;text-align:center;font-size:11px;color:#2E4060;">Sin compromiso &nbsp;&#8226;&nbsp; 30 minutos &nbsp;&#8226;&nbsp; Valor desde el primer d&iacute;a</p>
-            <p style="margin:10px 0 0;text-align:center;font-size:12px;">
-              <a href="https://www.threatdown.com/products/ai-detection-and-response/" style="color:#63D89A;text-decoration:none;">Conoce m&aacute;s sobre ThreatDown AIDR &rarr;</a>
-            </p>
+            <p style="margin:10px 0 16px;text-align:center;font-size:11px;color:#3A5070;">Sin compromiso &nbsp;&#8226;&nbsp; 30 minutos &nbsp;&#8226;&nbsp; Valor desde el primer d&iacute;a</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td align="center">
+                  <a href="https://www.threatdown.com/products/ai-detection-and-response/" style="display:inline-block;text-decoration:none;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" style="background:#102044;border:1px solid #1E5C38;border-radius:8px;">
+                      <tr valign="middle">
+                        <td style="padding:10px 10px 10px 14px;">
+                          <img src="${logoSrc}" alt="ThreatDown" style="display:block;width:90px;height:auto;" />
+                        </td>
+                        <td style="padding:10px 16px 10px 8px;border-left:1px solid #1B2D50;">
+                          <p style="margin:0;font-size:13px;font-weight:700;color:#63D89A;white-space:nowrap;">Conoce ThreatDown AIDR &nbsp;&#8250;</p>
+                          <p style="margin:2px 0 0;font-size:10px;color:#7A90B0;white-space:nowrap;">AI Detection &amp; Response</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </a>
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
 
         <!-- FOOTER -->
         <tr>
-          <td style="padding:22px 36px 28px;border-top:1px solid #1B2D50;background:#0D1B3E;">
+          <td style="padding:24px 36px 28px;border-top:1px solid #1B2D50;background:#0D1B3E;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr><td align="center" style="padding:0 0 14px;">
+              <tr><td align="center" style="padding:0 0 18px;">
                 <img src="${partnerLogoSrc}" alt="SynAppsSys" style="display:block;margin:0 auto;max-width:150px;width:100%;height:auto;" />
               </td></tr>
             </table>
-            <p style="margin:0;font-size:11px;color:#7A90B0;line-height:1.9;text-align:center;">
-              Salvador Ruiz &nbsp;&#124;&nbsp; SynAppsSys &nbsp;&#124;&nbsp; Platinum Partner ThreatDown<br/>
-              <a href="mailto:salvador.ruiz@synappssys.com" style="color:#63D89A;text-decoration:none;">salvador.ruiz@synappssys.com</a> &nbsp;&#124;&nbsp; www.synappssys.com
-            </p>
-            <p style="margin:16px 0 0;font-size:10px;color:#5A7090;text-align:center;line-height:1.6;">
+
+            <!-- Firmantes: 2 columnas simétricas -->
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;">
+              <tr valign="top">
+                <td width="50%" style="padding:0 8px 0 0;text-align:center;border-right:1px solid #1B2D50;">
+                  <p style="margin:0 0 2px;font-size:13px;font-weight:700;color:#F5F7FA;">Estela Cota</p>
+                  <p style="margin:0 0 1px;font-size:10px;color:#7A90B0;">Territory Channel Account Manager</p>
+                  <p style="margin:0 0 4px;font-size:10px;color:#7A90B0;">LATAM &nbsp;·&nbsp; ThreatDown by Malwarebytes</p>
+                  <a href="mailto:ecota@threatdown.com" style="font-size:10px;color:#63D89A;text-decoration:none;">ecota@threatdown.com</a>
+                </td>
+                <td width="50%" style="padding:0 0 0 8px;text-align:center;">
+                  <p style="margin:0 0 2px;font-size:13px;font-weight:700;color:#F5F7FA;">Salvador Ruiz</p>
+                  <p style="margin:0 0 1px;font-size:10px;color:#7A90B0;">Director General &nbsp;·&nbsp; SynAppsSys</p>
+                  <p style="margin:0 0 4px;font-size:10px;color:#7A90B0;">Platinum Partner ThreatDown</p>
+                  <a href="mailto:salvador.ruiz@synappssys.com" style="font-size:10px;color:#63D89A;text-decoration:none;">salvador.ruiz@synappssys.com</a>
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin:0;font-size:10px;color:#5A7090;text-align:center;line-height:1.6;">
               Recibiste este correo porque tuviste contacto con SynAppsSys o asististe a un evento de iSEC.<br/>
               Si no deseas recibir m&aacute;s comunicaciones, <a href="mailto:contacto@synappssys.com?subject=Baja%20de%20lista" style="color:#7A90B0;text-decoration:underline;">da clic aqu&iacute; para darte de baja</a>.
             </p>
@@ -428,24 +459,36 @@ async function sendBroadcast(env) {
 
   // Notificación de resumen
   const sentDate = new Date().toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
+  const sentList = results.filter((r) => r.ok).map((r) => r.correo);
+
   await resend.emails.send({
     from,
-    to: ["ecotae0@gmail.com", "salvador.ruiz@synappssys.com"],
+    to: ["ecotae0@gmail.com", "ecota@threatdown.com", "salvador.ruiz@synappssys.com"],
     subject: `[Reporte AIDR] ${sent} enviados · ${sentDate}`,
-    html: `<table style="font-family:Arial,sans-serif;max-width:520px;border:1px solid #1B2D50;border-radius:8px;overflow:hidden">
+    html: `<table style="font-family:Arial,sans-serif;max-width:600px;border:1px solid #1B2D50;border-radius:8px;overflow:hidden">
       <tr><td style="background:#0D1B3E;padding:16px 24px;color:#63D89A;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em">Reporte · Campaña ThreatDown AIDR</td></tr>
       <tr><td style="padding:20px 24px;font-family:Arial,sans-serif;font-size:13px;color:#334155">
-        <p style="margin:0 0 8px"><strong>Fecha:</strong> ${sentDate}</p>
-        <p style="margin:0 0 8px"><strong>Asunto:</strong> ${SUBJECT}</p>
+        <p style="margin:0 0 6px"><strong>Fecha:</strong> ${sentDate}</p>
+        <p style="margin:0 0 6px"><strong>Asunto:</strong> ${SUBJECT}</p>
         <p style="margin:0 0 16px"><strong>Fuentes:</strong> BD + Excel Cota + Excel ISEC 2026</p>
-        <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#16a34a">✅ ${sent} enviados</p>
-        <p style="margin:0;font-size:22px;font-weight:800;color:#dc2626">❌ ${failed.length} fallidos</p>
-        ${failed.length > 0 ? `<p style="margin:16px 0 4px;font-size:11px;color:#dc2626;font-weight:700">FALLIDOS:</p><p style="margin:0;font-size:11px;color:#dc2626">${failed.map(f=>f.correo).join("<br>")}</p>` : ""}
+        <table style="border-collapse:collapse;width:100%;margin-bottom:20px">
+          <tr style="background:#f1f5f9">
+            <td style="padding:10px 14px;font-size:13px;font-weight:700;color:#0f172a">✅ Enviados</td>
+            <td style="padding:10px 14px;font-size:26px;font-weight:800;color:#16a34a">${sent}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 14px;font-size:13px;font-weight:700;color:#0f172a">❌ Fallidos</td>
+            <td style="padding:10px 14px;font-size:26px;font-weight:800;color:#dc2626">${failed.length}</td>
+          </tr>
+        </table>
+        <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.05em">Lista de enviados exitosos (${sentList.length}):</p>
+        <p style="margin:0 0 20px;font-size:11px;color:#475569;line-height:1.9;">${sentList.join("<br>")}</p>
+        ${failed.length > 0 ? `<p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.05em">Fallidos (${failed.length}):</p><p style="margin:0;font-size:11px;color:#dc2626;line-height:1.9;">${failed.map(f=>f.correo).join("<br>")}</p>` : ""}
       </td></tr>
     </table>`,
   });
 
-  console.log("Reporte enviado a ecotae0@gmail.com y salvador.ruiz@synappssys.com");
+  console.log("Reporte enviado a ecotae0@gmail.com, ecota@threatdown.com y salvador.ruiz@synappssys.com");
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
