@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "iSEC Infosecurity | ThreatDown",
-  description: "Registro de contacto para soluciones THREATDOWN en ciberseguridad aplicada.",
+  title: "LEADFRAME by SynAppsSys",
+  description: "Activación de demanda B2B para eventos. QR, CRM en tiempo real, sorteo y mailing post-evento.",
 };
 
 export default function RootLayout({
