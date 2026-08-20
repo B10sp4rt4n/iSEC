@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { Resend } from "resend";
 import { getSqlClient } from "@/lib/db";
-import { buildLeadframeDemoEmail, LEADFRAME_FROM } from "@/lib/campaigns/leadframe-demo";
+import { buildLeadframeDemoEmail, LEADFRAME_FROM, sanitizeSubject } from "@/lib/campaigns/leadframe-demo";
 
 const bodySchema = z.object({
   nombre:  z.string().min(2).max(120),
@@ -51,20 +51,29 @@ export async function POST(request: Request) {
   await ensureDemoTable(sql);
 
   const { nombre, empresa, cargo, correo } = parsed.data;
+
+  // Rate limit: un email por correo cada 10 minutos
+  const [existing] = await sql`
+    SELECT id FROM demo_prospects
+    WHERE correo = ${correo} AND created_at > NOW() - INTERVAL '10 minutes'
+    LIMIT 1
+  `;
+  const yaRegistrado = Boolean(existing);
+
   const [row] = await sql`
     INSERT INTO demo_prospects (nombre, empresa, cargo, correo)
     VALUES (${nombre}, ${empresa}, ${cargo}, ${correo})
     RETURNING id, created_at
   `;
 
-  // Enviar email de seguimiento (fire-and-forget, no bloquea la respuesta)
+  // Enviar email solo si no lo recibió ya en esta ventana
   const resendKey = process.env.RESEND_API_KEY;
-  if (resendKey) {
+  if (resendKey && !yaRegistrado) {
     const resend = new Resend(resendKey);
     resend.emails.send({
       from: LEADFRAME_FROM,
       to: correo,
-      subject: `${nombre}, esto es LeadFrame en acción`,
+      subject: sanitizeSubject(`${nombre}, esto es LeadFrame en acción`),
       html: buildLeadframeDemoEmail(nombre),
     }).catch(() => { /* silent */ });
   }

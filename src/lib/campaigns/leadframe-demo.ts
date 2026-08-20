@@ -1,5 +1,13 @@
 export const LEADFRAME_FROM = "LeadFrame by SynAppsSys <contacto@synappssys.com>";
 
+function esc(s: string): string {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+export function sanitizeSubject(s: string): string {
+  return s.replace(/[\r\n\t]/g, " ").slice(0, 80);
+}
+
 export function buildLeadframeDemoEmail(nombre: string): string {
   return `<!DOCTYPE html>
 <html lang="es">
@@ -33,7 +41,7 @@ export function buildLeadframeDemoEmail(nombre: string): string {
     </p>
 
     <h1 style="margin:0 0 20px;font-size:26px;font-weight:800;color:#EDF0F4;line-height:1.25;">
-      Hola ${nombre} — así funciona LeadFrame en un evento real.
+      Hola ${esc(nombre)} — así funciona LeadFrame en un evento real.
     </h1>
 
     <p style="margin:0 0 24px;font-size:15px;color:#7E8EA3;line-height:1.7;">
