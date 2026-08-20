@@ -256,17 +256,20 @@ export default function DemoCrmPage() {
       </div>
 
       {/* CTA */}
-      <div style={{ width: "100%", maxWidth: 560, marginTop: 36, padding: "24px", background: "rgba(196,125,8,.06)", border: "1px solid rgba(196,125,8,.2)", borderRadius: 10, textAlign: "center" }}>
-        <p style={{ color: "rgba(255,255,255,.6)", fontSize: 14, marginBottom: 16, lineHeight: 1.6 }}>
-          ¿Quieres esto en tu próximo evento?
+      <div style={{ width: "100%", maxWidth: 560, marginTop: 36, padding: "24px 28px", background: "rgba(196,125,8,.06)", border: "1px solid rgba(196,125,8,.2)", borderRadius: 10, textAlign: "center" }}>
+        <p style={{ color: "#F0C060", fontSize: 13, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 8 }}>
+          Acabas de vivir lo que vive tu prospecto
+        </p>
+        <p style={{ color: "rgba(255,255,255,.5)", fontSize: 14, marginBottom: 20, lineHeight: 1.65 }}>
+          Esto es exactamente lo que instalamos en tu stand. Tu equipo de ventas ve los registros llegar en tiempo real mientras tú atiendes al siguiente visitante.
         </p>
         <a href="/servicios" style={{
           display: "inline-flex", alignItems: "center", gap: 8,
           background: "#C47D08", color: "#0A1018",
           fontWeight: 700, fontSize: 13,
-          padding: "11px 24px", borderRadius: 6, textDecoration: "none",
+          padding: "12px 26px", borderRadius: 6, textDecoration: "none",
         }}>
-          Ver planes y precios →
+          Quiero esto en mi evento →
         </a>
       </div>
 
