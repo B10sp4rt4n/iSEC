@@ -25,6 +25,7 @@ async function ensureDemoTable(sql: ReturnType<typeof getSqlClient>) {
 export async function GET() {
   const sql = getSqlClient();
   await ensureDemoTable(sql);
+  await sql`DELETE FROM demo_prospects WHERE created_at < NOW() - INTERVAL '10 minutes'`;
   const rows = await sql`
     SELECT id, nombre, empresa, cargo, created_at
     FROM demo_prospects
