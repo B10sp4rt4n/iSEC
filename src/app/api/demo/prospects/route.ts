@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Resend } from "resend";
 import { getSqlClient } from "@/lib/db";
+import { buildLeadframeDemoEmail, LEADFRAME_FROM } from "@/lib/campaigns/leadframe-demo";
 
 const bodySchema = z.object({
   nombre:  z.string().min(2).max(120),
@@ -54,6 +56,18 @@ export async function POST(request: Request) {
     VALUES (${nombre}, ${empresa}, ${cargo}, ${correo})
     RETURNING id, created_at
   `;
+
+  // Enviar email de seguimiento (fire-and-forget, no bloquea la respuesta)
+  const resendKey = process.env.RESEND_API_KEY;
+  if (resendKey) {
+    const resend = new Resend(resendKey);
+    resend.emails.send({
+      from: LEADFRAME_FROM,
+      to: correo,
+      subject: `${nombre}, esto es LeadFrame en acción`,
+      html: buildLeadframeDemoEmail(nombre),
+    }).catch(() => { /* silent */ });
+  }
 
   return NextResponse.json({ ok: true, id: row.id }, { status: 201 });
 }
