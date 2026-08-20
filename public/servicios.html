@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LEADFRAME — Activación de demanda B2B para eventos</title>
+  <meta name="description" content="Convierte el tráfico de tu expo en leads templados y perfilados, con un mensaje que llega antes de que se enfríen. QR, CRM, sorteo y mailing post-evento." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+  <style>
+  /* ── Tokens ─────────────────────────────────────────── */
+  :root {
+    --bg:          #F5F4EF;
+    --surface:     #FFFFFF;
+    --surface-alt: #EDECEA;
+    --ink:         #1A1F2C;
+    --mid:         #5E6675;
+    --accent:      #C47D08;
+    --accent-dim:  rgba(196,125,8,.12);
+    --teal:        #1A4542;
+    --border:      #DDDAD2;
+    --hero-bg:     #0D1520;
+    --hero-surface:#131F30;
+    --hero-border: #1E2D40;
+    --hero-ink:    #EDF0F4;
+    --hero-mid:    #7E8EA3;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:          #0E1118;
+      --surface:     #141B26;
+      --surface-alt: #1A2234;
+      --ink:         #EDF0F4;
+      --mid:         #8B939E;
+      --accent:      #F0A020;
+      --accent-dim:  rgba(240,160,32,.14);
+      --teal:        #2E7A74;
+      --border:      #242D3C;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg:          #0E1118;
+    --surface:     #141B26;
+    --surface-alt: #1A2234;
+    --ink:         #EDF0F4;
+    --mid:         #8B939E;
+    --accent:      #F0A020;
+    --accent-dim:  rgba(240,160,32,.14);
+    --teal:        #2E7A74;
+    --border:      #242D3C;
+  }
+
+  /* ── Reset ─────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+  body {
+    font-family: 'Source Sans 3', system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.7;
+    letter-spacing: 0.012em;
+    background: var(--bg);
+    color: var(--ink);
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  /* ── Layout ─────────────────────────────────────────── */
+  .container {
+    width: 100%;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  /* ── Typography ──────────────────────────────────────── */
+  h1, h2, h3, h4 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    text-wrap: balance;
+    line-height: 1.15;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Nav ─────────────────────────────────────────────── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--hero-bg);
+    border-bottom: 1px solid var(--hero-border);
+  }
+
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 58px;
+  }
+
+  .nav-logo {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800;
+    font-size: 17px;
+    color: var(--hero-ink);
+    letter-spacing: .08em;
+  }
+
+  .nav-logo em { font-style: normal; color: var(--accent); }
+
+  .nav-by {
+    font-family: 'Source Sans 3', sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    color: var(--hero-mid);
+    letter-spacing: 0;
+    margin-left: 10px;
+  }
+
+  .nav-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent);
+    color: #0A1018;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    padding: 8px 18px;
+    border-radius: 4px;
+    transition: opacity .15s;
+  }
+  .nav-cta:hover { opacity: .85; }
+
+  /* ── Hero ─────────────────────────────────────────────── */
+  .hero {
+    background: var(--hero-bg);
+    padding: 80px 0 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 55% 50% at 50% -5%, rgba(26,69,66,.3) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-eyebrow {
+    display: inline-block;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid rgba(196,125,8,.3);
+    border-radius: 3px;
+    padding: 4px 12px;
+    margin-bottom: 24px;
+  }
+
+  .hero h1 {
+    font-size: clamp(36px, 5.5vw, 62px);
+    font-weight: 700;
+    color: var(--hero-ink);
+    max-width: 800px;
+    margin-bottom: 22px;
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+  }
+
+  .hero h1 em { font-style: normal; color: var(--accent); }
+
+  .hero-sub {
+    font-size: 18px;
+    color: var(--hero-mid);
+    max-width: 520px;
+    margin-bottom: 40px;
+    line-height: 1.65;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 72px;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: #0A1018;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    padding: 14px 28px;
+    border-radius: 5px;
+    transition: opacity .15s, transform .1s;
+  }
+  .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
+
+  .btn-ghost { font-size: 14px; color: var(--hero-mid); }
+
+  /* ── Pipeline ─────────────────────────────────────────── */
+  .pipeline-wrap { position: relative; padding-bottom: 52px; }
+
+  .pipeline-track {
+    position: absolute;
+    top: 22px;
+    left: calc(10% + 22px);
+    right: calc(10% + 22px);
+    height: 2px;
+    background: linear-gradient(90deg, rgba(26,69,66,.5) 0%, rgba(196,125,8,.5) 50%, rgba(26,69,66,.5) 100%);
+    background-size: 300% 100%;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .pipeline-track { animation: flow 3s linear infinite; }
+    @keyframes flow {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -100% 0; }
+    }
+  }
+
+  .pipeline-nodes {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    position: relative;
+    z-index: 1;
+  }
+
+  .p-node { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 8px; }
+
+  .p-circle {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: rgba(26,69,66,.25);
+    border: 1.5px solid rgba(42,120,113,.5);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    margin-bottom: 14px;
+    transition: background .2s, border-color .2s;
+  }
+  .p-node:hover .p-circle { background: rgba(196,125,8,.15); border-color: rgba(196,125,8,.6); }
+
+  .p-label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: .05em; text-transform: uppercase;
+    color: var(--hero-ink); line-height: 1.3; margin-bottom: 4px;
+  }
+
+  .p-sub { font-size: 11px; color: var(--hero-mid); line-height: 1.45; }
+
+  /* ── Sections ────────────────────────────────────────── */
+  .section { padding: 88px 0; }
+  .section-alt { background: var(--surface); }
+
+  .eyebrow {
+    display: block;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 12px;
+  }
+
+  .section-h2 { font-size: clamp(28px, 4vw, 44px); font-weight: 800; margin-bottom: 16px; max-width: 620px; }
+  .section-lead { font-size: 17px; color: var(--mid); max-width: 540px; margin-bottom: 52px; line-height: 1.7; }
+
+  /* ── Pillars ─────────────────────────────────────────── */
+  .pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+
+  .pillar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 32px 28px;
+    position: relative; overflow: hidden;
+  }
+
+  .pillar::after {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+    background: var(--accent); opacity: .4;
+  }
+
+  .pillar-n {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 52px; font-weight: 800;
+    color: var(--accent); opacity: .18;
+    line-height: 1; margin-bottom: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pillar h3 { font-size: 21px; font-weight: 800; margin-bottom: 10px; }
+  .pillar p { font-size: 15px; color: var(--mid); line-height: 1.7; }
+
+  /* ── Steps ───────────────────────────────────────────── */
+  .steps-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; }
+
+  .step-card {
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 24px 20px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+
+  .section-alt .step-card { background: var(--bg); }
+
+  .step-num-tag {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: .12em; color: var(--accent); text-transform: uppercase;
+  }
+
+  .step-icon { font-size: 26px; line-height: 1; }
+  .step-card h3 { font-size: 15px; font-weight: 700; line-height: 1.3; }
+  .step-card p { font-size: 14px; color: var(--mid); line-height: 1.65; }
+
+  /* ── Bundles ─────────────────────────────────────────── */
+  .bundles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; }
+
+  .bundle { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .bundle-featured { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+  .bundle-tag {
+    background: var(--accent); color: #0A1018;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase;
+    padding: 5px 0; text-align: center; display: block;
+  }
+
+  .bundle-header { padding: 24px 24px 0; }
+
+  .bundle-tier {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent); display: block; margin-bottom: 6px;
+  }
+
+  .bundle-title { font-size: 22px; font-weight: 800; margin-bottom: 8px; line-height: 1.2; }
+  .bundle-desc { font-size: 14px; color: var(--mid); line-height: 1.6; }
+
+  .bundle-price-row {
+    padding: 16px 24px; margin-top: 20px;
+    background: var(--surface-alt);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .bundle-price {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 22px; font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bundle-price span {
+    font-size: 13px; color: var(--mid);
+    font-family: 'Source Sans 3', sans-serif;
+    font-weight: 400; display: block; margin-top: 1px;
+  }
+
+  .bundle-features { list-style: none; padding: 20px 24px; display: flex; flex-direction: column; gap: 9px; }
+
+  .bundle-features li {
+    font-size: 14px; color: var(--mid);
+    display: flex; gap: 9px; align-items: flex-start; line-height: 1.5;
+  }
+
+  .bundle-features li::before {
+    content: '✓'; color: var(--accent);
+    font-weight: 700; flex-shrink: 0; margin-top: 1px; font-size: 13px;
+  }
+
+  .bundle-cta-wrap { padding: 0 24px 24px; }
+
+  .bundle-cta {
+    display: block; text-align: center; padding: 12px;
+    border-radius: 6px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700; font-size: 12px;
+    letter-spacing: .07em; text-transform: uppercase;
+    background: var(--surface-alt); color: var(--ink);
+    border: 1px solid var(--border);
+    transition: opacity .15s;
+  }
+
+  .bundle-featured .bundle-cta { background: var(--accent); color: #0A1018; border-color: var(--accent); }
+  .bundle-cta:hover { opacity: .82; }
+
+  /* ── CRM ─────────────────────────────────────────────── */
+  .crm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+
+  .crm-feats { list-style: none; display: flex; flex-direction: column; gap: 22px; margin-top: 4px; }
+  .crm-feat { display: flex; gap: 16px; align-items: flex-start; }
+
+  .crm-feat-ico {
+    width: 42px; height: 42px; border-radius: 9px;
+    background: var(--accent-dim);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+    border: 1px solid rgba(196,125,8,.2);
+  }
+
+  .crm-feat-body h4 { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
+  .crm-feat-body p { font-size: 14px; color: var(--mid); line-height: 1.6; }
+
+  .mock-screen {
+    background: #0A111E; border-radius: 12px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow: 0 32px 72px rgba(0,0,0,.35);
+  }
+
+  .mock-bar {
+    background: rgba(255,255,255,.05); padding: 10px 16px;
+    display: flex; gap: 7px; align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+
+  .mock-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .mock-dot:nth-child(1) { background: #FF5F57; }
+  .mock-dot:nth-child(2) { background: #FEBC2E; }
+  .mock-dot:nth-child(3) { background: #28C840; }
+
+  .mock-url {
+    flex: 1; margin: 0 10px;
+    background: rgba(255,255,255,.07); border-radius: 4px;
+    height: 22px; display: flex; align-items: center;
+    padding: 0 10px; font-size: 11px; color: rgba(255,255,255,.3); font-family: monospace;
+  }
+
+  .mock-body { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+
+  .mock-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+  .mock-stat {
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 8px; padding: 14px 12px;
+  }
+
+  .mock-stat-n {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 24px; font-weight: 800; color: #F0A020;
+    font-variant-numeric: tabular-nums; line-height: 1;
+  }
+
+  .mock-stat-l { font-size: 11px; color: rgba(255,255,255,.35); margin-top: 4px; line-height: 1.35; }
+
+  .mock-section-label {
+    font-size: 10px; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: rgba(255,255,255,.3);
+    padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+
+  .mock-row {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06);
+    border-radius: 7px; padding: 10px 14px;
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  }
+
+  .mock-row-name { font-size: 13px; color: rgba(255,255,255,.8); font-weight: 600; }
+  .mock-row-co { font-size: 11px; color: rgba(255,255,255,.35); margin-top: 2px; }
+
+  .badge {
+    font-size: 10px; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700; padding: 3px 9px; border-radius: 3px;
+    letter-spacing: .06em; text-transform: uppercase;
+    white-space: nowrap; flex-shrink: 0;
+  }
+
+  .badge-gold { background: rgba(240,160,32,.18); color: #F0A020; }
+  .badge-teal { background: rgba(46,122,116,.25); color: #4DC4BB; }
+
+  /* ── CTA Final ────────────────────────────────────────── */
+  .cta-section {
+    background: var(--hero-bg); padding: 100px 0;
+    text-align: center; position: relative; overflow: hidden;
+  }
+
+  .cta-section::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 50% 60% at 50% 100%, rgba(26,69,66,.25) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cta-section h2 {
+    font-size: clamp(30px, 5vw, 52px); font-weight: 800;
+    color: var(--hero-ink); margin-bottom: 16px;
+    max-width: 680px; margin-left: auto; margin-right: auto;
+    position: relative;
+  }
+
+  .cta-section p {
+    font-size: 17px; color: var(--hero-mid); margin-bottom: 40px;
+    max-width: 480px; margin-left: auto; margin-right: auto; position: relative;
+  }
+
+  .cta-section .btn-primary { position: relative; margin: 0 auto; display: inline-flex; }
+
+  .cta-note { margin-top: 18px; font-size: 13px; color: var(--hero-mid); opacity: .65; position: relative; }
+
+  /* ── Footer ───────────────────────────────────────────── */
+  footer { background: #08101A; border-top: 1px solid var(--hero-border); padding: 28px 0; }
+
+  .footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+
+  .footer-logo { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 15px; color: rgba(237,240,244,.4); letter-spacing: .08em; }
+  .footer-logo em { font-style: normal; color: rgba(196,125,8,.6); }
+  .footer-copy { font-size: 13px; color: rgba(255,255,255,.22); }
+
+  /* ── Responsive ───────────────────────────────────────── */
+  @media (max-width: 960px) {
+    .pillars { grid-template-columns: 1fr; }
+    .steps-grid { grid-template-columns: repeat(2, 1fr); }
+    .steps-grid > *:last-child { grid-column: 1 / -1; }
+    .bundles { grid-template-columns: 1fr; max-width: 520px; }
+    .crm-grid { grid-template-columns: 1fr; }
+    .pipeline-nodes { grid-template-columns: 1fr; gap: 20px; }
+    .pipeline-track { display: none; }
+    .p-node { flex-direction: row; text-align: left; gap: 16px; align-items: flex-start; }
+    .p-circle { flex-shrink: 0; }
+  }
+
+  @media (max-width: 600px) {
+    .section { padding: 60px 0; }
+    .hero { padding: 56px 0 0; }
+    .steps-grid { grid-template-columns: 1fr; }
+    .steps-grid > *:last-child { grid-column: auto; }
+    .hero-actions { flex-direction: column; align-items: flex-start; }
+  }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <div class="nav-inner">
+      <span class="nav-logo">LEAD<em>FRAME</em><span class="nav-by">by SynAppsSys</span></span>
+      <a href="https://calendly.com/salvador-ruiz-synappssys" target="_blank" rel="noopener" class="nav-cta">Agenda una llamada &rarr;</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="container">
+    <span class="hero-eyebrow">Activación de demanda B2B &middot; Eventos y expos</span>
+    <h1>Del stand al pipeline<br>en <em>48 horas</em></h1>
+    <p class="hero-sub">Convierte el tráfico de tu expo en leads templados y perfilados, con un mensaje que llega antes de que se enfríen.</p>
+    <div class="hero-actions">
+      <a href="https://calendly.com/salvador-ruiz-synappssys" target="_blank" rel="noopener" class="btn-primary">Agenda una llamada &rarr;</a>
+      <span class="btn-ghost">Sin costo &middot; Respuesta en 24 hrs</span>
+    </div>
+    <div class="pipeline-wrap">
+      <div class="pipeline-track" aria-hidden="true"></div>
+      <div class="pipeline-nodes">
+        <div class="p-node">
+          <div class="p-circle" aria-hidden="true">📱</div>
+          <div><div class="p-label">QR + Registro</div><div class="p-sub">Landing branded<br>en 48 hrs</div></div>
+        </div>
+        <div class="p-node">
+          <div class="p-circle" aria-hidden="true">📊</div>
+          <div><div class="p-label">CRM en vivo</div><div class="p-sub">Prospectos en<br>tiempo real</div></div>
+        </div>
+        <div class="p-node">
+          <div class="p-circle" aria-hidden="true">🎯</div>
+          <div><div class="p-label">Sorteo público</div><div class="p-sub">Atrae multitud,<br>activa registros</div></div>
+        </div>
+        <div class="p-node">
+          <div class="p-circle" aria-hidden="true">✅</div>
+          <div><div class="p-label">Base limpia</div><div class="p-sub">Deduplicada y<br>calificada</div></div>
+        </div>
+        <div class="p-node">
+          <div class="p-circle" aria-hidden="true">✉️</div>
+          <div><div class="p-label">Campaña</div><div class="p-sub">Diseño premium<br>24–48 hrs</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="section">
+  <div class="container">
+    <span class="eyebrow">Por qué funciona</span>
+    <h2 class="section-h2">Tres ventajas que una tarjeta de presentación no puede dar</h2>
+    <p class="section-lead">El 80% del valor de un evento se pierde en los días siguientes. Este sistema está diseñado para no perderlo.</p>
+    <div class="pillars">
+      <div class="pillar">
+        <div class="pillar-n">01</div>
+        <h3>Leads perfilados</h3>
+        <p>El formulario de registro captura rol, empresa, y el dolor específico del prospecto. Llegas a la primera llamada ya sabiendo lo que le preocupa, sin un ciclo de calificación extra.</p>
+      </div>
+      <div class="pillar">
+        <div class="pillar-n">02</div>
+        <h3>Con intención declarada</h3>
+        <p>No es una lista comprada ni un directorio frío. La persona decidió escanear, registrarse, y participar. Eso es señal de interés activo, no ruido que hay que filtrar después.</p>
+      </div>
+      <div class="pillar">
+        <div class="pillar-n">03</div>
+        <h3>Mensaje fresco</h3>
+        <p>Tu correo llega en 24–48 hrs post-evento, mientras el prospecto aún recuerda el stand y está en modo evaluación. Esa ventana se cierra rápido con una tarjeta de papel perdida en el bolsillo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="container">
+    <span class="eyebrow">Cómo funciona</span>
+    <h2 class="section-h2">Cinco piezas que operan como un solo sistema</h2>
+    <p class="section-lead">Cada componente alimenta al siguiente. No hay integraciones manuales entre herramientas de terceros ni Excel que exportar el lunes.</p>
+    <div class="steps-grid">
+      <div class="step-card">
+        <span class="step-num-tag">Paso 01</span>
+        <div class="step-icon">📱</div>
+        <h3>QR + Landing de registro</h3>
+        <p>Landing con tu branding, preguntas calificadoras configuradas a tu proceso de venta. Lista antes del evento.</p>
+      </div>
+      <div class="step-card">
+        <span class="step-num-tag">Paso 02</span>
+        <div class="step-icon">📊</div>
+        <h3>CRM de evento en tiempo real</h3>
+        <p>App web accesible desde cualquier dispositivo. Tu equipo ve los registros llegar en vivo desde el stand.</p>
+      </div>
+      <div class="step-card">
+        <span class="step-num-tag">Paso 03</span>
+        <div class="step-icon">🎯</div>
+        <h3>Sorteo en pantalla pública</h3>
+        <p>La gente escanea el QR para entrar. Mecánica de conversión que atrae tráfico al stand y multiplica registros.</p>
+      </div>
+      <div class="step-card">
+        <span class="step-num-tag">Paso 04</span>
+        <div class="step-icon">✅</div>
+        <h3>Base limpia y deduplicada</h3>
+        <p>Post-evento: lista final sin duplicados, sin correos inválidos, clasificada por perfil e interés declarado.</p>
+      </div>
+      <div class="step-card">
+        <span class="step-num-tag">Paso 05</span>
+        <div class="step-icon">✉️</div>
+        <h3>Campaña de mailing premium</h3>
+        <p>Email diseñado con tu identidad y copy alineado a tu propuesta. Envío técnico optimizado para el inbox.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <span class="eyebrow">Servicios</span>
+    <h2 class="section-h2">Elige el alcance que necesitas</h2>
+    <p class="section-lead">Desde la infraestructura básica hasta el ciclo completo. Todos los bundles incluyen setup, soporte en vivo y lista post-evento.</p>
+    <div class="bundles">
+      <div class="bundle">
+        <div class="bundle-header">
+          <span class="bundle-tier">Starter</span>
+          <h3 class="bundle-title">Llega al evento listo</h3>
+          <p class="bundle-desc">Todo lo que necesitas para capturar leads desde el primer visitante al stand.</p>
+        </div>
+        <div class="bundle-price-row">
+          <div class="bundle-price">$8,000 – $15,000 <span>MXN &middot; por evento</span></div>
+        </div>
+        <ul class="bundle-features">
+          <li>Landing de registro con tu branding</li>
+          <li>QR imprimible en alta resolución</li>
+          <li>Preguntas calificadoras configuradas</li>
+          <li>CRM de evento en tiempo real</li>
+          <li>Sorteo en pantalla pública</li>
+          <li>Lista limpia y deduplicada post-evento</li>
+        </ul>
+        <div class="bundle-cta-wrap">
+          <a href="https://calendly.com/salvador-ruiz-synappssys" target="_blank" rel="noopener" class="bundle-cta">Agendar llamada</a>
+        </div>
+      </div>
+      <div class="bundle bundle-featured">
+        <span class="bundle-tag">Más popular</span>
+        <div class="bundle-header">
+          <span class="bundle-tier">Demand</span>
+          <h3 class="bundle-title">Del evento al inbox</h3>
+          <p class="bundle-desc">El seguimiento es donde se pierde el 80% del valor de una expo. Demand lo cierra.</p>
+        </div>
+        <div class="bundle-price-row">
+          <div class="bundle-price">$20,000 – $35,000 <span>MXN &middot; por evento</span></div>
+        </div>
+        <ul class="bundle-features">
+          <li>Todo lo del plan Starter</li>
+          <li>Campaña de mailing post-evento</li>
+          <li>Diseño de email premium + copy</li>
+          <li>Envío técnico optimizado (anti-spam)</li>
+          <li>Reporte de aperturas y clics</li>
+        </ul>
+        <div class="bundle-cta-wrap">
+          <a href="https://calendly.com/salvador-ruiz-synappssys" target="_blank" rel="noopener" class="bundle-cta">Agendar llamada</a>
+        </div>
+      </div>
+      <div class="bundle">
+        <div class="bundle-header">
+          <span class="bundle-tier">Full Cycle</span>
+          <h3 class="bundle-title">Evento como motor de pipeline</h3>
+          <p class="bundle-desc">Presencia en vivo, sistema completo, y un reporte que justifica cada peso invertido.</p>
+        </div>
+        <div class="bundle-price-row">
+          <div class="bundle-price">$40,000 – $70,000 <span>MXN &middot; por evento</span></div>
+        </div>
+        <ul class="bundle-features">
+          <li>Todo lo del plan Demand</li>
+          <li>Prospección presencial en expo</li>
+          <li>Calificación en vivo por el equipo</li>
+          <li>Enriquecimiento de datos post-evento</li>
+          <li>Reporte de ciclo completo</li>
+          <li>Retainer disponible para calendario de expos</li>
+        </ul>
+        <div class="bundle-cta-wrap">
+          <a href="https://calendly.com/salvador-ruiz-synappssys" target="_blank" rel="noopener" class="bundle-cta">Agendar llamada</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="container">
+    <div class="crm-grid">
+      <div>
+        <span class="eyebrow">El CRM de evento</span>
+        <h2 class="section-h2">Visibilidad completa desde el stand</h2>
+        <p class="section-lead" style="margin-bottom:32px;">Diseñado para el caos de una expo: rápido, móvil, sin instalación. Funciona en el teléfono del vendedor en piso.</p>
+        <ul class="crm-feats">
+          <li class="crm-feat">
+            <div class="crm-feat-ico">📲</div>
+            <div class="crm-feat-body">
+              <h4>Desde cualquier dispositivo</h4>
+              <p>URL directa. Sin apps que instalar. Acceso en segundos desde celular o tablet.</p>
+            </div>
+          </li>
+          <li class="crm-feat">
+            <div class="crm-feat-ico">⚡</div>
+            <div class="crm-feat-body">
+              <h4>Registros en tiempo real</h4>
+              <p>Cada QR escaneado aparece al instante. Ves el flujo de prospectos conforme llegan.</p>
+            </div>
+          </li>
+          <li class="crm-feat">
+            <div class="crm-feat-ico">🎰</div>
+            <div class="crm-feat-body">
+              <h4>Sorteo integrado</h4>
+              <p>Un ganador por premio, pantalla pública para el anuncio. Máxima emoción, mínimo esfuerzo operativo.</p>
+            </div>
+          </li>
+          <li class="crm-feat">
+            <div class="crm-feat-ico">📤</div>
+            <div class="crm-feat-body">
+              <h4>Exportación inmediata</h4>
+              <p>CSV listo al cierre del evento. Sin esperar al equipo de sistemas el lunes.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="mock-screen" role="img" aria-label="Vista previa del CRM de evento">
+        <div class="mock-bar">
+          <div class="mock-dot"></div>
+          <div class="mock-dot"></div>
+          <div class="mock-dot"></div>
+          <div class="mock-url">crm.synappssys.com/evento/isec2026</div>
+        </div>
+        <div class="mock-body">
+          <div class="mock-stats">
+            <div class="mock-stat"><div class="mock-stat-n">147</div><div class="mock-stat-l">Registros hoy</div></div>
+            <div class="mock-stat"><div class="mock-stat-n">89%</div><div class="mock-stat-l">Correo corporativo</div></div>
+            <div class="mock-stat"><div class="mock-stat-n">3</div><div class="mock-stat-l">Premios activos</div></div>
+          </div>
+          <div class="mock-section-label">Prospectos recientes</div>
+          <div class="mock-row">
+            <div><div class="mock-row-name">Ana Torres</div><div class="mock-row-co">Logística MX &middot; Gerente de Operaciones</div></div>
+            <span class="badge badge-gold">Alta prioridad</span>
+          </div>
+          <div class="mock-row">
+            <div><div class="mock-row-name">Roberto Sánchez</div><div class="mock-row-co">Grupo Industrial &middot; Director TI</div></div>
+            <span class="badge badge-teal">Seguimiento</span>
+          </div>
+          <div class="mock-row">
+            <div><div class="mock-row-name">Claudia Mendoza</div><div class="mock-row-co">FinTech MX &middot; CISO</div></div>
+            <span class="badge badge-gold">Alta prioridad</span>
+          </div>
+          <div class="mock-row">
+            <div><div class="mock-row-name">Luis Oñate</div><div class="mock-row-co">Luniti &middot; Director Comercial</div></div>
+            <span class="badge badge-teal">Seguimiento</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="container">
+    <h2>¿Tienes una expo en los próximos 60 días?</h2>
+    <p>30 minutos. Sin costo, sin compromiso. Evaluamos juntos qué bundle encaja con tu evento y tu mercado.</p>
+    <a href="https://calendly.com/salvador-ruiz-synappssys" target="_blank" rel="noopener" class="btn-primary">Agendar llamada ahora &rarr;</a>
+    <p class="cta-note">Respuesta en 24 hrs &middot; Operamos en cualquier industria &middot; México y LATAM</p>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-logo">LEAD<em>FRAME</em> <span style="font-family:'Source Sans 3',sans-serif;font-weight:400;font-size:12px;color:rgba(255,255,255,.2);margin-left:8px;letter-spacing:0;">by SynAppsSys</span></div>
+      <div class="footer-copy">&copy; 2026 SynAppsSys &middot; Todos los derechos reservados</div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

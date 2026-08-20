@@ -107,18 +107,31 @@ Los ganadores se guardan en la tabla `event_raffle_winners` (ver `db/schema.sql`
 - **Netlify**: importar repo, build command `npm run build`, variable `DATABASE_URL`, deploy (incluye `netlify.toml` con plugin Next.js).
 
 ## Snapshot de sesión
-Última actualización: 2026-08-13
+Última actualización: 2026-08-19
 
 **En qué estoy trabajando ahora mismo:**
-- Formalizando el hábito de snapshot de contexto en CLAUDE.md para sobrevivir destrucción de codespace
+- Rama `feature/mailing-dashboard` — dashboard de campañas en `/admin/mailing`
+- Campaña AIDR completada y enviada (broadcast exitoso)
 
 **Últimos cambios aplicados:**
-- `CLAUDE.md` — agregada sección "## Snapshot de sesión" como respaldo de contexto en-repo
-- `c4f3632` — removidos secrets hardcodeados, agregado CLAUDE.md inicial
-- `ff63ea8` — logos ThreatDown y SynAppsSys añadidos a `public/logos`
+- `scripts/invite-threatdown-aidr.mjs` — broadcast mode, rate limiting (5/batch, 2s+jitter), footer 2 columnas (Estela izq · Salvador der), ThreatDown branded card, reporte post-broadcast
+- `scripts/dedup-full.mjs` — análisis y limpieza de duplicados BD + Excel
+- `scripts/dedup-check.mjs` — verificador rápido de duplicados en BD
+- `src/app/admin/mailing/page.tsx` — dashboard UI con auth, tabs Destinatarios/Preview/Enviar
+- `src/app/api/mailing/recipients/route.ts` — GET destinatarios filtrados
+- `src/app/api/mailing/send/route.ts` — POST test/broadcast vía Resend
+- `src/app/api/mailing/preview/route.ts` — preview HTML para iframe
+- `src/lib/campaigns/aidr.ts` — builder HTML compartido de campaña AIDR
+- BD: eliminados duplicados y Blanca Pech; salvador.ruiz@synappssys.com activo como destinatario
+
+**Resultado campaña AIDR (2026-08-19):**
+- ✅ 660 enviados | ❌ 1 fallido (`.miranda@gmm.com.mex` — TLD inválido)
+- Fuentes: BD (69) + Excel Cota (367) + Excel ISEC 2026 (223) + Fijos Estela x2
+- Reporte enviado a ecotae0@gmail.com, ecota@threatdown.com, salvador.ruiz@synappssys.com
 
 **Siguiente paso concreto:**
-- Definir qué features o bugs siguen en el roadmap (sorteo, email de confirmación, exportar CSV de prospectos, etc.) y actualizar este snapshot al cerrar sesión
+- Merge de `feature/mailing-dashboard` a `main` cuando esté listo para producción
+- Roadmap pendiente: email de confirmación al registro, exportar CSV de prospectos, segunda campaña
 
 ---
 > **Nota:** Este snapshot vive en el repo intencionalmente — sobrevive si el codespace se destruye y se crea uno nuevo. No reemplaza `~/.claude`, lo complementa. Al cerrar cada sesión larga, Claude Code preguntará si actualizar esta sección.
