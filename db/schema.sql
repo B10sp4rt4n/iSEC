@@ -60,3 +60,17 @@ CREATE TABLE IF NOT EXISTS usuarios (
 
 CREATE INDEX IF NOT EXISTS idx_usuarios_alias
   ON usuarios (alias);
+
+-- ── Demo LEADFRAME ─────────────────────────────────────────────────────────
+-- Prospectos capturados a través del flujo demo en /demo/registro
+CREATE TABLE IF NOT EXISTS demo_prospects (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre     VARCHAR(120) NOT NULL,
+  empresa    VARCHAR(120) NOT NULL,
+  cargo      VARCHAR(120) NOT NULL,
+  correo     VARCHAR(180) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_demo_prospects_created_at
+  ON demo_prospects (created_at DESC);
