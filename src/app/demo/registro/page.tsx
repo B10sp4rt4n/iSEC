@@ -103,6 +103,9 @@ export default function DemoRegistroPage() {
         <p style={{ fontSize: 12, color: "#4A5568", textAlign: "center", marginTop: 4 }}>
           Simulación ilustrativa · Los datos no se usarán para ningún fin comercial
         </p>
+        <p style={{ fontSize: 12, color: "rgba(240,160,32,.5)", textAlign: "center", marginTop: 8, lineHeight: 1.6 }}>
+          Usa tu correo real para recibir la información de LeadFrame directo en tu inbox.
+        </p>
       </form>
     </main>
   );
