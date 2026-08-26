@@ -74,3 +74,15 @@ CREATE TABLE IF NOT EXISTS demo_prospects (
 
 CREATE INDEX IF NOT EXISTS idx_demo_prospects_created_at
   ON demo_prospects (created_at DESC);
+
+-- ── Link Clicks ────────────────────────────────────────────────────────────
+-- Registro de clics en CTAs de campañas de email. Una fila por clic.
+-- Para ver el conteo: SELECT campaign_key, COUNT(*) FROM link_clicks GROUP BY 1;
+CREATE TABLE IF NOT EXISTS link_clicks (
+  id           BIGSERIAL PRIMARY KEY,
+  campaign_key TEXT NOT NULL,
+  clicked_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_link_clicks_campaign_key
+  ON link_clicks (campaign_key, clicked_at DESC);
