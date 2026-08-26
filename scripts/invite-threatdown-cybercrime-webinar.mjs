@@ -8,6 +8,7 @@ const PREHEADER = "ThreatDown presenta: Cibercrimen en la Era de la IA 2026. Web
 const TEST_RECIPIENTS = [
   "salvador.ruiz@synappssys.com",
   "salvador_ruiz74@hotmail.com",
+  "sruiz@synappssys.com",
 ];
 const TEST_RECIPIENT = TEST_RECIPIENTS[0];
 const TEST_NAME = "Salvador";
@@ -45,11 +46,11 @@ function buildHtml(env, { email }) {
   const partnerLogoSrc = `${base}/logos/SynAppsSysLogoQ326.png`;
   const illustrationSrc = `${base}/aidr-illustration.png`;
   const ctaUrl = base
-    ? `${base}/api/track?c=${CAMPAIGN_KEY}_cta&email=${encodeURIComponent(email)}&to=${encodeURIComponent(WEBINAR_URL)}`
+    ? `${base}/api/track?c=${CAMPAIGN_KEY}_cta&email=${encodeURIComponent(email)}`
     : WEBINAR_URL;
   const reportUrl = base
-    ? `${base}/api/track?c=${CAMPAIGN_KEY}_report&email=${encodeURIComponent(email)}&to=${encodeURIComponent("https://www.threatdown.com/dl-cybercrime-in-age-of-ai-2026/")}`
-    : "https://www.threatdown.com/dl-cybercrime-in-age-of-ai-2026/";
+    ? `${base}/api/track?c=${CAMPAIGN_KEY}_report&email=${encodeURIComponent(email)}`
+    : WEBINAR_URL;
 
   return `<!doctype html>
 <html lang="es">
@@ -280,7 +281,7 @@ async function sendTest(env) {
       from,
       to,
       reply_to: "salvador.ruiz@synappssys.com",
-      subject: `[TEST] ${SUBJECT}`,
+      subject: `[TEST 4] ${SUBJECT}`,
       html: buildHtml(env, { email: to }),
     });
     if (error) {
