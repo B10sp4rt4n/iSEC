@@ -5,7 +5,11 @@ import { neon } from "@neondatabase/serverless";
 
 const SUBJECT = "Los atacantes ya usan IA. ¿Tu equipo está listo? [Webinar Sep 9]";
 const PREHEADER = "ThreatDown presenta: Cibercrimen en la Era de la IA 2026. Webinar gratuito · Miércoles 9 Sep · 12:00 PM CDMX.";
-const TEST_RECIPIENT = "salvador.ruiz@synappssys.com";
+const TEST_RECIPIENTS = [
+  "salvador.ruiz@synappssys.com",
+  "salvador_ruiz74@hotmail.com",
+];
+const TEST_RECIPIENT = TEST_RECIPIENTS[0];
 const TEST_NAME = "Salvador";
 const FROM_FALLBACK = "ThreatDown Soluciones <contacto@synappssys.com>";
 const WEBINAR_URL = "https://www.threatdown.com/dl-cybercrime-in-age-of-ai-2026/";
@@ -43,6 +47,9 @@ function buildHtml(env, { email }) {
   const ctaUrl = base
     ? `${base}/api/track?c=${CAMPAIGN_KEY}_cta&email=${encodeURIComponent(email)}&to=${encodeURIComponent(WEBINAR_URL)}`
     : WEBINAR_URL;
+  const reportUrl = base
+    ? `${base}/api/track?c=${CAMPAIGN_KEY}_report&email=${encodeURIComponent(email)}&to=${encodeURIComponent("https://www.threatdown.com/dl-cybercrime-in-age-of-ai-2026/")}`
+    : "https://www.threatdown.com/dl-cybercrime-in-age-of-ai-2026/";
 
   return `<!doctype html>
 <html lang="es">
@@ -198,7 +205,7 @@ function buildHtml(env, { email }) {
             <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
               <tr>
                 <td align="center">
-                  <a href="https://www.threatdown.com/" style="display:inline-block;text-decoration:none;">
+                  <a href="${reportUrl}" style="display:inline-block;text-decoration:none;">
                     <table role="presentation" cellpadding="0" cellspacing="0" style="background:#102044;border:1px solid #1E5C38;border-radius:8px;">
                       <tr valign="middle">
                         <td style="padding:10px 10px 10px 14px;">
@@ -268,21 +275,20 @@ async function sendTest(env) {
     ? `ThreatDown Soluciones <${env.RESEND_FROM}>`
     : FROM_FALLBACK;
 
-  const { data, error } = await resend.emails.send({
-    from,
-    to: TEST_RECIPIENT,
-    reply_to: "salvador.ruiz@synappssys.com",
-    subject: `[TEST] ${SUBJECT}`,
-    html: buildHtml(env, { email: TEST_RECIPIENT }),
-  });
-
-  if (error) {
-    throw new Error(`Fallo el envio de prueba: ${error.message}`);
+  for (const to of TEST_RECIPIENTS) {
+    const { data, error } = await resend.emails.send({
+      from,
+      to,
+      reply_to: "salvador.ruiz@synappssys.com",
+      subject: `[TEST] ${SUBJECT}`,
+      html: buildHtml(env, { email: to }),
+    });
+    if (error) {
+      console.error(`Fallo ${to}: ${error.message}`);
+    } else {
+      console.log(`✅ ${to} — ID: ${data?.id ?? "(sin id)"}`);
+    }
   }
-
-  console.log("Prueba enviada correctamente.");
-  console.log(`Email ID: ${data?.id ?? "(sin id)"}`);
-  console.log(`Destino:  ${TEST_RECIPIENT}`);
 }
 
 function buildPreviewFile(env) {
