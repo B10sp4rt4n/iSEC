@@ -14,12 +14,16 @@ export async function GET(req: NextRequest) {
   const email = (searchParams.get("email") ?? "").slice(0, 180) || null;
   const to = DESTINATIONS[campaign] ?? "/";
 
-  const response = NextResponse.redirect(to, { status: 302 });
-
   if (process.env.DATABASE_URL) {
     const sql = neon(process.env.DATABASE_URL);
-    sql`INSERT INTO link_clicks (campaign_key, email) VALUES (${campaign}, ${email})`.catch(() => {});
+    try {
+      await sql`INSERT INTO link_clicks (campaign_key, email) VALUES (${campaign}, ${email})`;
+    } catch {}
   }
 
-  return response;
+  // Return HTML redirect to avoid Netlify appending query params to the Location header
+  return new Response(
+    `<!doctype html><html><head><meta http-equiv="refresh" content="0;url=${to}"><script>window.location.replace(${JSON.stringify(to)})</script></head></html>`,
+    { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } }
+  );
 }
