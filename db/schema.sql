@@ -81,6 +81,7 @@ CREATE INDEX IF NOT EXISTS idx_demo_prospects_created_at
 CREATE TABLE IF NOT EXISTS link_clicks (
   id           BIGSERIAL PRIMARY KEY,
   campaign_key TEXT NOT NULL,
+  email        TEXT,
   clicked_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

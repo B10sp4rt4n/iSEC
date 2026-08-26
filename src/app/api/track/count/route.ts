@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   const sql = neon(process.env.DATABASE_URL);
 
   if (campaign) {
-    const [row] = await sql`
+    const [summary] = await sql`
       SELECT
         campaign_key,
         COUNT(*)::int AS clicks,
@@ -29,7 +29,16 @@ export async function GET(req: NextRequest) {
       WHERE campaign_key = ${campaign}
       GROUP BY campaign_key
     `;
-    return NextResponse.json(row ?? { campaign_key: campaign, clicks: 0 });
+    const clickers = await sql`
+      SELECT email, clicked_at
+      FROM link_clicks
+      WHERE campaign_key = ${campaign} AND email IS NOT NULL
+      ORDER BY clicked_at ASC
+    `;
+    return NextResponse.json({
+      ...(summary ?? { campaign_key: campaign, clicks: 0 }),
+      clickers,
+    });
   }
 
   const rows = await sql`

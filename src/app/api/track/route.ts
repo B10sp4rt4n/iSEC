@@ -4,6 +4,7 @@ import { neon } from "@neondatabase/serverless";
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const campaign = (searchParams.get("c") ?? "unknown").slice(0, 120);
+  const email = (searchParams.get("email") ?? "").slice(0, 180) || null;
   const to = searchParams.get("to") ?? "/";
 
   // Redirect immediately; track in background
@@ -11,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   if (process.env.DATABASE_URL) {
     const sql = neon(process.env.DATABASE_URL);
-    sql`INSERT INTO link_clicks (campaign_key) VALUES (${campaign})`.catch(() => {});
+    sql`INSERT INTO link_clicks (campaign_key, email) VALUES (${campaign}, ${email})`.catch(() => {});
   }
 
   return response;

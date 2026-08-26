@@ -41,7 +41,7 @@ function buildHtml(env, { email }) {
   const partnerLogoSrc = `${base}/logos/SynAppsSysLogoQ326.png`;
   const illustrationSrc = `${base}/aidr-illustration.png`;
   const ctaUrl = base
-    ? `${base}/api/track?c=${CAMPAIGN_KEY}_cta&to=${encodeURIComponent(WEBINAR_URL)}`
+    ? `${base}/api/track?c=${CAMPAIGN_KEY}_cta&email=${encodeURIComponent(email)}&to=${encodeURIComponent(WEBINAR_URL)}`
     : WEBINAR_URL;
 
   return `<!doctype html>
