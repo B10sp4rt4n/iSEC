@@ -4,8 +4,11 @@ import { neon } from "@neondatabase/serverless";
 // Destinations keyed by campaign. Avoids passing the URL as a query param,
 // which causes Netlify's Next.js plugin to append the original query string.
 const DESTINATIONS: Record<string, string> = {
-  threatdown_cybercrime_webinar_2026_cta:    "https://www.threatdown.com/lp-ai-cybercrime-report-webinar/",
-  threatdown_cybercrime_webinar_2026_report: "https://www.threatdown.com/dl-cybercrime-in-age-of-ai-2026/",
+  threatdown_cybercrime_webinar_2026_cta:     "https://www.threatdown.com/lp-ai-cybercrime-report-webinar/",
+  threatdown_cybercrime_webinar_2026_report:  "https://www.threatdown.com/dl-cybercrime-in-age-of-ai-2026/",
+  threatdown_cybercrime_webinar2_2026_cta:    "https://www.threatdown.com/lp-ai-cybercrime-report-webinar/",
+  threatdown_cybercrime_webinar2_2026_report: "https://www.threatdown.com/dl-cybercrime-in-age-of-ai-2026/",
+  threatdown_cybercrime_webinar2_2026_td:     "https://www.threatdown.com/",
 };
 
 export async function GET(req: NextRequest) {
