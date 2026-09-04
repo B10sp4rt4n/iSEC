@@ -13,7 +13,8 @@ const TEST_RECIPIENTS = [
 const TEST_RECIPIENT = TEST_RECIPIENTS[0];
 const TEST_NAME = "Salvador";
 const FROM_FALLBACK = "ThreatDown Soluciones <contacto@synappssys.com>";
-const WEBINAR_URL = "https://www.threatdown.com/dl-cybercrime-in-age-of-ai-2026/";
+const WEBINAR_URL  = "https://www.threatdown.com/lp-ai-cybercrime-report-webinar/";
+const REPORT_URL   = "https://www.threatdown.com/dl-cybercrime-in-age-of-ai-2026/";
 const CAMPAIGN_KEY = "threatdown_cybercrime_webinar_2026";
 const THREATDOWN_LOGO_FILE = "public/logos/ThreatDown_2.0_Stacked_Reverse.png";
 const PARTNER_LOGO_FILE = "public/logos/SynAppsSysLogoQ326.png";
@@ -50,7 +51,7 @@ function buildHtml(env, { email }) {
     : WEBINAR_URL;
   const reportUrl = base
     ? `${base}/api/track?c=${CAMPAIGN_KEY}_report&email=${encodeURIComponent(email)}`
-    : WEBINAR_URL;
+    : REPORT_URL;
 
   return `<!doctype html>
 <html lang="es">
@@ -281,7 +282,7 @@ async function sendTest(env) {
       from,
       to,
       reply_to: "salvador.ruiz@synappssys.com",
-      subject: `[TEST 4] ${SUBJECT}`,
+      subject: `[TEST] ${SUBJECT}`,
       html: buildHtml(env, { email: to }),
     });
     if (error) {
@@ -482,11 +483,29 @@ async function sendBroadcast(env) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+async function dryRun(env) {
+  const recipients = await buildRecipientList(env);
+  console.log(`\nDry run — destinatarios que recibirán el broadcast: ${recipients.length}`);
+  const batches = Math.ceil(recipients.length / 5);
+  const minSec = Math.round((batches * 2) / 60);
+  const maxSec = Math.round((batches * 2.6) / 60);
+  console.log(`Batches: ${batches} · Tiempo estimado: ${minSec}–${maxSec} min`);
+  console.log(`\nPrimeros 10:`);
+  for (const r of recipients.slice(0, 10)) console.log(`  ${r.correo} — ${r.nombre}`);
+  if (recipients.length > 10) console.log(`  ... y ${recipients.length - 10} más`);
+}
+
 async function main() {
   const env = loadEnvLocal();
   const shouldSend    = process.argv.includes("--send-test");
   const shouldCast    = process.argv.includes("--broadcast");
-  const shouldPreview = process.argv.includes("--preview") || (!shouldSend && !shouldCast);
+  const shouldDry     = process.argv.includes("--dry-run");
+  const shouldPreview = process.argv.includes("--preview") || (!shouldSend && !shouldCast && !shouldDry);
+
+  if (shouldDry) {
+    await dryRun(env);
+    return;
+  }
 
   if (shouldCast) {
     await sendBroadcast(env);
