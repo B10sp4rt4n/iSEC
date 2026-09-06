@@ -1,16 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 
-type Stage = "capture" | "cycles" | "pulse";
+type Stage = "entry" | "capture" | "cycles" | "pulse";
+type EntryMode = "qr" | "facilitador";
 type FormState = {
   nombre: string;
   empresa: string;
   cargo: string;
+  cargoOtro: string;
   correo: string;
-  vertical: string;
+  telefono: string;
+  verticales: string[];
+  verticalOtro: string;
   prioridad: string;
 };
+
+const OTHER_VERTICAL = "Otro sector";
+const OTHER_POSITION = "Otra posición";
 
 const VERTICALS = [
   "Manufactura",
@@ -19,7 +27,20 @@ const VERTICALS = [
   "Salud",
   "Gobierno",
   "Logística y transporte",
-  "Otro",
+  OTHER_VERTICAL,
+];
+
+const CORPORATE_POSITIONS = [
+  "Dirección General / CEO",
+  "Dirección de TI / CIO / CTO",
+  "Dirección de Seguridad / CISO",
+  "Gerencia de TI / Infraestructura",
+  "Redes y Telecomunicaciones",
+  "Operaciones",
+  "Compras / Finanzas",
+  "Comercial / Desarrollo de negocio",
+  "Canal / Integrador",
+  OTHER_POSITION,
 ];
 
 const PRIORITIES = [
@@ -30,7 +51,7 @@ const PRIORITIES = [
 ];
 
 const CYCLES = [
-  { label: "Interacción recibida", caption: "Perfil y respuestas incorporados" },
+  { label: "Interacción recibida", caption: "Perfil, contacto y respuestas incorporados" },
   { label: "Lectura del evento", caption: "Agrupación demostrativa en proceso" },
   { label: "Event Demand Pulse", caption: "Perspectiva parcial preparada" },
 ];
@@ -42,7 +63,7 @@ const BASE_VERTICALS: Record<string, number> = {
   Salud: 2,
   Gobierno: 2,
   "Logística y transporte": 1,
-  Otro: 1,
+  "Otros sectores": 1,
 };
 
 const BASE_PRIORITIES: Record<string, number> = {
@@ -56,8 +77,11 @@ const EMPTY_FORM: FormState = {
   nombre: "",
   empresa: "",
   cargo: "",
+  cargoOtro: "",
   correo: "",
-  vertical: "",
+  telefono: "",
+  verticales: [],
+  verticalOtro: "",
   prioridad: "",
 };
 
@@ -72,13 +96,77 @@ function BrandMark() {
   );
 }
 
-function Capture({ form, setForm, onSubmit }: {
+function EntryGate({ qrUrl, onAssisted }: { qrUrl: string; onAssisted: () => void }) {
+  return (
+    <section className="entry-gate" aria-labelledby="entry-title">
+      <div className="entry-copy">
+        <p className="eyebrow">Inicio de la interacción</p>
+        <h1 id="entry-title">La experiencia comienza desde el teléfono del visitante.</h1>
+        <p className="intro-copy">
+          Escanea el código para abrir la interacción. El registro queda identificado
+          como ingreso por QR y continúa en el dispositivo del participante.
+        </p>
+        <div className="scope-note">
+          <span aria-hidden="true">QR</span>
+          <p>Si el visitante no puede usar un teléfono, el habilitador puede realizar una captura asistida desde su propio dispositivo.</p>
+        </div>
+      </div>
+
+      <div className="qr-card">
+        <div className="qr-frame">
+          {qrUrl ? <QRCodeSVG value={qrUrl} size={224} level="M" marginSize={2} /> : <div className="qr-placeholder" />}
+        </div>
+        <strong>Escanea para participar</strong>
+        <p>Acceso directo al formulario de la experiencia.</p>
+        <button className="assisted-action" type="button" onClick={onAssisted}>
+          Captura asistida por habilitador
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function Capture({ form, setForm, entryMode, onSubmit }: {
   form: FormState;
   setForm: React.Dispatch<React.SetStateAction<FormState>>;
+  entryMode: EntryMode;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
   const setField = (key: keyof FormState, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
+
+  const toggleVertical = (vertical: string) => {
+    setForm((current) => ({
+      ...current,
+      verticales: current.verticales.includes(vertical)
+        ? current.verticales.filter((item) => item !== vertical)
+        : [...current.verticales, vertical],
+      verticalOtro:
+        vertical === OTHER_VERTICAL && current.verticales.includes(vertical)
+          ? ""
+          : current.verticalOtro,
+    }));
+  };
+
+  const setPriority = (priority: string) => {
+    setForm((current) => ({
+      ...current,
+      prioridad: current.prioridad === priority ? "" : priority,
+    }));
+  };
+
+  const requiresPositionDetail = form.cargo === OTHER_POSITION;
+  const requiresVerticalDetail = form.verticales.includes(OTHER_VERTICAL);
+  const canSubmit =
+    form.nombre.trim().length >= 2 &&
+    form.empresa.trim().length >= 2 &&
+    form.correo.trim().length > 0 &&
+    form.telefono.trim().length > 0 &&
+    form.cargo.length > 0 &&
+    (!requiresPositionDetail || form.cargoOtro.trim().length >= 2) &&
+    form.verticales.length > 0 &&
+    (!requiresVerticalDetail || form.verticalOtro.trim().length >= 2) &&
+    form.prioridad.length > 0;
 
   return (
     <section className="capture-grid" aria-labelledby="capture-title">
@@ -98,7 +186,7 @@ function Capture({ form, setForm, onSubmit }: {
       <form className="form-card" onSubmit={onSubmit}>
         <div className="form-header">
           <span>Interacción de muestra</span>
-          <span>≈ 30 segundos</span>
+          <span>{entryMode === "qr" ? "Ingreso por QR" : "Captura asistida"}</span>
         </div>
 
         <div className="identity-grid">
@@ -111,55 +199,77 @@ function Capture({ form, setForm, onSubmit }: {
             <input required value={form.empresa} onChange={(e) => setField("empresa", e.target.value)} placeholder="Organización" />
           </label>
           <label>
-            Cargo
-            <input required value={form.cargo} onChange={(e) => setField("cargo", e.target.value)} placeholder="Director de TI" />
+            Posición corporativa
+            <select required value={form.cargo} onChange={(e) => {
+              setField("cargo", e.target.value);
+              if (e.target.value !== OTHER_POSITION) setField("cargoOtro", "");
+            }}>
+              <option value="" disabled>Selecciona una posición</option>
+              {CORPORATE_POSITIONS.map((position) => <option key={position} value={position}>{position}</option>)}
+            </select>
           </label>
           <label>
             Correo corporativo
-            <input required type="email" value={form.correo} onChange={(e) => setField("correo", e.target.value)} placeholder="nombre@empresa.com" />
+            <input required type="email" autoComplete="email" value={form.correo} onChange={(e) => setField("correo", e.target.value)} placeholder="nombre@empresa.com" />
+          </label>
+          {requiresPositionDetail && (
+            <label className="conditional-field">
+              Precisa tu posición
+              <input required value={form.cargoOtro} onChange={(e) => setField("cargoOtro", e.target.value)} placeholder="Escribe la posición" />
+            </label>
+          )}
+          <label className={requiresPositionDetail ? "" : "wide-field"}>
+            Celular
+            <input required type="tel" inputMode="tel" autoComplete="tel" value={form.telefono} onChange={(e) => setField("telefono", e.target.value)} placeholder="55 1234 5678" />
           </label>
         </div>
 
         <fieldset>
-          <legend><span>1</span> ¿En qué sector opera principalmente tu organización?</legend>
+          <legend><span>1</span> ¿En qué sector o sectores opera tu organización?</legend>
           <div className="choice-grid vertical-grid">
-            {VERTICALS.map((vertical) => (
-              <button
-                key={vertical}
-                type="button"
-                aria-pressed={form.vertical === vertical}
-                className={form.vertical === vertical ? "choice selected" : "choice"}
-                onClick={() => setField("vertical", vertical)}
-              >
-                {vertical}
-              </button>
-            ))}
+            {VERTICALS.map((vertical) => {
+              const checked = form.verticales.includes(vertical);
+              return (
+                <label key={vertical} className={checked ? "check-choice selected" : "check-choice"}>
+                  <input type="checkbox" checked={checked} onChange={() => toggleVertical(vertical)} />
+                  <span className="check-box" aria-hidden="true">{checked ? "✓" : ""}</span>
+                  <span>{vertical}</span>
+                </label>
+              );
+            })}
           </div>
+          {requiresVerticalDetail && (
+            <label className="conditional-field vertical-detail">
+              Precisa el sector
+              <input required value={form.verticalOtro} onChange={(e) => setField("verticalOtro", e.target.value)} placeholder="Escribe el sector" />
+            </label>
+          )}
         </fieldset>
 
         <fieldset>
           <legend><span>2</span> ¿Qué prioridad tiene actualmente la modernización de su infraestructura de red?</legend>
           <div className="choice-grid priority-grid">
-            {PRIORITIES.map((priority) => (
-              <button
-                key={priority.value}
-                type="button"
-                aria-pressed={form.prioridad === priority.value}
-                className={form.prioridad === priority.value ? "priority selected" : "priority"}
-                onClick={() => setField("prioridad", priority.value)}
-              >
-                <span className="priority-dot" style={{ background: priority.tone }} />
-                <strong>{priority.label}</strong>
-                <small>{priority.detail}</small>
-              </button>
-            ))}
+            {PRIORITIES.map((priority) => {
+              const checked = form.prioridad === priority.value;
+              return (
+                <label key={priority.value} className={checked ? "check-choice priority selected" : "check-choice priority"}>
+                  <input type="checkbox" checked={checked} onChange={() => setPriority(priority.value)} />
+                  <span className="check-box" aria-hidden="true">{checked ? "✓" : ""}</span>
+                  <span className="priority-copy">
+                    <strong><span className="priority-dot" style={{ background: priority.tone }} />{priority.label}</strong>
+                    <small>{priority.detail}</small>
+                  </span>
+                </label>
+              );
+            })}
           </div>
         </fieldset>
 
-        <button className="primary-action" type="submit" disabled={!form.vertical || !form.prioridad}>
+        <button className="primary-action" type="submit" disabled={!canSubmit}>
           Incorporar al Event Pulse
           <span aria-hidden="true">→</span>
         </button>
+        {!canSubmit && <p className="required-line">Completa los datos obligatorios y selecciona una respuesta en cada pregunta.</p>}
         <p className="privacy-line">Demostración sin persistencia. Los datos se mantienen únicamente durante esta sesión.</p>
       </form>
     </section>
@@ -207,12 +317,23 @@ function Bar({ label, value, total, accent }: { label: string; value: number; to
   );
 }
 
-function Pulse({ form, onReset }: { form: FormState; onReset: () => void }) {
+function Pulse({ form, entryMode, onReset }: { form: FormState; entryMode: EntryMode; onReset: () => void }) {
   const selectedPriority = PRIORITIES.find((item) => item.value === form.prioridad) ?? PRIORITIES[3];
-  const verticals = useMemo(() => ({ ...BASE_VERTICALS, [form.vertical]: (BASE_VERTICALS[form.vertical] ?? 0) + 1 }), [form.vertical]);
+  const selectedVerticals = useMemo(
+    () => form.verticales.map((vertical) => vertical === OTHER_VERTICAL ? form.verticalOtro.trim() : vertical),
+    [form.verticales, form.verticalOtro],
+  );
+  const verticals = useMemo(() => {
+    const next = { ...BASE_VERTICALS };
+    selectedVerticals.forEach((vertical) => {
+      next[vertical] = (next[vertical] ?? 0) + 1;
+    });
+    return next;
+  }, [selectedVerticals]);
   const priorities = useMemo(() => ({ ...BASE_PRIORITIES, [form.prioridad]: (BASE_PRIORITIES[form.prioridad] ?? 0) + 1 }), [form.prioridad]);
-  const total = Object.values(verticals).reduce((sum, value) => sum + value, 0);
+  const total = 20;
   const immediate = priorities.critical + priorities.high;
+  const position = form.cargo === OTHER_POSITION ? form.cargoOtro : form.cargo;
 
   return (
     <section className="pulse-view" aria-labelledby="pulse-title">
@@ -256,12 +377,13 @@ function Pulse({ form, onReset }: { form: FormState; onReset: () => void }) {
         <article className="signal-card">
           <div className="live-chip"><span /> INTERACCIÓN INCORPORADA</div>
           <h2>{form.empresa}</h2>
-          <p>{form.nombre} · {form.cargo}</p>
+          <p>{form.nombre} · {position}</p>
           <div className="signal-tags">
-            <span>{form.vertical}</span>
+            <span>{selectedVerticals.join(" · ")}</span>
             <span style={{ borderColor: selectedPriority.tone, color: selectedPriority.tone }}>
               {selectedPriority.label}: {selectedPriority.detail}
             </span>
+            <span>{entryMode === "qr" ? "Ingreso por QR" : "Captura asistida"}</span>
           </div>
           <div className="signal-limit">
             La demostración termina aquí. No genera pitch, recomendación de producto ni estrategia comercial.
@@ -273,9 +395,22 @@ function Pulse({ form, onReset }: { form: FormState; onReset: () => void }) {
 }
 
 export default function ExtremeEventPulseDemo() {
-  const [stage, setStage] = useState<Stage>("capture");
+  const [stage, setStage] = useState<Stage>("entry");
+  const [entryMode, setEntryMode] = useState<EntryMode>("qr");
+  const [qrUrl, setQrUrl] = useState("");
   const [activeCycle, setActiveCycle] = useState(0);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedEntry = params.get("entry");
+    const baseUrl = `${window.location.origin}${window.location.pathname}`;
+    setQrUrl(`${baseUrl}?entry=qr`);
+    if (requestedEntry === "qr" || requestedEntry === "facilitador") {
+      setEntryMode(requestedEntry);
+      setStage("capture");
+    }
+  }, []);
 
   useEffect(() => {
     if (stage !== "cycles") return;
@@ -290,7 +425,7 @@ export default function ExtremeEventPulseDemo() {
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!form.vertical || !form.prioridad) return;
+    if (!form.verticales.length || !form.prioridad) return;
     setActiveCycle(0);
     setStage("cycles");
   }
@@ -298,6 +433,12 @@ export default function ExtremeEventPulseDemo() {
   function reset() {
     setForm(EMPTY_FORM);
     setActiveCycle(0);
+    setStage("capture");
+  }
+
+  function startAssistedCapture() {
+    setEntryMode("facilitador");
+    window.history.replaceState(null, "", `${window.location.pathname}?entry=facilitador`);
     setStage("capture");
   }
 
@@ -311,16 +452,17 @@ export default function ExtremeEventPulseDemo() {
           <span className="session-label">MECÁNICA DE DEMOSTRACIÓN</span>
         </header>
 
-        {stage === "capture" && <Capture form={form} setForm={setForm} onSubmit={submit} />}
+        {stage === "entry" && <EntryGate qrUrl={qrUrl} onAssisted={startAssistedCapture} />}
+        {stage === "capture" && <Capture form={form} setForm={setForm} entryMode={entryMode} onSubmit={submit} />}
         {stage === "cycles" && <Cycles activeCycle={activeCycle} />}
-        {stage === "pulse" && <Pulse form={form} onReset={reset} />}
+        {stage === "pulse" && <Pulse form={form} entryMode={entryMode} onReset={reset} />}
       </div>
 
       <style jsx global>{`
         :root { color-scheme: dark; }
         * { box-sizing: border-box; }
         body { margin: 0; }
-        button, input { font: inherit; }
+        button, input, select { font: inherit; }
         button { -webkit-tap-highlight-color: transparent; }
         .demo-shell {
           min-height: 100vh;
@@ -341,6 +483,16 @@ export default function ExtremeEventPulseDemo() {
         .leadframe-word { color: #a991ff; font-weight: 800; font-size: .8rem; }
         .demo-pill { padding: 4px 7px; background: rgba(130,88,255,.15); border: 1px solid rgba(169,145,255,.35); color: #c7b8ff; border-radius: 999px; font-size: .7rem; font-weight: 800; }
         .session-label { color: #7d879d; font-size: .75rem; letter-spacing: .16em; }
+        .entry-gate { min-height: calc(100vh - 150px); display: grid; grid-template-columns: 1.15fr .85fr; gap: 72px; align-items: center; padding: 46px 0; }
+        .entry-copy h1 { font-size: clamp(2.7rem,5.5vw,5.6rem); }
+        .qr-card { justify-self: end; width: min(100%,390px); padding: 30px; text-align: center; border-radius: 24px; background: rgba(16,20,34,.9); border: 1px solid rgba(169,145,255,.28); box-shadow: 0 28px 90px rgba(0,0,0,.38); }
+        .qr-frame { width: fit-content; min-width: 248px; min-height: 248px; display: grid; place-items: center; margin: 0 auto 22px; padding: 12px; border-radius: 18px; background: #fff; }
+        .qr-frame svg { display: block; max-width: 100%; height: auto; }
+        .qr-placeholder { width: 224px; height: 224px; border-radius: 10px; background: #edf0f8; }
+        .qr-card > strong { display: block; font-size: 1.15rem; }
+        .qr-card > p { color: #7d879d; line-height: 1.5; margin: 8px 0 20px; font-size: .88rem; }
+        .assisted-action { width: 100%; min-height: 48px; border-radius: 11px; border: 1px solid rgba(255,255,255,.15); background: transparent; color: #c2cada; cursor: pointer; font-weight: 750; }
+        .assisted-action:hover { border-color: #9174ef; color: #f3f0ff; }
         .capture-grid { display: grid; grid-template-columns: .82fr 1.18fr; gap: 64px; align-items: start; padding-top: 64px; }
         .intro-panel { position: sticky; top: 28px; padding-top: 38px; }
         .eyebrow { margin: 0 0 14px; color: #a991ff; text-transform: uppercase; letter-spacing: .14em; font-size: .75rem; font-weight: 800; }
@@ -355,25 +507,33 @@ export default function ExtremeEventPulseDemo() {
         .form-header, .card-heading { display: flex; justify-content: space-between; gap: 16px; align-items: center; color: #dce1ef; font-size: .8rem; text-transform: uppercase; letter-spacing: .09em; font-weight: 800; padding-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,.08); }
         .form-header span:last-child, .card-heading small { color: #69738a; font-weight: 500; }
         .identity-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 22px 0 28px; }
-        label { display: grid; gap: 7px; color: #9aa4ba; font-size: .85rem; font-weight: 700; }
-        input { width: 100%; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; background: #0a0d17; color: #f4f6ff; padding: 12px 13px; min-height: 46px; outline: none; }
-        input:focus { border-color: #8f70f8; box-shadow: 0 0 0 3px rgba(143,112,248,.14); }
+        .identity-grid label, .conditional-field { display: grid; gap: 7px; color: #9aa4ba; font-size: .85rem; font-weight: 700; }
+        .wide-field { grid-column: 1 / -1; }
+        input, select { width: 100%; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; background: #0a0d17; color: #f4f6ff; padding: 12px 13px; min-height: 46px; outline: none; }
+        select { color-scheme: dark; cursor: pointer; }
+        input:focus, select:focus { border-color: #8f70f8; box-shadow: 0 0 0 3px rgba(143,112,248,.14); }
         fieldset { border: 0; padding: 0; margin: 0 0 28px; }
         legend { color: #eef1fa; font-size: 1rem; line-height: 1.45; font-weight: 750; margin-bottom: 14px; }
         legend span { display: inline-grid; place-items: center; width: 25px; height: 25px; margin-right: 8px; border-radius: 50%; background: rgba(143,112,248,.18); color: #bca9ff; font-size: .75rem; }
         .choice-grid { display: grid; gap: 9px; }
         .vertical-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
-        .choice, .priority { border: 1px solid rgba(255,255,255,.1); background: #0b0f1a; color: #aab2c3; border-radius: 10px; min-height: 46px; padding: 11px 13px; text-align: left; cursor: pointer; transition: .18s ease; }
-        .choice:hover, .priority:hover { border-color: rgba(169,145,255,.55); color: #f1efff; }
-        .choice.selected, .priority.selected { border-color: #9174ef; background: rgba(112,75,222,.18); color: #f4f0ff; box-shadow: inset 0 0 0 1px rgba(169,145,255,.1); }
+        .check-choice { position: relative; display: flex; align-items: center; gap: 10px; border: 1px solid rgba(255,255,255,.1); background: #0b0f1a; color: #aab2c3; border-radius: 10px; min-height: 48px; padding: 11px 13px; cursor: pointer; transition: .18s ease; font-size: .85rem; font-weight: 700; }
+        .check-choice:hover { border-color: rgba(169,145,255,.55); color: #f1efff; }
+        .check-choice.selected { border-color: #9174ef; background: rgba(112,75,222,.18); color: #f4f0ff; box-shadow: inset 0 0 0 1px rgba(169,145,255,.1); }
+        .check-choice > input { position: absolute; width: 1px; height: 1px; min-height: 1px; padding: 0; opacity: 0; pointer-events: none; }
+        .check-choice:focus-within { border-color: #a991ff; box-shadow: 0 0 0 3px rgba(143,112,248,.14); }
+        .check-box { flex: 0 0 19px; width: 19px; height: 19px; display: grid; place-items: center; border-radius: 5px; border: 1px solid rgba(255,255,255,.25); color: white; background: rgba(255,255,255,.03); font-size: .72rem; }
+        .selected .check-box { background: #8060e8; border-color: #a991ff; }
+        .vertical-detail { margin-top: 12px; }
         .priority-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
-        .priority { display: grid; grid-template-columns: 9px 1fr; column-gap: 10px; align-items: center; }
-        .priority-dot { grid-row: 1 / 3; width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 12px currentColor; }
+        .priority-copy { display: grid; gap: 3px; }
+        .priority-dot { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; box-shadow: 0 0 12px currentColor; }
         .priority strong { font-size: .9rem; }
-        .priority small { color: #6f7a91; font-size: .76rem; margin-top: 2px; }
+        .priority small { color: #6f7a91; font-size: .76rem; }
         .primary-action, .secondary-action { border: 0; border-radius: 11px; cursor: pointer; font-weight: 800; }
         .primary-action { width: 100%; min-height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; background: linear-gradient(110deg,#7d56ec,#566df4); color: white; }
         .primary-action:disabled { opacity: .38; cursor: not-allowed; }
+        .required-line { text-align: center; color: #8892a8; font-size: .76rem; line-height: 1.45; margin: 11px 0 0; }
         .privacy-line { text-align: center; color: #59637a; font-size: .75rem; margin: 13px 0 0; }
         .cycles-panel { min-height: calc(100vh - 150px); display: grid; grid-template-columns: .85fr 1.15fr; gap: 72px; align-items: center; }
         .cycle-orbit { width: min(420px,80vw); aspect-ratio: 1; position: relative; display: grid; place-items: center; margin: auto; }
@@ -423,7 +583,9 @@ export default function ExtremeEventPulseDemo() {
         .signal-tags span { border: 1px solid rgba(255,255,255,.15); border-radius: 999px; padding: 7px 10px; font-size: .78rem; color: #c8cfde; }
         .signal-limit { border-top: 1px solid rgba(255,255,255,.1); padding-top: 16px; color: #767f94; font-size: .8rem; line-height: 1.55; }
         @media (max-width: 820px) {
-          .capture-grid, .cycles-panel { grid-template-columns: 1fr; gap: 36px; padding-top: 32px; }
+          .entry-gate, .capture-grid, .cycles-panel { grid-template-columns: 1fr; gap: 36px; padding-top: 32px; }
+          .entry-gate { min-height: auto; }
+          .qr-card { justify-self: center; }
           .intro-panel { position: static; padding-top: 0; }
           .cycles-panel { padding: 42px 0; }
           .cycle-orbit { width: min(290px,75vw); }
@@ -437,6 +599,9 @@ export default function ExtremeEventPulseDemo() {
           .session-label, .brand-divider { display: none; }
           .form-card { padding: 20px 16px; border-radius: 15px; }
           .identity-grid, .vertical-grid, .priority-grid, .metric-grid { grid-template-columns: 1fr; }
+          .wide-field { grid-column: auto; }
+          .qr-card { padding: 20px 16px; }
+          .qr-frame { min-width: 232px; min-height: 232px; padding: 4px; }
           .metric-grid { gap: 8px; }
           .pulse-view { padding-top: 34px; }
           .priority-bars { grid-template-columns: 1fr; }
