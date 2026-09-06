@@ -26,6 +26,16 @@ type ViewerData = {
   serverNow: string;
 };
 
+type ChartMode = "composition" | "cumulative" | "demand";
+
+const EVENT_MOMENTS = [
+  { label: "Apertura", shortLabel: "Entrada", demand: 3 },
+  { label: "Flujo inicial", shortLabel: "Flujo", demand: 20 },
+  { label: "Presentación Extreme", shortLabel: "Extreme", demand: 60 },
+  { label: "Una hora después", shortLabel: "+1 hora", demand: 30 },
+  { label: "Cierre", shortLabel: "Cierre", demand: 2 },
+];
+
 const PRIORITIES: Record<string, { label: string; color: string }> = {
   critical: { label: "Crítica", color: "#ff5a72" },
   high: { label: "Alta", color: "#ffb547" },
@@ -43,6 +53,7 @@ export default function ExtremeEventViewer() {
   const [data, setData] = useState<ViewerData | null>(null);
   const [now, setNow] = useState(Date.now());
   const [error, setError] = useState("");
+  const [chartMode, setChartMode] = useState<ChartMode>("demand");
 
   useEffect(() => {
     let active = true;
@@ -69,29 +80,29 @@ export default function ExtremeEventViewer() {
     };
   }, []);
 
-  const timeline = useMemo(() => {
-    if (!data) return [];
-    const interval = data.simulationIntervalMinutes * 60 * 1000;
-    const currentBucket = Math.floor(now / interval);
-    let cumulative = 0;
-    return Array.from({ length: 5 }, (_, index) => {
-      const bucket = currentBucket - 4 + index;
-      const start = bucket * interval;
-      const end = start + interval;
-      const entries = data.records.filter((record) => {
-        const createdAt = Date.parse(record.createdAt);
-        return createdAt >= start && createdAt < end;
-      }).length;
-      cumulative += entries;
-      return {
-        label: new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit" }).format(start),
-        entries,
-        cumulative,
-      };
+  const eventCumulative = useMemo(() => {
+    let total = 0;
+    return EVENT_MOMENTS.map((moment) => ({ ...moment, cumulative: (total += moment.demand) }));
+  }, []);
+  const priorityComposition = useMemo(() => {
+    const counts: Record<string, number> = { critical: 0, high: 0, medium: 0, explore: 0 };
+    (data?.records ?? []).forEach((record) => {
+      counts[record.prioridad] = (counts[record.prioridad] ?? 0) + 1;
     });
-  }, [data, now]);
-
-  const maxCumulative = Math.max(1, ...timeline.map((point) => point.cumulative));
+    const total = Math.max(1, Object.values(counts).reduce((sum, value) => sum + value, 0));
+    let cursor = 0;
+    const stops = Object.entries(PRIORITIES).map(([key, priority]) => {
+      const start = cursor;
+      cursor += (counts[key] / total) * 360;
+      return `${priority.color} ${start}deg ${cursor}deg`;
+    });
+    const recordTotal = data?.records.length ?? 0;
+    return {
+      counts,
+      total: recordTotal,
+      gradient: recordTotal ? `conic-gradient(${stops.join(",")})` : "conic-gradient(#24293a 0deg 360deg)",
+    };
+  }, [data]);
   const raffleRemaining = data ? Date.parse(data.raffleEndsAt) - now : 0;
   const simulationInterval = (data?.simulationIntervalMinutes ?? 3) * 60 * 1000;
   const nextSimulation = (Math.floor(now / simulationInterval) + 1) * simulationInterval;
@@ -154,22 +165,61 @@ export default function ExtremeEventViewer() {
         <section className="viewer-grid">
           <article className="chart-card">
             <div className="card-title">
-              <div><span>Acumulativo activo</span><small>últimos 15 minutos</small></div>
-              <b>{data?.activeCount ?? 0}</b>
+              <div>
+                <span>{chartMode === "composition" ? "Composición de prioridad" : chartMode === "cumulative" ? "Registros acumulados" : "Demanda en el tiempo"}</span>
+                <small>{chartMode === "composition" ? "respuestas activas" : "escenario simulado del evento"}</small>
+              </div>
+              <div className="chart-tabs" role="tablist" aria-label="Modo de gráfica">
+                <button type="button" role="tab" aria-selected={chartMode === "composition"} onClick={() => setChartMode("composition")}>Composición</button>
+                <button type="button" role="tab" aria-selected={chartMode === "cumulative"} onClick={() => setChartMode("cumulative")}>Acumulado</button>
+                <button type="button" role="tab" aria-selected={chartMode === "demand"} onClick={() => setChartMode("demand")}>Demanda</button>
+              </div>
             </div>
-            <div className="chart" role="img" aria-label="Gráfica acumulativa de registros activos en intervalos de tres minutos">
-              {timeline.map((point) => (
-                <div className="chart-column" key={point.label} aria-label={`${point.label}: ${point.cumulative} registros acumulados`}>
-                  <span className="chart-value">{point.cumulative}</span>
-                  <div className="bar-area">
-                    <div className="chart-bar" style={{ height: `${Math.max(8, (point.cumulative / maxCumulative) * 100)}%` }} />
-                  </div>
-                  <small>{point.label}</small>
-                  <em>+{point.entries}</em>
+
+            {chartMode === "composition" && (
+              <div className="donut-view" role="tabpanel">
+                <div className="donut" role="img" aria-label="Distribución de prioridad declarada" style={{ background: priorityComposition.gradient }}>
+                  <div><strong>{priorityComposition.total}</strong><span>registros</span></div>
                 </div>
-              ))}
+                <div className="donut-legend">
+                  {Object.entries(PRIORITIES).map(([key, priority]) => (
+                    <div key={key}><i style={{ background: priority.color }} /><span>{priority.label}</span><strong>{priorityComposition.counts[key]}</strong></div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {chartMode === "cumulative" && (
+              <div className="chart event-bars" role="tabpanel" aria-label="Gráfica de registros acumulados por momento del evento">
+                {eventCumulative.map((point) => (
+                  <div className="chart-column" key={point.label} aria-label={`${point.label}: ${point.cumulative} registros acumulados`}>
+                    <span className="chart-value">{point.cumulative}</span>
+                    <div className="bar-area"><div className="chart-bar" style={{ height: `${Math.max(8, (point.cumulative / 115) * 100)}%` }} /></div>
+                    <small>{point.shortLabel}</small>
+                    <em>+{point.demand}</em>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {chartMode === "demand" && (
+              <div className="line-view" role="tabpanel">
+                <svg viewBox="0 0 600 250" role="img" aria-label="Línea de intensidad de demanda: 3, 20, 60, 30 y 2 registros">
+                  {[40, 93, 147, 200].map((y) => <line key={y} x1="42" y1={y} x2="558" y2={y} className="grid-line" />)}
+                  <polyline points="42,192 171,147 300,40 429,120 558,195" className="demand-area" />
+                  <polyline points="42,192 171,147 300,40 429,120 558,195" className="demand-line" />
+                  {EVENT_MOMENTS.map((point, index) => {
+                    const coordinates = [[42,192],[171,147],[300,40],[429,120],[558,195]][index];
+                    return <g key={point.label}><circle cx={coordinates[0]} cy={coordinates[1]} r="7" /><text x={coordinates[0]} y={coordinates[1] - 15}>{point.demand}</text></g>;
+                  })}
+                </svg>
+                <div className="line-labels">{EVENT_MOMENTS.map((point) => <span key={point.label}>{point.shortLabel}</span>)}</div>
+              </div>
+            )}
+
+            <div className="chart-note">
+              {chartMode === "composition" ? "La dona usa prioridad porque cada registro sólo puede declarar una; así el total siempre conserva una lectura limpia." : chartMode === "cumulative" ? "Las barras suman las nuevas entradas: 3, 23, 83, 113 y 115 registros." : "La línea representa intensidad por momento, no acumulación: el pico ocurre durante la presentación de Extreme."}
             </div>
-            <div className="chart-note">La ventana se renueva continuamente. Los registros reales dejan de estar activos después de 15 minutos.</div>
           </article>
 
           <article className="feed-card">
@@ -243,7 +293,9 @@ export default function ExtremeEventViewer() {
         .card-title span,.card-title small { display:block; }
         .card-title span { color:#e7eaf3; font-size:.78rem; text-transform:uppercase; letter-spacing:.08em; font-weight:800; }
         .card-title small { color:#667187; margin-top:4px; font-size:.72rem; }
-        .card-title > b { color:#c6b7ff; font-size:1.7rem; }
+        .chart-tabs { display:flex; gap:5px; padding:4px; border-radius:10px; background:#090c15; border:1px solid rgba(255,255,255,.08); }
+        .chart-tabs button { border:0; border-radius:7px; padding:7px 9px; background:transparent; color:#707b92; font:inherit; font-size:.68rem; cursor:pointer; }
+        .chart-tabs button[aria-selected="true"] { background:#30245c; color:#e8e1ff; }
         .chart { height:300px; display:grid; grid-template-columns:repeat(5,1fr); align-items:end; gap:12px; padding:30px 8px 0; border-bottom:1px solid rgba(255,255,255,.1); }
         .chart-column { height:100%; min-width:0; display:grid; grid-template-rows:20px 1fr 24px 18px; text-align:center; align-items:end; }
         .chart-value { color:#dcd6f7; font-size:.78rem; font-weight:800; }
@@ -251,6 +303,25 @@ export default function ExtremeEventViewer() {
         .chart-bar { width:min(62px,80%); min-height:8px; border-radius:8px 8px 2px 2px; background:linear-gradient(180deg,#a991ff,#5d47bb); box-shadow:0 0 30px rgba(135,102,239,.16); transition:height .5s ease; }
         .chart-column small { color:#727d92; font-size:.7rem; align-self:center; }
         .chart-column em { color:#43d8a6; font-style:normal; font-size:.68rem; align-self:start; }
+        .donut-view { min-height:300px; display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:34px; padding:28px 24px 12px; }
+        .donut { width:min(220px,100%); aspect-ratio:1; margin:auto; border-radius:50%; display:grid; place-items:center; position:relative; box-shadow:0 0 42px rgba(118,86,218,.14); }
+        .donut::after { content:""; position:absolute; inset:22%; border-radius:50%; background:#101422; border:1px solid rgba(255,255,255,.08); }
+        .donut > div { position:relative; z-index:1; text-align:center; }
+        .donut strong,.donut span { display:block; }
+        .donut strong { font-size:2rem; }
+        .donut span { color:#707b92; font-size:.7rem; margin-top:3px; }
+        .donut-legend { display:grid; gap:13px; }
+        .donut-legend > div { display:grid; grid-template-columns:9px 1fr auto; align-items:center; gap:9px; color:#9aa4b8; font-size:.76rem; }
+        .donut-legend i { width:8px; height:8px; border-radius:50%; }
+        .donut-legend strong { color:#eef1fa; }
+        .line-view { min-height:300px; padding:20px 4px 0; }
+        .line-view svg { display:block; width:100%; height:255px; overflow:visible; }
+        .grid-line { stroke:rgba(255,255,255,.07); stroke-width:1; }
+        .demand-area { fill:none; stroke:rgba(126,91,235,.18); stroke-width:22; stroke-linecap:round; stroke-linejoin:round; }
+        .demand-line { fill:none; stroke:#a991ff; stroke-width:4; stroke-linecap:round; stroke-linejoin:round; }
+        .line-view circle { fill:#0d111d; stroke:#bca9ff; stroke-width:4; }
+        .line-view text { fill:#f2efff; font-size:14px; font-weight:800; text-anchor:middle; }
+        .line-labels { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; color:#727d92; font-size:.68rem; text-align:center; }
         .chart-note { color:#606b81; font-size:.74rem; line-height:1.5; padding-top:14px; }
         .feed-pulse { color:#6c7790; font-size:.7rem; display:flex; align-items:center; gap:6px; }
         .feed-pulse i { width:6px; height:6px; border-radius:50%; background:#43d8a6; }
@@ -268,7 +339,7 @@ export default function ExtremeEventViewer() {
         .feed-meta small { margin-top:4px; color:#59647a; font-size:.65rem; font-variant-numeric:tabular-nums; }
         footer { color:#525c70; text-align:center; font-size:.7rem; padding-top:18px; }
         @media (max-width:980px) { .viewer-metrics { grid-template-columns:repeat(2,1fr); } .viewer-grid { grid-template-columns:1fr; } }
-        @media (max-width:620px) { .viewer-inner { width:min(100% - 22px,1380px); } .viewer-topbar { min-height:68px; } .live-state { font-size:.62rem; } .viewer-heading { display:grid; padding-top:26px; } .viewer-heading a { justify-self:start; } .viewer-metrics { grid-template-columns:1fr 1fr; } .viewer-metrics article { padding:14px; } .viewer-metrics strong { font-size:1.65rem; } .chart-card,.feed-card { padding:16px; } .chart { gap:6px; padding-left:0; padding-right:0; } .feed-row { grid-template-columns:34px 1fr; padding:8px 0; } .feed-meta { grid-column:2; display:flex; justify-content:space-between; text-align:left; } }
+        @media (max-width:620px) { .viewer-inner { width:min(100% - 22px,1380px); } .viewer-topbar { min-height:68px; } .live-state { font-size:.62rem; } .viewer-heading { display:grid; padding-top:26px; } .viewer-heading a { justify-self:start; } .viewer-metrics { grid-template-columns:1fr 1fr; } .viewer-metrics article { padding:14px; } .viewer-metrics strong { font-size:1.65rem; } .chart-card,.feed-card { padding:16px; } .card-title { align-items:flex-start; flex-direction:column; } .chart-tabs { width:100%; } .chart-tabs button { flex:1; } .chart { gap:6px; padding-left:0; padding-right:0; } .donut-view { grid-template-columns:1fr; gap:18px; } .donut { width:180px; } .feed-row { grid-template-columns:34px 1fr; padding:8px 0; } .feed-meta { grid-column:2; display:flex; justify-content:space-between; text-align:left; } }
         @media (prefers-reduced-motion:reduce) { * { transition:none!important; } }
       `}</style>
     </main>
