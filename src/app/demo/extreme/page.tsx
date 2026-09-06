@@ -5,6 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 
 type Stage = "entry" | "capture" | "cycles" | "pulse";
 type EntryMode = "qr" | "facilitador";
+type DeliveryState = "idle" | "sending" | "error";
 type FormState = {
   nombre: string;
   empresa: string;
@@ -126,10 +127,12 @@ function EntryGate({ qrUrl, onAssisted }: { qrUrl: string; onAssisted: () => voi
   );
 }
 
-function Capture({ form, setForm, entryMode, onSubmit }: {
+function Capture({ form, setForm, entryMode, deliveryState, deliveryError, onSubmit }: {
   form: FormState;
   setForm: React.Dispatch<React.SetStateAction<FormState>>;
   entryMode: EntryMode;
+  deliveryState: DeliveryState;
+  deliveryError: string;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
   const setField = (key: keyof FormState, value: string) =>
@@ -161,7 +164,7 @@ function Capture({ form, setForm, entryMode, onSubmit }: {
     form.nombre.trim().length >= 2 &&
     form.empresa.trim().length >= 2 &&
     form.correo.trim().length > 0 &&
-    form.telefono.trim().length > 0 &&
+    form.telefono.trim().length >= 7 &&
     form.cargo.length > 0 &&
     (!requiresPositionDetail || form.cargoOtro.trim().length >= 2) &&
     form.verticales.length > 0 &&
@@ -265,10 +268,11 @@ function Capture({ form, setForm, entryMode, onSubmit }: {
           </div>
         </fieldset>
 
-        <button className="primary-action" type="submit" disabled={!canSubmit}>
-          Incorporar al Event Pulse
-          <span aria-hidden="true">→</span>
+        <button className="primary-action" type="submit" disabled={!canSubmit || deliveryState === "sending"}>
+          {deliveryState === "sending" ? "Enviando confirmación…" : "Incorporar al Event Pulse"}
+          <span aria-hidden="true">{deliveryState === "sending" ? "" : "→"}</span>
         </button>
+        {deliveryState === "error" && <p className="delivery-error" role="alert">{deliveryError}</p>}
         {!canSubmit && <p className="required-line">Completa los datos obligatorios y selecciona una respuesta en cada pregunta.</p>}
         <p className="privacy-line">Demostración sin persistencia. Los datos se mantienen únicamente durante esta sesión.</p>
       </form>
@@ -378,6 +382,7 @@ function Pulse({ form, entryMode, onReset }: { form: FormState; entryMode: Entry
           <div className="live-chip"><span /> INTERACCIÓN INCORPORADA</div>
           <h2>{form.empresa}</h2>
           <p>{form.nombre} · {position}</p>
+          <p className="mail-confirmation">Correo de LeadFrame enviado a {form.correo}</p>
           <div className="signal-tags">
             <span>{selectedVerticals.join(" · ")}</span>
             <span style={{ borderColor: selectedPriority.tone, color: selectedPriority.tone }}>
@@ -400,6 +405,8 @@ export default function ExtremeEventPulseDemo() {
   const [qrUrl, setQrUrl] = useState("");
   const [activeCycle, setActiveCycle] = useState(0);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [deliveryState, setDeliveryState] = useState<DeliveryState>("idle");
+  const [deliveryError, setDeliveryError] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -423,15 +430,48 @@ export default function ExtremeEventPulseDemo() {
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [stage]);
 
-  function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!form.verticales.length || !form.prioridad) return;
-    setActiveCycle(0);
-    setStage("cycles");
+    const position = form.cargo === OTHER_POSITION ? form.cargoOtro.trim() : form.cargo;
+    const verticals = form.verticales.map((vertical) => vertical === OTHER_VERTICAL ? form.verticalOtro.trim() : vertical);
+    setDeliveryState("sending");
+    setDeliveryError("");
+
+    try {
+      const response = await fetch("/api/demo/extreme", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: form.nombre,
+          empresa: form.empresa,
+          cargo: position,
+          correo: form.correo,
+          telefono: form.telefono,
+          verticales: verticals,
+          prioridad: form.prioridad,
+          entryMode,
+        }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(result?.error ?? "No pudimos enviar el correo. Intenta nuevamente.");
+      }
+
+      setDeliveryState("idle");
+      setActiveCycle(0);
+      setStage("cycles");
+    } catch (error) {
+      setDeliveryState("error");
+      setDeliveryError(error instanceof Error ? error.message : "No pudimos enviar el correo. Intenta nuevamente.");
+    }
   }
 
   function reset() {
     setForm(EMPTY_FORM);
+    setDeliveryState("idle");
+    setDeliveryError("");
     setActiveCycle(0);
     setStage("capture");
   }
@@ -453,7 +493,7 @@ export default function ExtremeEventPulseDemo() {
         </header>
 
         {stage === "entry" && <EntryGate qrUrl={qrUrl} onAssisted={startAssistedCapture} />}
-        {stage === "capture" && <Capture form={form} setForm={setForm} entryMode={entryMode} onSubmit={submit} />}
+        {stage === "capture" && <Capture form={form} setForm={setForm} entryMode={entryMode} deliveryState={deliveryState} deliveryError={deliveryError} onSubmit={submit} />}
         {stage === "cycles" && <Cycles activeCycle={activeCycle} />}
         {stage === "pulse" && <Pulse form={form} entryMode={entryMode} onReset={reset} />}
       </div>
@@ -534,6 +574,7 @@ export default function ExtremeEventPulseDemo() {
         .primary-action { width: 100%; min-height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; background: linear-gradient(110deg,#7d56ec,#566df4); color: white; }
         .primary-action:disabled { opacity: .38; cursor: not-allowed; }
         .required-line { text-align: center; color: #8892a8; font-size: .76rem; line-height: 1.45; margin: 11px 0 0; }
+        .delivery-error { text-align: center; color: #ff8293; font-size: .8rem; line-height: 1.45; margin: 11px 0 0; }
         .privacy-line { text-align: center; color: #59637a; font-size: .75rem; margin: 13px 0 0; }
         .cycles-panel { min-height: calc(100vh - 150px); display: grid; grid-template-columns: .85fr 1.15fr; gap: 72px; align-items: center; }
         .cycle-orbit { width: min(420px,80vw); aspect-ratio: 1; position: relative; display: grid; place-items: center; margin: auto; }
@@ -579,6 +620,7 @@ export default function ExtremeEventPulseDemo() {
         .live-chip span { width: 7px; height: 7px; border-radius: 50%; background: #43d8a6; box-shadow: 0 0 12px #43d8a6; }
         .signal-card h2 { font-size: 1.65rem; margin: 22px 0 6px; }
         .signal-card > p { color: #8590a7; margin: 0; }
+        .signal-card .mail-confirmation { margin-top: 12px; color: #73e2be; font-size: .78rem; line-height: 1.45; }
         .signal-tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0; }
         .signal-tags span { border: 1px solid rgba(255,255,255,.15); border-radius: 999px; padding: 7px 10px; font-size: .78rem; color: #c8cfde; }
         .signal-limit { border-top: 1px solid rgba(255,255,255,.1); padding-top: 16px; color: #767f94; font-size: .8rem; line-height: 1.55; }
