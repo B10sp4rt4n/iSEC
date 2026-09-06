@@ -122,6 +122,9 @@ function EntryGate({ qrUrl, onAssisted }: { qrUrl: string; onAssisted: () => voi
         <button className="assisted-action" type="button" onClick={onAssisted}>
           Captura asistida por habilitador
         </button>
+        <a className="viewer-access" href="/demo/extreme/viewer" target="_blank" rel="noreferrer">
+          Abrir viewer del evento
+        </a>
       </div>
     </section>
   );
@@ -533,6 +536,8 @@ export default function ExtremeEventPulseDemo() {
         .qr-card > p { color: #7d879d; line-height: 1.5; margin: 8px 0 20px; font-size: .88rem; }
         .assisted-action { width: 100%; min-height: 48px; border-radius: 11px; border: 1px solid rgba(255,255,255,.15); background: transparent; color: #c2cada; cursor: pointer; font-weight: 750; }
         .assisted-action:hover { border-color: #9174ef; color: #f3f0ff; }
+        .viewer-access { display:inline-block; margin-top:16px; color:#8570d7; font-size:.78rem; text-decoration:none; }
+        .viewer-access:hover { color:#bca9ff; }
         .capture-grid { display: grid; grid-template-columns: .82fr 1.18fr; gap: 64px; align-items: start; padding-top: 64px; }
         .intro-panel { position: sticky; top: 28px; padding-top: 38px; }
         .eyebrow { margin: 0 0 14px; color: #a991ff; text-transform: uppercase; letter-spacing: .14em; font-size: .75rem; font-weight: 800; }
