@@ -285,7 +285,7 @@ export default function ExtremeEventPulseDemo() {
       window.setTimeout(() => setActiveCycle(3), 2300),
       window.setTimeout(() => setStage("pulse"), 2850),
     ];
-    return () => timers.forEach(window.clearTimeout);
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [stage]);
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
