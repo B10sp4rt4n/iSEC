@@ -10,14 +10,8 @@
 :root{
   --bg:#F5F6FB; --panel:#FFFFFF; --ink:#15173F; --muted:#575B84; --line:#D3D6EE;
   --indigo:#4B47C8; --mint:#0E8F6E; --coral:#E4512E; --ring:#B9BCE4;
-  --display:'Oswald','Arial Narrow',Impact,sans-serif; --body:'Raleway','Segoe UI',Arial,sans-serif;
+  color-scheme:light; --display:'Oswald','Arial Narrow',Impact,sans-serif; --body:'Raleway','Segoe UI',Arial,sans-serif;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0F1130; --panel:#181B45; --ink:#ECEEFF; --muted:#A5AAD8; --line:#2D316C;
-  --indigo:#9A96FF; --mint:#3DD6AA; --coral:#FF8A6B; --ring:#3A3F85; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#0F1130; --panel:#181B45; --ink:#ECEEFF; --muted:#A5AAD8; --line:#2D316C;
-  --indigo:#9A96FF; --mint:#3DD6AA; --coral:#FF8A6B; --ring:#3A3F85; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;margin:0;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 56px}
@@ -49,8 +43,6 @@ svg{display:block;width:100%;height:auto}
 .tab:hover{border-color:var(--indigo)}
 .tab:focus-visible{outline:3px solid var(--indigo);outline-offset:2px}
 .tab[aria-pressed="true"]{background:var(--indigo);border-color:var(--indigo);color:#fff}
-:root[data-theme="dark"] .tab[aria-pressed="true"]{color:#0F1130}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tab[aria-pressed="true"]{color:#0F1130}}
 .simlabel{font-size:14px;color:var(--muted);margin:0 0 10px}
 .cap{display:grid;gap:6px;border-left:4px solid var(--line);padding:2px 0 2px 16px;min-height:96px}
 .cap.alert{border-color:var(--coral)} .cap.ok{border-color:var(--mint)} .cap.info{border-color:var(--indigo)}
@@ -62,6 +54,9 @@ svg{display:block;width:100%;height:auto}
 .fronts li{min-width:0}
 .fronts b{display:block;font:600 18px var(--display);margin-bottom:2px}
 .fronts span{color:var(--muted);font-size:15px}
+.cta{display:inline-block;width:max-content;background:var(--indigo);color:#fff;font:700 16px var(--body);text-decoration:none;padding:13px 26px;border-radius:6px;min-height:44px}
+.cta:hover{filter:brightness(1.1)}
+.cta:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 .note{font-size:14px;color:var(--muted);margin:0}
 @media (prefers-reduced-motion:reduce){.ring.r1{animation:none}}
 </style>
@@ -102,9 +97,10 @@ svg{display:block;width:100%;height:auto}
     <li><b>Equipo</b><span>EDR y MDR 24/7 con ThreatDown en laptops y servidores con Windows, macOS y Linux.</span></li>
     <li><b>Identidad</b><span>ITDR sobre Active Directory, Entra ID y Okta. Disponible según paquete.</span></li>
     <li><b>Correo</b><span>Email Security para Microsoft 365 y Google Workspace. Disponible según paquete.</span></li>
-    <li><b>Uso de IA</b><span>Visibilidad de las herramientas de IA que usan sus equipos. Hoy es visibilidad, no bloqueo.</span></li>
+    <li><b>Uso de IA</b><span>Vemos quién usa qué herramientas de IA y bloqueamos la aplicación cuando haga falta. La protección de los datos que se comparten llegará próximamente.</span></li>
     <li><b>Red y DNS</b><span>Fortinet (Partner certificado) para firewall y segmentación, e Infoblox para seguridad y control de DNS.</span></li>
   </ul>
+  <a class="cta" href="https://calendly.com/salvador-ruiz-synappssys" target="_blank" rel="noopener">Agenda una llamada</a>
   <p class="note">Los escenarios son simulaciones ilustrativas, no detecciones de un cliente real.</p>
 </div>
 
@@ -123,12 +119,12 @@ svg{display:block;width:100%;height:auto}
     {id:'identidad',name:'Identidad',a:-54,t:'ITDR sobre Active Directory, Entra ID y Okta. Disponible según paquete.'},
     {id:'correo',name:'Correo',a:18,t:'Email Security para Microsoft 365 y Google Workspace. Disponible según paquete.'},
     {id:'red',name:'Red y DNS',a:90,t:'Fortinet (Partner certificado) para firewall y segmentación, e Infoblox para seguridad y control de DNS.'},
-    {id:'ia',name:'Uso de IA',a:162,t:'Visibilidad de las herramientas de IA que usan sus equipos. Hoy es visibilidad, no bloqueo.'}
+    {id:'ia',name:'Uso de IA',a:162,t:'Vemos quién usa qué herramientas de IA y bloqueamos la aplicación cuando haga falta. La protección de los datos que se comparten llegará próximamente.'}
   ];
   var SCEN=[
     {label:'Llega un correo',front:'correo',chip:'Contenido',kind:'ok',title:'Un enlace sospechoso llega a un buzón',text:'Email Security lo detecta y lo aísla antes de que alguien haga clic. Disponible según paquete.'},
     {label:'Alguien inicia sesión',front:'identidad',chip:'Alertado',kind:'ok',title:'Una cuenta válida entra desde un lugar inusual',text:'ITDR vigila Active Directory, Entra ID y Okta, y avisa del abuso de la credencial. Disponible según paquete.'},
-    {label:'Se usa una IA',front:'ia',chip:'Visible',kind:'info',title:'Alguien abre una herramienta de IA no autorizada',text:'Hoy vemos qué herramientas de IA se usan en la empresa. El bloqueo no está incluido todavía.'}
+    {label:'Se usa una IA',front:'ia',chip:'Visible',kind:'info',title:'Alguien abre una herramienta de IA no autorizada',text:'Vemos quién usó la herramienta y cuál fue, y podemos bloquear esa aplicación. La protección de datos llegará próximamente.'}
   ];
   var pos={}, el={}, running=0;
   function mk(n,a,p){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
