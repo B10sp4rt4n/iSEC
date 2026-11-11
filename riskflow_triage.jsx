@@ -37,10 +37,10 @@ const SIGNALS = {
   IAM:['login fuera de horario','MFA rechazado x3','geo nueva','escalamiento de privilegio','token reutilizado'],
 };
 const COMBO = {
-  'DNS+EDR':     { label:'RANSOMWARE',   color:'#ff3300', pts:220 },
-  'DNS+IAM':     { label:'EXFILTRACIÓN', color:'#ff0066', pts:260 },
-  'EDR+IAM':     { label:'TAKEOVER',     color:'#ffcc00', pts:240 },
-  'DNS+EDR+IAM': { label:'APT',          color:'#cc00ff', pts:420 },
+  'DNS+EDR':     { label:'POSIBLE RANSOMWARE',   color:'#ff3300', pts:220 },
+  'DNS+IAM':     { label:'POSIBLE EXFILTRACIÓN', color:'#ff0066', pts:260 },
+  'EDR+IAM':     { label:'POSIBLE ROBO DE CUENTA',     color:'#ffcc00', pts:240 },
+  'DNS+EDR+IAM': { label:'SEÑAL MULTIFUENTE',          color:'#cc00ff', pts:420 },
 };
 const GENERIC = { label:'ANOMALÍA', color:'#ff6600', pts:150 };
 
@@ -307,7 +307,7 @@ export default function RiskFlowTriage(){
       const had=comboR.current>=2; comboR.current=0;setCombo(0);
       setStats({...statsR.current});
       selR.current=[];setSel([]);
-      flash(had?'FALSO POSITIVO −90 · COMBO ROTO':'FALSO POSITIVO −90','bad');
+      flash(had?'CORRELACIÓN INCORRECTA −90 · COMBO ROTO':'CORRELACIÓN INCORRECTA −90','bad');
       return;
     }
 
@@ -337,13 +337,13 @@ export default function RiskFlowTriage(){
     const hidden=S.current.threats.find(t=>!t.revealed&&t.entity===s[0].entity);
     if(hidden){
       hidden.revealed=true;hidden.info=info;hidden.revAt=F;
-      flash(`BRECHA REVELADA · ${info.label} +${pts}${mult>1?` ×${mult}`:''}`,'ok');
+      flash(`HIPÓTESIS REVELADA · ${info.label} +${pts}${mult>1?` ×${mult}`:''}`,'ok');
     } else {
       const {w,h}=dims;
       S.current.threats.push({id:nid(),entity:s[0].entity,ang:-Math.PI/2,
         r:Math.min(w,h)*0.42,revealed:true,info,revAt:F,
         spd:ph==='tut'?0:paceR.current.spd*stageConfig(waveR.current).speed,pulse:0});
-      if(!isApt)flash(`SALDADO · ${info.label} +${pts}${mult>1?` ×${mult}`:''}`,'ok');
+      if(!isApt)flash(`CORRELACIÓN · ${info.label} +${pts}${mult>1?` ×${mult}`:''}`,'ok');
     }
     setThreatCount(S.current.threats.length);
     feedR.current=feedR.current.filter(e=>!s.find(x=>x.id===e.id));
@@ -555,6 +555,7 @@ export default function RiskFlowTriage(){
     return()=>{cancelAnimationFrame(anim.current);document.removeEventListener('visibilitychange',resetClock);};
   },[phase,dims,hs,spawnEvent,spawnUnseen]);
 
+  const embedded=typeof window!=='undefined'&&window.self!==window.top;
   const {w,h}=dims;
   const load=feed.length/QUEUE_MAX;
   const lc=load>.8?'#ff3344':load>.55?'#ffaa00':'#00ffb4';
@@ -567,10 +568,13 @@ export default function RiskFlowTriage(){
   const tutHighlight=(ev)=> phase==='tut'&&tutStep===0&&ev.tut;
 
   return(
-    <div style={{width:'100vw',height:'100vh',background:'#02060c',color:'#00b4ff',
+    <div className="triage-root" style={{width:'100vw',height:'100vh',background:'#02060c',color:'#00b4ff',
       fontFamily:'"Courier New",monospace',display:'flex',flexDirection:'column',
       alignItems:'center',overflow:'hidden',boxSizing:'border-box',padding:'4px 0',userSelect:'none'}}>
       <style>{`
+        .triage-root{height:100dvh!important;padding-top:max(4px,env(safe-area-inset-top))!important;padding-bottom:max(4px,env(safe-area-inset-bottom))!important}
+        .mobile-launch{display:none}
+        @media(max-width:600px){.mobile-launch{display:block;max-width:300px;margin:10px auto 0;padding:11px 14px;border:1px solid #00b4ff;color:#00b4ff;text-decoration:none;font-size:11px;line-height:1.4;letter-spacing:0}}
         @keyframes bl{0%,100%{opacity:1}50%{opacity:.35}}
         @keyframes si{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
         @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,255,180,.5)}50%{box-shadow:0 0 0 5px rgba(0,255,180,0)}}
@@ -588,15 +592,15 @@ export default function RiskFlowTriage(){
       `}</style>
 
       {inGame&&<div style={{width:w,display:'flex',justifyContent:'space-between',alignItems:'center',
-        fontSize:12.75,padding:'2px 8px',boxSizing:'border-box'}}>
+        fontSize:12.11,padding:'2px 8px',boxSizing:'border-box'}}>
         <span>SC <b style={{color:'#00ffb4'}}>{score}</b>
           {combo>=2&&<span
-            className="cbo" style={{color:'#cc00ff',marginLeft:6,fontWeight:900,fontSize:11.9}}>×{multOf(combo)}</span>}
+            className="cbo" style={{color:'#cc00ff',marginLeft:6,fontWeight:900,fontSize:11.31}}>×{multOf(combo)}</span>}
         </span>
         <span style={{color:'#ffcc00'}}>{phase==='tut'?'TUTORIAL':`N${currentStage.level} · E${currentStage.stage}/3`}
-          {phase==='play'&&<span style={{color:'#3a5a72',fontSize:11,marginLeft:5}}>{PACES[pace].label}</span>}
+          {phase==='play'&&<span style={{color:'#3a5a72',fontSize:10.45,marginLeft:5}}>{PACES[pace].label}</span>}
         </span>
-        <span>{'◈'.repeat(Math.max(0,assets))}{hs>0&&<span style={{color:'#3a5a72',marginLeft:6,fontSize:11}}>HS {hs}</span>}</span>
+        <span>{'◈'.repeat(Math.max(0,assets))}{hs>0&&<span style={{color:'#3a5a72',marginLeft:6,fontSize:10.45}}>HS {hs}</span>}</span>
       </div>}
 
 
@@ -605,12 +609,12 @@ export default function RiskFlowTriage(){
         <div data-radar-status="" role="status" aria-live="polite" aria-atomic="true"
           style={{width:w,height:44,flexShrink:0,boxSizing:'border-box',padding:'3px 6px',
             display:'flex',flexDirection:'column',justifyContent:'center',textAlign:'center',
-            pointerEvents:'none',overflow:'hidden',fontSize:11,lineHeight:1.3}}>
+            pointerEvents:'none',overflow:'hidden',fontSize:10.45,lineHeight:1.3}}>
           <div style={{fontWeight:700,color:toast?.kind==='bad'?'#ff4455':aptMoment?'#cc00ff':toast?.kind==='warn'?'#ffcc00':'#00ffb4'}}>
-            {toast?.kind==='bad'?toast.msg:aptMoment?`TRIPLE CORRELACIÓN · APT +${aptMoment.pts}`:toast?.msg||(phase==='play'?`${currentStage.title} · Conectar ${stageCorrelations}/3 · Contener ${stageContained}/3`:'Conecta señales · protege tus activos')}
+            {toast?.kind==='bad'?toast.msg:aptMoment?`TRIPLE CORRELACIÓN +${aptMoment.pts}`:toast?.msg||(phase==='play'?`${currentStage.title} · Conectar ${stageCorrelations}/3 · Contener ${stageContained}/3`:'Conecta señales · protege tus activos')}
           </div>
           <div style={{color:'#8aa8bb',fontSize:10}}>
-            {phase==='tut'?(tutStep===0?'① Misma figura, distinto color → SALDAR':tutStep===1?'② Toca la amenaza en el radar para contenerla':'Tutorial completado'):
+            {phase==='tut'?(tutStep===0?'① Misma figura, distinto color → CORRELACIONAR':tutStep===1?'② Toca la amenaza en el radar para contenerla':'Tutorial completado'):
               threatCount>0?'↓ Toca la amenaza para contenerla':'Selecciona eventos de la misma figura y distinto color'}
           </div>
         </div>
@@ -625,17 +629,17 @@ export default function RiskFlowTriage(){
         {phase==='tut'&&tutStep===2&&(
           <div style={{position:'absolute',inset:0,background:'rgba(2,6,12,.93)',display:'flex',
             flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,padding:14,textAlign:'center'}}>
-            <div style={{fontSize:16.15,color:'#00ffb4',letterSpacing:3}}>ESO ES TODO</div>
-            <div style={{fontSize:11,color:'#7799aa',lineHeight:1.9,maxWidth:300}}>
-              <b style={{color:'#00ffb4'}}>Misma figura, distinto color</b> → SALDAR.<br/>
+            <div style={{fontSize:15.34,color:'#00ffb4',letterSpacing:3}}>ESO ES TODO</div>
+            <div style={{fontSize:10.45,color:'#7799aa',lineHeight:1.9,maxWidth:300}}>
+              <b style={{color:'#00ffb4'}}>Misma figura, distinto color</b> → CORRELACIONAR.<br/>
               Luego tocas la amenaza en el radar.<br/>
-              <b style={{color:'#cc00ff'}}>Si juntas los TRES colores de una misma figura, es un APT</b>
-              — vale mucho más, pero arriesgas que caduquen.<br/><br/>
+              <b style={{color:'#cc00ff'}}>Tres fuentes sobre una misma entidad refuerzan la hipótesis</b>
+              — suma más puntos, pero arriesgas que caduquen.<br/><br/>
               En el turno real los eventos <b>caducan</b>. Si dejas escapar un par que sí coincidía,
               la amenaza nace de todos modos — pero <b style={{color:'#ff4455'}}>invisible</b> y no la puedes tocar.<br/><br/>
               <span style={{color:'#ffcc00'}}>Y si se te acumulan 10 eventos, pierdes un activo.</span>
             </div>
-            <button onClick={startReal} className="bl" style={{marginTop:10,padding:'12px 30px',fontSize:11.9,
+            <button onClick={startReal} className="bl" style={{marginTop:10,padding:'12px 30px',fontSize:11.31,
               fontFamily:'inherit',background:'transparent',border:'2px solid #00ffb4',color:'#00ffb4',
               letterSpacing:2,cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>EMPEZAR TURNO</button>
           </div>
@@ -645,8 +649,8 @@ export default function RiskFlowTriage(){
           <div style={{position:'absolute',inset:0,background:'rgba(2,6,12,.95)',display:'flex',
             flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,padding:12,textAlign:'center'}}>
             <div style={{fontSize:8,color:'#3a5a72',letterSpacing:3}}>SYNAPPSSYS LABS</div>
-            <div style={{fontSize:17.85,fontWeight:900,color:'#00b4ff',letterSpacing:2,textShadow:'0 0 14px #00b4ff'}}>RiskFlow</div>
-            <div style={{fontSize:11.05,fontWeight:900,color:'#00ffb4',letterSpacing:3}}>TRIAGE</div>
+            <div style={{fontSize:16.96,fontWeight:900,color:'#00b4ff',letterSpacing:2,textShadow:'0 0 14px #00b4ff'}}>RiskFlow</div>
+            <div style={{fontSize:10.5,fontWeight:900,color:'#00ffb4',letterSpacing:3}}>TRIAGE</div>
             <div style={{fontSize:9,color:'#7799aa',lineHeight:1.8,marginTop:6,maxWidth:280}}>
               Un solo gesto en todo el juego: <b style={{color:'#00ffb4'}}>tocar</b>.<br/>
               Abajo emparejas eventos. Arriba contienes amenazas.
@@ -665,7 +669,7 @@ export default function RiskFlowTriage(){
                 ))}
               </div>
             </div>
-            <button onClick={startTutorial} className="bl" style={{marginTop:8,padding:'8px 22px',fontSize:10.2,
+            <button onClick={startTutorial} className="bl" style={{marginTop:8,padding:'8px 22px',fontSize:10,
               fontFamily:'inherit',background:'transparent',border:'2px solid #00ffb4',color:'#00ffb4',
               letterSpacing:2,cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>CÓMO SE JUEGA</button>
             <button onClick={startReal} style={{marginTop:2,padding:'5px 14px',fontSize:9,
@@ -693,7 +697,7 @@ export default function RiskFlowTriage(){
         const fg   = n<2?'#3a5a72':          valid?(isApt?'#e07aff':'#00ffb4'):'#ff5566';
         const label= n===0?'SELECCIONA 2 O 3 EVENTOS'
                    : n===1?'FALTA AL MENOS UNO MÁS'
-                   : valid?(isApt?`⚡ SALDAR APT ×3  +${pts}`:`SALDAR ×${n}  +${pts}`)
+                   : valid?(isApt?`⚡ CORRELACIONAR ×3  +${pts}`:`CORRELACIONAR ×${n}  +${pts}`)
                    : 'NO COINCIDEN';
         return (
           <div style={{width:w,marginTop:4,boxSizing:'border-box',padding:'0 1px'}}>
@@ -701,16 +705,16 @@ export default function RiskFlowTriage(){
               className={valid?'bl':''}
               style={{width:'100%',padding:'13px 10px',textAlign:'center',
                 background:bg,border:`2px solid ${bd}`,color:fg,
-                fontSize:12.75,fontWeight:900,letterSpacing:2,fontFamily:'inherit',
+                fontSize:12.11,fontWeight:900,letterSpacing:2,fontFamily:'inherit',
                 cursor:n>=2?'pointer':'default',boxSizing:'border-box',
                 boxShadow:valid?`0 0 16px ${isApt?'rgba(204,0,255,.35)':'rgba(0,255,180,.3)'}`:'none',
                 WebkitTapHighlightColor:'transparent'}}>
               {label}
             </div>
             {tercera&&(
-              <div style={{textAlign:'center',fontSize:11,color:'#cc00ff',padding:'4px 0',
+              <div style={{textAlign:'center',fontSize:10.45,color:'#cc00ff',padding:'4px 0',
                 letterSpacing:1}} className="cbo">
-                ⚡ hay una TERCERA señal de esta entidad — súmala para APT
+                ⚡ hay una TERCERA señal de esta entidad — súmala a la correlación
               </div>
             )}
           </div>
@@ -721,15 +725,15 @@ export default function RiskFlowTriage(){
       <div style={{width:w,marginTop:4,flex:1,minHeight:0,display:'flex',flexDirection:'column',
         border:'1px solid #0a3a5a',boxSizing:'border-box',background:'rgba(0,20,40,.22)'}}>
         <div style={{display:'flex',justifyContent:'space-between',padding:'4px 7px',
-          borderBottom:'1px solid #0a3a5a',fontSize:11.05,letterSpacing:1,flexShrink:0,fontWeight:700}}>
+          borderBottom:'1px solid #0a3a5a',fontSize:10.5,letterSpacing:1,flexShrink:0,fontWeight:700}}>
           <span>◈ MISMA FIGURA · DISTINTO COLOR</span>
-          <span style={{color:lc,fontWeight:900,fontSize:12.75}}>{feed.length}/{QUEUE_MAX}</span>
+          <span style={{color:lc,fontWeight:900,fontSize:12.11}}>{feed.length}/{QUEUE_MAX}</span>
         </div>
         <div style={{height:4,background:'#08243a',flexShrink:0}}>
           <div style={{height:'100%',width:`${Math.min(100,load*100)}%`,background:lc,transition:'width .2s'}}/>
         </div>
         <div style={{flex:1,overflowY:'auto',padding:2}}>
-          {feed.length===0&&<div style={{fontSize:11.05,color:'#2a4a5a',textAlign:'center',padding:22}}>esperando eventos…</div>}
+          {feed.length===0&&<div style={{fontSize:10.5,color:'#2a4a5a',textAlign:'center',padding:22}}>esperando eventos…</div>}
           {feed.map(ev=>{
             const isSel=sel.find(e=>e.id===ev.id);
             const src=SOURCES[ev.src];
@@ -749,7 +753,7 @@ export default function RiskFlowTriage(){
                     border:`2px solid ${isSel?'#00ffb4':'#2a4a5a'}`,
                     background:isSel?'#00ffb4':'transparent',
                     display:'flex',alignItems:'center',justifyContent:'center',
-                    fontSize:11.9,color:'#02060c',fontWeight:900,lineHeight:1}}>{isSel?'✓':''}</div>
+                    fontSize:11.31,color:'#02060c',fontWeight:900,lineHeight:1}}>{isSel?'✓':''}</div>
                 </div>
 
                 {/* GLIFO: forma=máquina · color=sensor */}
@@ -759,14 +763,14 @@ export default function RiskFlowTriage(){
 
                 {/* contenido */}
                 <div style={{flex:1,minWidth:0,padding:'8px 0'}}>
-                  <div style={{color:'#ffd24d',fontSize:12.75,fontWeight:900,letterSpacing:.5,
+                  <div style={{color:'#ffd24d',fontSize:12.11,fontWeight:900,letterSpacing:.5,
                     whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',lineHeight:1.2}}>
                     {ev.entity}
                   </div>
                   <div style={{display:'flex',alignItems:'center',gap:7,marginTop:3}}>
                     <span style={{color:'#02060c',background:src.color,fontSize:10,fontWeight:900,
                       padding:'2px 6px',letterSpacing:.5,flexShrink:0,borderRadius:2}}>{src.label}</span>
-                    <span style={{color:'#8aa8bb',fontSize:10.2,whiteSpace:'nowrap',
+                    <span style={{color:'#8aa8bb',fontSize:10,whiteSpace:'nowrap',
                       overflow:'hidden',textOverflow:'ellipsis'}}>{ev.msg}</span>
                   </div>
                 </div>
@@ -791,18 +795,18 @@ export default function RiskFlowTriage(){
       {phase==='stageClear'&&(
         <div style={{position:'fixed',inset:0,zIndex:50,background:'#02060c',display:'flex',flexDirection:'column',
           justifyContent:'center',alignItems:'center',textAlign:'center',padding:20,boxSizing:'border-box',overflowY:'auto'}}>
-          <div style={{color:'#00ffb4',fontSize:22,fontWeight:900}}>{currentStage.stage===3?'NIVEL SUPERADO':'ETAPA COMPLETADA'}</div>
+          <div style={{color:'#00ffb4',fontSize:20.9,fontWeight:900}}>{currentStage.stage===3?'NIVEL SUPERADO':'ETAPA COMPLETADA'}</div>
           <p>Nivel {currentStage.level} · Etapa {currentStage.stage}/3 · {currentStage.title}</p>
-          <p style={{fontSize:13,color:'#8aa8bb',maxWidth:350,lineHeight:1.6}}>
+          <p style={{fontSize:12.35,color:'#8aa8bb',maxWidth:350,lineHeight:1.6}}>
             Conectaste al menos 3 correlaciones y contuviste sus amenazas.
             {currentStage.stage===1?' Ya reconoces señales de una misma entidad.':
               currentStage.stage===2?' Relacionaste más entidades y fuentes.':' Resolviste el caso con mayor volumen de señales.'}
           </p>
-          <p style={{fontSize:12,color:'#ffcc00',maxWidth:350}}>
+          <p style={{fontSize:11.4,color:'#ffcc00',maxWidth:350}}>
             {currentStage.stage===3?'El siguiente nivel conserva las tres etapas y aumenta un poco la velocidad.':
               currentStage.stage===1?'Sigue Relacionar: más entidades y una tercera fuente.':'Sigue Resolver: las mismas reglas, más volumen.'}
           </p>
-          <button onClick={nextStage} style={{marginTop:14,padding:'14px 22px',fontFamily:'inherit',fontSize:14,
+          <button onClick={nextStage} style={{marginTop:14,padding:'14px 22px',fontFamily:'inherit',fontSize:13.3,
             background:'#062032',border:'1px solid #00ffb4',color:'#00ffb4',cursor:'pointer'}}>
             {currentStage.stage===3?'SIGUIENTE NIVEL':'SIGUIENTE ETAPA'}
           </button>
@@ -814,18 +818,18 @@ export default function RiskFlowTriage(){
         <div style={{position:'fixed',inset:0,background:'#02060c',zIndex:50,
           display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
           gap:0,padding:'20.4px 17px',textAlign:'center',overflowY:'auto',boxSizing:'border-box'}}>
-          <div style={{fontSize:11,color:'#3a5a72',letterSpacing:5,marginBottom:11.9}}>SYNAPPSSYS LABS</div>
-          <div style={{fontSize:34,fontWeight:900,color:'#00b4ff',letterSpacing:2,
+          <div style={{fontSize:10.45,color:'#3a5a72',letterSpacing:5,marginBottom:11.9}}>SYNAPPSSYS LABS</div>
+          <div style={{fontSize:32.3,fontWeight:900,color:'#00b4ff',letterSpacing:2,
             textShadow:'0 0 22px #00b4ff,0 0 60px #0066aa',lineHeight:1}}>RiskFlow</div>
-          <div style={{fontSize:17,fontWeight:900,color:'#00ffb4',letterSpacing:8,marginTop:5.1,
+          <div style={{fontSize:16.15,fontWeight:900,color:'#00ffb4',letterSpacing:8,marginTop:5.1,
             textShadow:'0 0 16px #00ffb4'}}>TRIAGE</div>
 
           <div style={{width:44,height:1,background:'#0a3a5a',margin:'18.7px 0'}}/>
 
-          <div style={{fontSize:11.05,color:'#8aa8bb',lineHeight:2,maxWidth:330}}>
+          <div style={{fontSize:10.5,color:'#8aa8bb',lineHeight:2,maxWidth:330}}>
             Un solo gesto en todo el juego: <b style={{color:'#00ffb4'}}>tocar</b>.
           </div>
-          <div style={{fontSize:10.2,color:'#5a7a8a',lineHeight:2,maxWidth:330,marginTop:5.1}}>
+          <div style={{fontSize:10,color:'#5a7a8a',lineHeight:2,maxWidth:330,marginTop:5.1}}>
             Abajo <b style={{color:'#00b4ff'}}>emparejas</b> · arriba <b style={{color:'#00b4ff'}}>contienes</b>
           </div>
 
@@ -833,14 +837,14 @@ export default function RiskFlowTriage(){
           <div style={{marginTop:18.7,display:'flex',alignItems:'center',gap:11.9,
             border:'1px solid #0a3a5a',padding:'11.9px 15.3px',background:'rgba(0,30,55,.3)'}}>
             <Glyph shape="triangle" color="#00b4ff" size={44}/>
-            <span style={{fontSize:22.1,color:'#00ffb4',fontWeight:900}}>+</span>
+            <span style={{fontSize:21,color:'#00ffb4',fontWeight:900}}>+</span>
             <Glyph shape="triangle" color="#00ffb4" size={44}/>
-            <span style={{fontSize:18.7,color:'#3a5a72'}}>=</span>
+            <span style={{fontSize:17.76,color:'#3a5a72'}}>=</span>
             <Glyph shape="triangle" color="#ff3300" size={44}/>
           </div>
-          <div style={{fontSize:10.2,color:'#8aa8bb',marginTop:8.5,lineHeight:1.7,maxWidth:320}}>
-            <b style={{color:'#00ffb4'}}>Misma figura</b> = misma máquina<br/>
-            <b style={{color:'#00ffb4'}}>Distinto color</b> = distinto sensor
+          <div style={{fontSize:10,color:'#8aa8bb',marginTop:8.5,lineHeight:1.7,maxWidth:320}}>
+            <b style={{color:'#00ffb4'}}>Misma figura</b> = misma entidad<br/>
+            <b style={{color:'#00ffb4'}}>Distinto color</b> = distinta fuente
           </div>
 
           <div style={{marginTop:23.8,display:'flex',flexDirection:'column',alignItems:'center',gap:6.8}}>
@@ -848,7 +852,7 @@ export default function RiskFlowTriage(){
             <div style={{display:'flex',gap:5.95}}>
               {Object.values(PACES).map(p=>(
                 <button key={p.key} onClick={()=>setPace(p.key)}
-                  style={{padding:'7.65px 12.75px',fontSize:11,fontFamily:'inherit',letterSpacing:1,
+                  style={{padding:'7.65px 12.75px',fontSize:10.45,fontFamily:'inherit',letterSpacing:1,
                     background:pace===p.key?'rgba(0,255,180,.15)':'transparent',
                     border:`1px solid ${pace===p.key?'#00ffb4':'#26485a'}`,
                     color:pace===p.key?'#00ffb4':'#5a7a8a',cursor:'pointer',
@@ -858,17 +862,20 @@ export default function RiskFlowTriage(){
           </div>
 
           <button onClick={startTutorial} className="bl"
-            style={{marginTop:25.5,padding:'11.9px 34px',fontSize:12.75,fontFamily:'inherit',
+            style={{marginTop:25.5,padding:'11.9px 34px',fontSize:12.11,fontFamily:'inherit',
               background:'transparent',border:'2px solid #00ffb4',color:'#00ffb4',letterSpacing:3,
               cursor:'pointer',textShadow:'0 0 10px #00ffb4',boxShadow:'0 0 18px rgba(0,255,180,.25)',
               WebkitTapHighlightColor:'transparent'}}>CÓMO SE JUEGA</button>
           <button onClick={startReal}
-            style={{marginTop:11.9,padding:'6.8px 15.3px',fontSize:11,fontFamily:'inherit',
+            style={{marginTop:11.9,padding:'6.8px 15.3px',fontSize:10.45,fontFamily:'inherit',
               background:'transparent',border:'none',color:'#3a5a72',letterSpacing:1,
               textDecoration:'underline',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>
             saltar tutorial
           </button>
-          {hs>0&&<div style={{marginTop:17,fontSize:11,color:'#ffcc00',letterSpacing:2}}>RÉCORD · {hs}</div>}
+          {embedded&&<a className="mobile-launch" href="https://registro.synappssys.com/RiskFlow_Triage.html" target="_top">ABRIR JUEGO SIN MARCO DEL PORTAL</a>}
+          {!embedded&&<a href="https://www.synappssys.com/reto-triage" style={{marginTop:10,color:'#8aa8bb',fontSize:10}}>Volver al portal</a>}
+          <div style={{fontSize:10,color:'#8aa8bb',maxWidth:330,marginTop:10,lineHeight:1.4}}>Simulación educativa: conectar fuentes genera hipótesis, no confirma un ataque.</div>
+          {hs>0&&<div style={{marginTop:17,fontSize:10.45,color:'#ffcc00',letterSpacing:2}}>RÉCORD · {hs}</div>}
         </div>
       )}
 
@@ -877,7 +884,7 @@ export default function RiskFlowTriage(){
         const st=stats;
         const donut=[
           {k:'Consumidos en correlaciones',v:st.evCorr,c:'#00e8a5'},
-          {k:'Ruido que caducó (inofensivo)',v:st.evNoise,c:'#7b8a99'},
+          {k:'Eventos sin pareja al caducar',v:st.evNoise,c:'#7b8a99'},
           {k:'Caducaron con pareja disponible',v:st.evBreach,c:'#ff3344'},
           {k:'Perdidos por saturación',v:st.evOver,c:'#ff9500'},
           {k:'Cerrados al completar etapas',v:st.evStageCleared,c:'#00b4ff'},
@@ -895,8 +902,8 @@ export default function RiskFlowTriage(){
           <div style={{flex:'1 1 44%',minWidth:130,border:'1px solid #0a2c44',
             padding:'11px 12px',background:'rgba(0,25,45,.35)'}}>
             <div style={{fontSize:9,color:'#5a7a8a',letterSpacing:1.5}}>{label}</div>
-            <div style={{fontSize:21.25,fontWeight:900,color,lineHeight:1.25,fontFamily:'monospace'}}>
-              {val}<span style={{fontSize:10.2,marginLeft:2,color:'#4a6a7a'}}>{unit}</span>
+            <div style={{fontSize:20.19,fontWeight:900,color,lineHeight:1.25,fontFamily:'monospace'}}>
+              {val}<span style={{fontSize:10,marginLeft:2,color:'#4a6a7a'}}>{unit}</span>
             </div>
             {hint&&<div style={{fontSize:8,color:'#3a5a72',lineHeight:1.4}}>{hint}</div>}
           </div>
@@ -908,16 +915,16 @@ export default function RiskFlowTriage(){
 
               <div style={{textAlign:'center'}}>
                 <div style={{fontSize:9,color:'#3a5a72',letterSpacing:5}}>SYNAPPSSYS LABS · RISKFLOW</div>
-                <div style={{fontSize:16.15,fontWeight:900,color:'#00b4ff',letterSpacing:2,marginTop:8,
+                <div style={{fontSize:15.34,fontWeight:900,color:'#00b4ff',letterSpacing:2,marginTop:8,
                   textShadow:'0 0 16px #00b4ff'}}>REPORTE DE DESEMPEÑO</div>
                 <div style={{fontSize:10,color:'#5a7a8a',letterSpacing:2,marginTop:3}}>
                   OPERADOR DE TRIAGE · NIVEL {currentStage.level} · ETAPA {currentStage.stage}/3 · {PACES[pace].label}
                 </div>
-                <div style={{fontSize:28.9,fontWeight:900,color:'#00ffb4',marginTop:14,
+                <div style={{fontSize:27.46,fontWeight:900,color:'#00ffb4',marginTop:14,
                   textShadow:'0 0 18px #00ffb4',fontFamily:'monospace'}}>{score}</div>
                 <div style={{fontSize:9,color:'#3a5a72',letterSpacing:3}}>PUNTOS</div>
                 {score>=hs&&score>0&&
-                  <div style={{fontSize:11,color:'#ffcc00',letterSpacing:2,marginTop:6}}>★ NUEVO RÉCORD ★</div>}
+                  <div style={{fontSize:10.45,color:'#ffcc00',letterSpacing:2,marginTop:6}}>★ NUEVO RÉCORD ★</div>}
               </div>
 
               {/* DONA */}
@@ -934,8 +941,8 @@ export default function RiskFlowTriage(){
                     <div key={d.k} style={{display:'flex',alignItems:'center',gap:8,
                       padding:'4px 0',borderBottom:'1px solid #08202f'}}>
                       <span style={{width:11,height:11,background:d.c,flexShrink:0,borderRadius:2}}/>
-                      <span style={{flex:1,fontSize:11,color:'#8aa8bb'}}>{d.k}</span>
-                      <b style={{fontSize:10.2,color:d.c,fontFamily:'monospace'}}>{d.v}</b>
+                      <span style={{flex:1,fontSize:10.45,color:'#8aa8bb'}}>{d.k}</span>
+                      <b style={{fontSize:10,color:d.c,fontFamily:'monospace'}}>{d.v}</b>
                       <span style={{fontSize:10,color:'#3a5a72',width:40,textAlign:'right',
                         fontFamily:'monospace'}}>{Math.round(d.v/gran*100)}%</span>
                     </div>
@@ -949,17 +956,17 @@ export default function RiskFlowTriage(){
                     <div style={{fontSize:9,color:'#5a7a8a',letterSpacing:1.5,marginBottom:6}}>
                       DESGLOSE DE LOS {st.evCorr} EVENTOS CORRELACIONADOS
                     </div>
-                    <div style={{display:'flex',justifyContent:'space-between',fontSize:10.2,
+                    <div style={{display:'flex',justifyContent:'space-between',fontSize:10,
                       padding:'3px 0',borderBottom:'1px solid #08202f'}}>
                       <span style={{color:'#8aa8bb'}}>Correlaciones dobles (2 fuentes)</span>
                       <b style={{color:'#00e8a5',fontFamily:'monospace'}}>{st.saldados-(st.apt||0)}</b>
                     </div>
-                    <div style={{display:'flex',justifyContent:'space-between',fontSize:10.2,padding:'3px 0'}}>
-                      <span style={{color:'#cc00ff'}}>APTs · triple correlación (3 fuentes)</span>
+                    <div style={{display:'flex',justifyContent:'space-between',fontSize:10,padding:'3px 0'}}>
+                      <span style={{color:'#cc00ff'}}>Correlaciones triples (3 fuentes)</span>
                       <b style={{color:'#cc00ff',fontFamily:'monospace'}}>{st.apt||0}</b>
                     </div>
                     <div style={{fontSize:9,color:'#3a5a72',marginTop:6,lineHeight:1.5}}>
-                      cada correlación doble consume 2 eventos · cada APT consume 3
+                      cada correlación doble consume 2 eventos · cada correlación triple consume 3
                     </div>
                   </div>
                 )}
@@ -996,13 +1003,13 @@ export default function RiskFlowTriage(){
 
               {/* DETALLE */}
               <div style={{marginTop:14,border:'1px solid #0a2c44',padding:'12px 14px',
-                background:'rgba(0,20,38,.3)',fontSize:10.2,lineHeight:2}}>
+                background:'rgba(0,20,38,.3)',fontSize:10,lineHeight:2}}>
                 {[
-                  ['Correlaciones saldadas',st.saldados,'#00ffb4'],
+                  ['Correlaciones realizadas',st.saldados,'#00ffb4'],
                   ['Amenazas contenidas',st.contenidos,'#00ffb4'],
-                  ['APTs desmantelados',st.apt||0,'#cc00ff'],
-                  ['Brechas no detectadas',st.brechas,'#ff4455'],
-                  ['Falsos positivos',st.fp,'#ffcc00'],
+                  ['Correlaciones triples',st.apt||0,'#cc00ff'],
+                  ['Impactos en activos',st.brechas,'#ff4455'],
+                  ['Correlaciones incorrectas',st.fp,'#ffcc00'],
                 ].map(([k,v,c])=>(
                   <div key={k} style={{display:'flex',justifyContent:'space-between',
                     borderBottom:'1px solid #08202f'}}>
@@ -1017,11 +1024,11 @@ export default function RiskFlowTriage(){
                 <div style={{marginTop:14,border:'1px solid #1a2c6a',
                   background:'rgba(20,30,90,.28)',padding:'12px 14px'}}>
                   <div style={{fontSize:10,color:'#6a8aff',letterSpacing:2,marginBottom:5}}>◈ CIERRE EN SATURACIÓN</div>
-                  <div style={{fontSize:11,color:'#a8b8dd',lineHeight:1.75}}>
+                  <div style={{fontSize:10.45,color:'#a8b8dd',lineHeight:1.75}}>
                     Terminaste con la cola llena ({pend} de {QUEUE_MAX}).
-                    No perdiste por falta de habilidad: perdiste porque el volumen
-                    superó tu capacidad de correlacionar a mano. Ese punto de quiebre
-                    es el que RiskFlow automatiza.
+                    El volumen superó la capacidad de esta partida para conectar señales.
+                    La correlación automática puede ayudar a reducir ese trabajo;
+                    el resultado depende de las fuentes y reglas integradas.
                   </div>
                 </div>
               )}
@@ -1030,11 +1037,11 @@ export default function RiskFlowTriage(){
                 <div style={{marginTop:14,border:'1px solid #3a1420',
                   background:'rgba(60,10,22,.3)',padding:'12px 14px'}}>
                   <div style={{fontSize:10,color:'#ff4455',letterSpacing:2,marginBottom:5}}>◈ LECTURA</div>
-                  <div style={{fontSize:11,color:'#c9a0a8',lineHeight:1.75}}>
+                  <div style={{fontSize:10.45,color:'#c9a0a8',lineHeight:1.75}}>
                     {st.brechas} amenaza{st.brechas>1?'s':''} llegó a tus activos.
                     Los indicios estaban en tu cola — expiraron sin correlacionar.
-                    En un SOC real esa distancia entre señal disponible y señal conectada
-                    se llama <b style={{color:'#ff6677'}}>dwell time</b>.
+                    En este ejercicio, conectar las señales antes de que caduquen
+                    permite actuar a tiempo. Estos tiempos corresponden a la simulación.
                   </div>
                 </div>
               )}
@@ -1052,13 +1059,13 @@ export default function RiskFlowTriage(){
 
               <div style={{textAlign:'center'}}>
                 <button onClick={startReal}
-                  style={{marginTop:16,padding:'13px 36px',fontSize:11.9,fontFamily:'inherit',
+                  style={{marginTop:16,padding:'13px 36px',fontSize:11.31,fontFamily:'inherit',
                     background:'transparent',border:'2px solid #00b4ff',color:'#00b4ff',letterSpacing:3,
                     cursor:'pointer',boxShadow:'0 0 16px rgba(0,180,255,.22)',
                     WebkitTapHighlightColor:'transparent'}}>NUEVO TURNO</button>
                 <div>
                   <button onClick={()=>setPhase('title')}
-                    style={{marginTop:12,padding:'6px 14px',fontSize:11,fontFamily:'inherit',
+                    style={{marginTop:12,padding:'6px 14px',fontSize:10.45,fontFamily:'inherit',
                       background:'transparent',border:'none',color:'#3a5a72',letterSpacing:1,
                       textDecoration:'underline',cursor:'pointer',
                       WebkitTapHighlightColor:'transparent'}}>portada</button>
