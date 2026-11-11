@@ -47,7 +47,7 @@ const GENERIC = { label:'ANOMALÍA', color:'#ff6600', pts:150 };
 const BUCKET = 300;   // frames por segmento de la línea de tiempo (~5s)
 const emptyStats = () => ({
   saldados:0, contenidos:0, brechas:0, fp:0, apt:0,
-  evTotal:0, evCorr:0, evNoise:0, evBreach:0, evOver:0,
+  evTotal:0, evCorr:0, evNoise:0, evBreach:0, evOver:0, evStageCleared:0,
   mttd:[], mttr:[], timeline:[]
 });
 const avg = a => a.length? a.reduce((x,y)=>x+y,0)/a.length : 0;
@@ -58,6 +58,25 @@ function logTL(st, frame, key){
 }
 
 const QUEUE_MAX = 10;
+const STAGE_GOAL = 3;
+export function stageConfig(index){
+  const level=Math.floor((index-1)/3)+1, stage=(index-1)%3+1;
+  return {level,stage,title:['Reconocer','Relacionar','Resolver'][stage-1],
+    entityCount:stage===1?2:stage===2?4:6,
+    sources:stage===1?['DNS','EDR']:['DNS','EDR','IAM'],
+    speed:1+Math.min(level-1,8)*0.12,volume:stage===3?0.8:1};
+}
+export function stageIsComplete(st,base,remainingThreats){
+  return st.saldados-base.saldados>=STAGE_GOAL &&
+    st.contenidos-base.contenidos>=STAGE_GOAL && remainingThreats===0;
+}
+export function advanceClock(clock,now){
+  if(clock.last===null)clock.last=now;
+  clock.acc+=Math.min(Math.max(0,now-clock.last),100);clock.last=now;
+  const count=Math.floor((clock.acc+1e-8)/(1000/60));
+  clock.acc=Math.max(0,clock.acc-count*(1000/60));
+  return count;
+}
 const ASSETS_START = 3;
 
 // Ritmo: TTL = cuánto vive un evento · gap = frames entre eventos
@@ -171,6 +190,7 @@ export default function RiskFlowTriage(){
   const [combo,setCombo]=useState(0);
   const [aptMoment,setAptMoment]=useState(null);
 
+  const stageBase=useRef({saldados:0,contenidos:0});
   const cvs=useRef(null), anim=useRef(null);
   const S=useRef({threats:[],spawnT:60,frame:0,shake:0,ring:0});
   const feedR=useRef([]), selR=useRef([]);
@@ -217,19 +237,35 @@ export default function RiskFlowTriage(){
 
   const startReal=useCallback(()=>{
     uid=0; scoreR.current=0; assetsR.current=ASSETS_START; waveR.current=1;
-    statsR.current=emptyStats();
+    statsR.current=emptyStats();stageBase.current={saldados:0,contenidos:0};
     comboR.current=0; bestComboR.current=0; setCombo(0); setAptMoment(null);
     S.current={threats:[],spawnT:Math.round(paceR.current.gap*0.7),frame:0,shake:0,ring:0};
-    feedR.current=[];selR.current=[];
-    setScore(0);setAssets(ASSETS_START);setWave(1);setFeed([]);setSel([]);
+    feedR.current=['DNS','EDR'].map(src=>({id:nid(),src,entity:ENTITIES[0],msg:SIGNALS[src][0],ttl:paceR.current.ttl,born:0}));
+    statsR.current.evTotal=2;selR.current=[];
+    phaseR.current='play';setToast(null);
+    setScore(0);setAssets(ASSETS_START);setWave(1);setFeed([...feedR.current]);setSel([]);
     setStats(emptyStats());setThreatCount(0);
     setPhase('play');
   },[]);
 
+  const nextStage=useCallback(()=>{
+    if(phaseR.current!=='stageClear')return;
+    statsR.current.evStageCleared+=feedR.current.length;
+    waveR.current++;setWave(waveR.current);
+    stageBase.current={saldados:statsR.current.saldados,contenidos:statsR.current.contenidos};
+    S.current={threats:[],spawnT:paceR.current.gap,frame:S.current.frame,shake:0,ring:0};
+    const entity=ENTITIES[(waveR.current-1)%stageConfig(waveR.current).entityCount];
+    feedR.current=['DNS','EDR'].map(src=>({id:nid(),src,entity,msg:SIGNALS[src][0],ttl:paceR.current.ttl,born:S.current.frame}));
+    statsR.current.evTotal+=2;selR.current=[];
+    setFeed([...feedR.current]);setSel([]);setThreatCount(0);setStats({...statsR.current});
+    setToast(null);setAptMoment(null);phaseR.current='play';setPhase('play');
+  },[]);
+
   const spawnEvent=useCallback((entity,forceSrc)=>{
-    const src=forceSrc||rnd(Object.keys(SOURCES));
+    const cfg=stageConfig(waveR.current);
+    const src=forceSrc||rnd(cfg.sources);
     statsR.current.evTotal++;
-    feedR.current=[{id:nid(),src,entity:entity||rnd(ENTITIES),msg:rnd(SIGNALS[src]),
+    feedR.current=[{id:nid(),src,entity:entity||rnd(ENTITIES.slice(0,cfg.entityCount)),msg:rnd(SIGNALS[src]),
       ttl:paceR.current.ttl,born:S.current.frame},...feedR.current];
     setFeed([...feedR.current]);
   },[]);
@@ -237,7 +273,7 @@ export default function RiskFlowTriage(){
   const spawnUnseen=useCallback(entity=>{
     const {w,h}=dims;
     S.current.threats.push({id:nid(),entity,ang:Math.random()*Math.PI*2,r:Math.min(w,h)*0.46,
-      revealed:false,info:GENERIC,spd:paceR.current.unseenSpd+waveR.current*paceR.current.spdStep,pulse:Math.random()*6});
+      revealed:false,info:GENERIC,spd:paceR.current.unseenSpd*stageConfig(waveR.current).speed,pulse:Math.random()*6});
     setThreatCount(S.current.threats.length);
   },[dims]);
 
@@ -259,6 +295,7 @@ export default function RiskFlowTriage(){
     if(ph!=='play'&&ph!=='tut')return;
     const s=selR.current;
     if(s.length<2)return;
+    if(!s.every(ev=>feedR.current.some(x=>x.id===ev.id))){selR.current=[];setSel([]);return;}
 
     const same=s.every(e=>e.entity===s[0].entity);
     const srcs=new Set(s.map(e=>e.src));
@@ -305,7 +342,7 @@ export default function RiskFlowTriage(){
       const {w,h}=dims;
       S.current.threats.push({id:nid(),entity:s[0].entity,ang:-Math.PI/2,
         r:Math.min(w,h)*0.42,revealed:true,info,revAt:F,
-        spd:ph==='tut'?0:paceR.current.spd+waveR.current*paceR.current.spdStep,pulse:0});
+        spd:ph==='tut'?0:paceR.current.spd*stageConfig(waveR.current).speed,pulse:0});
       if(!isApt)flash(`SALDADO · ${info.label} +${pts}${mult>1?` ×${mult}`:''}`,'ok');
     }
     setThreatCount(S.current.threats.length);
@@ -321,8 +358,8 @@ export default function RiskFlowTriage(){
     if(ph!=='play'&&ph!=='tut')return;
     if(ph==='tut'&&tutR.current!==1)return;
     const rect=cvs.current.getBoundingClientRect();
-    const px=(e.clientX??e.touches?.[0]?.clientX)-rect.left;
-    const py=(e.clientY??e.touches?.[0]?.clientY)-rect.top;
+    const px=(e.clientX-rect.left)*dims.w/rect.width;
+    const py=(e.clientY-rect.top)*dims.h/rect.height;
     const {w,h}=dims;const cx=w/2,cy=h/2;
     const hit=S.current.threats.filter(t=>t.revealed)
       .map(t=>({t,d:Math.hypot(cx+Math.cos(t.ang)*t.r-px,cy+Math.sin(t.ang)*t.r-py)}))
@@ -339,6 +376,9 @@ export default function RiskFlowTriage(){
       S.current.ring=14;setThreatCount(S.current.threats.length);
       flash(`${hit.t.info.label} CONTENIDO +${Math.round(hit.t.info.pts*cm)}${cm>1?` ×${cm}`:''}`,'ok');
       if(ph==='tut')setTutStep(2);
+      if(ph==='play'&&stageIsComplete(ST,stageBase.current,S.current.threats.length)){
+        phaseR.current='stageClear';setPhase('stageClear');setToast(null);setAptMoment(null);
+      }
     }
   },[dims]);
 
@@ -352,16 +392,18 @@ export default function RiskFlowTriage(){
 
     const over=()=>{
       if(scoreR.current>hs){window.storage?.set('rf_triage_hs',String(scoreR.current),false).catch(()=>{});setHs(scoreR.current);}
-      setPhase('over');
+      phaseR.current='over';setPhase('over');
     };
     const loseAsset=msg=>{
-      assetsR.current--;setAssets(assetsR.current);
+      if(phaseR.current!=='play')return;
+      assetsR.current=Math.max(0,assetsR.current-1);setAssets(assetsR.current);
       comboR.current=0;setCombo(0);
       S.current.shake=16;flash(msg,'bad');
-      if(assetsR.current<=0)setTimeout(over,700);
+      if(assetsR.current<=0)over();
     };
 
     function tick(){
+      if(phaseR.current!==phase)return;
       const s=S.current;s.frame++;
       if(s.shake>0)s.shake--;
       if(s.ring>0)s.ring--;
@@ -370,7 +412,7 @@ export default function RiskFlowTriage(){
 
       s.spawnT--;
       if(s.spawnT<=0){
-        const P=paceR.current; s.spawnT=Math.max(P.gapMin,P.gap-waveR.current*P.gapStep);
+        const P=paceR.current,cfg=stageConfig(waveR.current); s.spawnT=Math.max(P.gapMin,P.gap*cfg.volume);
         const cur=feedR.current;
         if(cur.length>0&&Math.random()<0.62){
           // buscar entidades que ya tienen 2 fuentes distintas -> completar el tercio
@@ -379,9 +421,13 @@ export default function RiskFlowTriage(){
           const casi=Object.keys(byEnt).filter(k=>byEnt[k].size===2);
           if(casi.length&&Math.random()<0.55){
             const ent=rnd(casi);
-            const falta=Object.keys(SOURCES).find(x=>!byEnt[ent].has(x));
+            const falta=stageConfig(waveR.current).sources.find(x=>!byEnt[ent].has(x));
             spawnEvent(ent,falta);
-          } else spawnEvent(rnd(cur).entity);
+          } else {
+            const candidate=rnd(cur),cfg=stageConfig(waveR.current);
+            const missing=cfg.sources.filter(src=>!cur.some(ev=>ev.entity===candidate.entity&&ev.src===src));
+            spawnEvent(candidate.entity,missing.length?rnd(missing):undefined);
+          }
         } else spawnEvent();
       }
 
@@ -403,10 +449,13 @@ export default function RiskFlowTriage(){
       if(feedR.current.length>QUEUE_MAX){
         statsR.current.evOver+=feedR.current.length-QUEUE_MAX;
         feedR.current=feedR.current.slice(0,QUEUE_MAX);setFeed([...feedR.current]);
+        selR.current=selR.current.filter(ev=>feedR.current.some(x=>x.id===ev.id));setSel([...selR.current]);
         loseAsset('BACKLOG DESBORDADO · ALERT FATIGUE');
       }
 
+      if(phaseR.current!=='play')return;
       s.threats=s.threats.filter(t=>{
+        if(phaseR.current!=='play')return true;
         t.pulse+=0.07;t.r-=t.spd;
         if(t.r<=CORE){
           statsR.current.brechas++;
@@ -419,7 +468,7 @@ export default function RiskFlowTriage(){
       });
       setThreatCount(s.threats.length);
 
-      if(s.frame%paceR.current.waveEvery===0){waveR.current++;setWave(waveR.current);flash(`OLEADA ${waveR.current}`,'warn');}
+
     }
 
     function shapePath(shape,x,y,r){
@@ -490,15 +539,29 @@ export default function RiskFlowTriage(){
       ctx.restore();
     }
 
-    function loop(){tick();draw();anim.current=requestAnimationFrame(loop);}
+    // Fixed 60 Hz simulation: display refresh rate only affects drawing.
+    const clock={last:null,acc:0};
+    function resetClock(){clock.last=null;clock.acc=0;}
+    document.addEventListener('visibilitychange',resetClock);
+    function loop(now){
+      if(phaseR.current!==phase)return;
+      if(document.hidden){resetClock();anim.current=requestAnimationFrame(loop);return;}
+      const ticks=advanceClock(clock,now);
+      for(let i=0;i<ticks&&phaseR.current===phase;i++)tick();
+      draw();
+      if(phaseR.current===phase)anim.current=requestAnimationFrame(loop);
+    }
     anim.current=requestAnimationFrame(loop);
-    return()=>cancelAnimationFrame(anim.current);
+    return()=>{cancelAnimationFrame(anim.current);document.removeEventListener('visibilitychange',resetClock);};
   },[phase,dims,hs,spawnEvent,spawnUnseen]);
 
   const {w,h}=dims;
   const load=feed.length/QUEUE_MAX;
   const lc=load>.8?'#ff3344':load>.55?'#ffaa00':'#00ffb4';
   const inGame = phase==='play'||phase==='tut';
+  const currentStage=stageConfig(wave);
+  const stageCorrelations=Math.min(STAGE_GOAL,stats.saldados-stageBase.current.saldados);
+  const stageContained=Math.min(STAGE_GOAL,stats.contenidos-stageBase.current.contenidos);
 
   // resaltar en tutorial
   const tutHighlight=(ev)=> phase==='tut'&&tutStep===0&&ev.tut;
@@ -530,7 +593,7 @@ export default function RiskFlowTriage(){
           {combo>=2&&<span
             className="cbo" style={{color:'#cc00ff',marginLeft:6,fontWeight:900,fontSize:11.9}}>×{multOf(combo)}</span>}
         </span>
-        <span style={{color:'#ffcc00'}}>{phase==='tut'?'TUTORIAL':`OLEADA ${wave}`}
+        <span style={{color:'#ffcc00'}}>{phase==='tut'?'TUTORIAL':`N${currentStage.level} · E${currentStage.stage}/3`}
           {phase==='play'&&<span style={{color:'#3a5a72',fontSize:11,marginLeft:5}}>{PACES[pace].label}</span>}
         </span>
         <span>{'◈'.repeat(Math.max(0,assets))}{hs>0&&<span style={{color:'#3a5a72',marginLeft:6,fontSize:11}}>HS {hs}</span>}</span>
@@ -544,7 +607,7 @@ export default function RiskFlowTriage(){
             display:'flex',flexDirection:'column',justifyContent:'center',textAlign:'center',
             pointerEvents:'none',overflow:'hidden',fontSize:11,lineHeight:1.3}}>
           <div style={{fontWeight:700,color:toast?.kind==='bad'?'#ff4455':aptMoment?'#cc00ff':toast?.kind==='warn'?'#ffcc00':'#00ffb4'}}>
-            {toast?.kind==='bad'?toast.msg:aptMoment?`TRIPLE CORRELACIÓN · APT +${aptMoment.pts}`:toast?.msg||'Conecta señales · protege tus activos'}
+            {toast?.kind==='bad'?toast.msg:aptMoment?`TRIPLE CORRELACIÓN · APT +${aptMoment.pts}`:toast?.msg||(phase==='play'?`${currentStage.title} · Conectar ${stageCorrelations}/3 · Contener ${stageContained}/3`:'Conecta señales · protege tus activos')}
           </div>
           <div style={{color:'#8aa8bb',fontSize:10}}>
             {phase==='tut'?(tutStep===0?'① Misma figura, distinto color → SALDAR':tutStep===1?'② Toca la amenaza en el radar para contenerla':'Tutorial completado'):
@@ -555,7 +618,7 @@ export default function RiskFlowTriage(){
 
       {/* RADAR */}
       <div style={{position:'relative',border:'1px solid #0a3a5a',marginTop:3,boxShadow:'0 0 18px rgba(0,120,220,.16)'}}>
-        <canvas ref={cvs} width={w} height={h} onClick={tapArena} onTouchStart={tapArena}
+        <canvas ref={cvs} width={w} height={h} onPointerDown={tapArena}
           style={{display:'block',touchAction:'manipulation'}}/>
 
         {/* TUTORIAL: paso 3 = listo */}
@@ -725,6 +788,27 @@ export default function RiskFlowTriage(){
         SYNAPPSSYS LABS · RISKFLOW
       </div>
 
+      {phase==='stageClear'&&(
+        <div style={{position:'fixed',inset:0,zIndex:50,background:'#02060c',display:'flex',flexDirection:'column',
+          justifyContent:'center',alignItems:'center',textAlign:'center',padding:20,boxSizing:'border-box',overflowY:'auto'}}>
+          <div style={{color:'#00ffb4',fontSize:22,fontWeight:900}}>{currentStage.stage===3?'NIVEL SUPERADO':'ETAPA COMPLETADA'}</div>
+          <p>Nivel {currentStage.level} · Etapa {currentStage.stage}/3 · {currentStage.title}</p>
+          <p style={{fontSize:13,color:'#8aa8bb',maxWidth:350,lineHeight:1.6}}>
+            Conectaste al menos 3 correlaciones y contuviste sus amenazas.
+            {currentStage.stage===1?' Ya reconoces señales de una misma entidad.':
+              currentStage.stage===2?' Relacionaste más entidades y fuentes.':' Resolviste el caso con mayor volumen de señales.'}
+          </p>
+          <p style={{fontSize:12,color:'#ffcc00',maxWidth:350}}>
+            {currentStage.stage===3?'El siguiente nivel conserva las tres etapas y aumenta un poco la velocidad.':
+              currentStage.stage===1?'Sigue Relacionar: más entidades y una tercera fuente.':'Sigue Resolver: las mismas reglas, más volumen.'}
+          </p>
+          <button onClick={nextStage} style={{marginTop:14,padding:'14px 22px',fontFamily:'inherit',fontSize:14,
+            background:'#062032',border:'1px solid #00ffb4',color:'#00ffb4',cursor:'pointer'}}>
+            {currentStage.stage===3?'SIGUIENTE NIVEL':'SIGUIENTE ETAPA'}
+          </button>
+        </div>
+      )}
+
       {/* ══ PANTALLA: PORTADA ══ */}
       {phase==='title'&&(
         <div style={{position:'fixed',inset:0,background:'#02060c',zIndex:50,
@@ -796,6 +880,7 @@ export default function RiskFlowTriage(){
           {k:'Ruido que caducó (inofensivo)',v:st.evNoise,c:'#7b8a99'},
           {k:'Caducaron con pareja disponible',v:st.evBreach,c:'#ff3344'},
           {k:'Perdidos por saturación',v:st.evOver,c:'#ff9500'},
+          {k:'Cerrados al completar etapas',v:st.evStageCleared,c:'#00b4ff'},
         ];
         const dTotal=donut.reduce((a,b)=>a+b.v,0);
         const pend=Math.max(0,st.evTotal-dTotal);
@@ -826,7 +911,7 @@ export default function RiskFlowTriage(){
                 <div style={{fontSize:16.15,fontWeight:900,color:'#00b4ff',letterSpacing:2,marginTop:8,
                   textShadow:'0 0 16px #00b4ff'}}>REPORTE DE DESEMPEÑO</div>
                 <div style={{fontSize:10,color:'#5a7a8a',letterSpacing:2,marginTop:3}}>
-                  OPERADOR DE TRIAGE · OLEADA {wave} · {PACES[pace].label}
+                  OPERADOR DE TRIAGE · NIVEL {currentStage.level} · ETAPA {currentStage.stage}/3 · {PACES[pace].label}
                 </div>
                 <div style={{fontSize:28.9,fontWeight:900,color:'#00ffb4',marginTop:14,
                   textShadow:'0 0 18px #00ffb4',fontFamily:'monospace'}}>{score}</div>
@@ -988,3 +1073,4 @@ export default function RiskFlowTriage(){
     </div>
   );
 }
+
