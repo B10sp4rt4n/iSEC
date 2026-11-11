@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ThreatDown México | SynAppsSys</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=Raleway:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: título + lista de frentes en filas (nombre a la izquierda, detalle a la derecha) separadas por filetes; cierre con llamada a la acción. */
+:root{--bg:#F5F6FB;--panel:#FFFFFF;--ink:#15173F;--muted:#575B84;--line:#D3D6EE;--indigo:#4B47C8;color-scheme:light;
+--display:'Oswald','Arial Narrow',Impact,sans-serif;--body:'Raleway','Segoe UI',Arial,sans-serif}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;margin:0;
+padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 56px}
+.wrap{max-width:1040px;margin:0 auto;display:grid;gap:32px}
+h1{font:600 clamp(32px,5.4vw,52px)/1.06 var(--display);margin:0;text-wrap:balance;max-width:20ch}
+.lead{color:var(--muted);max-width:56ch;margin:12px 0 0}
+.rows{display:grid;margin:0;padding:0;list-style:none;border-top:1.5px solid var(--ink)}
+.row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:8px 40px;padding:26px 0;border-bottom:1px solid var(--line)}
+.row h2{font:600 28px/1.1 var(--display);margin:0}
+.row .sub{display:block;font:600 14px var(--body);color:var(--indigo);margin-top:6px}
+.row p{margin:0 0 10px;color:var(--muted);max-width:64ch}
+.row p:last-child{margin-bottom:0}
+.row b{color:var(--ink);font-weight:700}
+.note{font-size:14px;color:var(--muted);margin:0}
+.cta{display:inline-block;width:max-content;background:var(--indigo);color:#fff;font:700 16px var(--body);text-decoration:none;padding:13px 26px;border-radius:6px;min-height:44px}
+.cta:hover{filter:brightness(1.1)}
+.cta:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.close{display:flex;flex-wrap:wrap;align-items:center;gap:16px 28px}
+.close span{color:var(--muted)}
+@media (max-width:640px){.row{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>ThreatDown en México, operado por SynAppsSys</h1>
+    <p class="lead">Somos Partner Platinum y MSP de ThreatDown. Lo implementamos, lo administramos y damos seguimiento a cada alerta, para que su equipo no tenga que hacerlo.</p>
+  </header>
+
+  <ul class="rows">
+    <li class="row">
+      <div><h2>Qué protege</h2><span class="sub">Equipos y servidores</span></div>
+      <div><p>Detectamos, contenemos y respondemos a amenazas en laptops y servidores con Windows, macOS y Linux, con EDR y MDR 24/7.</p></div>
+    </li>
+    <li class="row">
+      <div><h2>Paquetes</h2><span class="sub">De EDR a MDR</span></div>
+      <div>
+        <p>Los paquetes van de <b>Core</b> y <b>Advanced EDR</b> a <b>Elite MDR</b> y <b>Ultimate MDR Plus</b>. Le ayudamos a elegir el que corresponde al tamaño y al riesgo de su empresa.</p>
+        <p>Los administramos desde Nebula y OneView, la consola para proveedores de servicios.</p>
+      </div>
+    </li>
+    <li class="row">
+      <div><h2>Más allá del equipo</h2><span class="sub">Según paquete</span></div>
+      <div><p>Según el paquete, se suma protección de identidades con ITDR sobre Active Directory, Entra ID y Okta, y seguridad de correo con Email Security para Microsoft 365 y Google Workspace.</p></div>
+    </li>
+    <li class="row">
+      <div><h2>Cómo trabajamos</h2><span class="sub">Un solo responsable</span></div>
+      <div><p>Implementamos, administramos y damos seguimiento. Usted habla con un solo equipo, el mismo que opera el resto de su seguridad.</p></div>
+    </li>
+  </ul>
+
+  <div class="close">
+    <a class="cta" href="https://calendly.com/salvador-ruiz-synappssys" target="_blank" rel="noopener">Agenda una llamada</a>
+    <span>O escríbanos por WhatsApp al 55 1438 9292.</span>
+  </div>
+  <p class="note">Algunos servicios dependen del paquete contratado.</p>
+</div>
+</body>
+</html>
