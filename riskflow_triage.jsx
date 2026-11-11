@@ -483,7 +483,7 @@ export default function RiskFlowTriage(){
       });
       if(s.aptFlash>0){
         const a=s.aptFlash/26;
-        ctx.fillStyle=`rgba(204,0,255,${a*0.35})`;ctx.fillRect(0,0,w,h);
+        // El destello se limita al anillo; no cubre el radar.
         ctx.strokeStyle=`rgba(204,0,255,${a})`;ctx.lineWidth=3;
         ctx.beginPath();ctx.arc(cx,cy,CORE+(26-s.aptFlash)*7,0,7);ctx.stroke();
       }
@@ -536,34 +536,27 @@ export default function RiskFlowTriage(){
         <span>{'◈'.repeat(Math.max(0,assets))}{hs>0&&<span style={{color:'#3a5a72',marginLeft:6,fontSize:11}}>HS {hs}</span>}</span>
       </div>}
 
+
+      {/* Avisos fuera del radar: espacio fijo para no tapar ni desplazar amenazas. */}
+      {inGame&&(
+        <div data-radar-status="" role="status" aria-live="polite" aria-atomic="true"
+          style={{width:w,height:44,flexShrink:0,boxSizing:'border-box',padding:'3px 6px',
+            display:'flex',flexDirection:'column',justifyContent:'center',textAlign:'center',
+            pointerEvents:'none',overflow:'hidden',fontSize:11,lineHeight:1.3}}>
+          <div style={{fontWeight:700,color:toast?.kind==='bad'?'#ff4455':aptMoment?'#cc00ff':toast?.kind==='warn'?'#ffcc00':'#00ffb4'}}>
+            {toast?.kind==='bad'?toast.msg:aptMoment?`TRIPLE CORRELACIÓN · APT +${aptMoment.pts}`:toast?.msg||'Conecta señales · protege tus activos'}
+          </div>
+          <div style={{color:'#8aa8bb',fontSize:10}}>
+            {phase==='tut'?(tutStep===0?'① Misma figura, distinto color → SALDAR':tutStep===1?'② Toca la amenaza en el radar para contenerla':'Tutorial completado'):
+              threatCount>0?'↓ Toca la amenaza para contenerla':'Selecciona eventos de la misma figura y distinto color'}
+          </div>
+        </div>
+      )}
+
       {/* RADAR */}
       <div style={{position:'relative',border:'1px solid #0a3a5a',marginTop:3,boxShadow:'0 0 18px rgba(0,120,220,.16)'}}>
         <canvas ref={cvs} width={w} height={h} onClick={tapArena} onTouchStart={tapArena}
           style={{display:'block',touchAction:'manipulation'}}/>
-
-        {toast&&(
-          <div style={{position:'absolute',top:5,left:0,right:0,textAlign:'center',fontSize:11.05,letterSpacing:1,
-            padding:6,background:'rgba(0,0,0,.82)',zIndex:5,fontWeight:700,
-            color:toast.kind==='bad'?'#ff4455':toast.kind==='warn'?'#ffcc00':'#00ffb4'}}>{toast.msg}</div>
-        )}
-
-        {/* Instrucción persistente en juego real */}
-        {phase==='play'&&threatCount>0&&(
-          <div style={{position:'absolute',bottom:6,left:0,right:0,textAlign:'center',fontSize:11.05,
-            color:'#00ffb4',letterSpacing:1}}>
-            ↑ toca la amenaza para contenerla
-          </div>
-        )}
-
-        {/* TUTORIAL: paso 2 = contener */}
-        {phase==='tut'&&tutStep===1&&(
-          <div style={{position:'absolute',bottom:6,left:0,right:0,textAlign:'center',zIndex:6}}>
-            <div style={{display:'inline-block',background:'rgba(0,255,180,.14)',border:'1px solid #00ffb4',
-              padding:'8px 16px',fontSize:11.05,color:'#00ffb4',letterSpacing:1}}>
-              ② Apareció la amenaza. <b>Tócala</b> para contenerla.
-            </div>
-          </div>
-        )}
 
         {/* TUTORIAL: paso 3 = listo */}
         {phase==='tut'&&tutStep===2&&(
@@ -582,21 +575,6 @@ export default function RiskFlowTriage(){
             <button onClick={startReal} className="bl" style={{marginTop:10,padding:'12px 30px',fontSize:11.9,
               fontFamily:'inherit',background:'transparent',border:'2px solid #00ffb4',color:'#00ffb4',
               letterSpacing:2,cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>EMPEZAR TURNO</button>
-          </div>
-        )}
-
-        {aptMoment&&(
-          <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',
-            alignItems:'center',justifyContent:'center',pointerEvents:'none',zIndex:8}}>
-            <div className="aptin" style={{textAlign:'center'}}>
-              <div style={{fontSize:9,color:'#cc00ff',letterSpacing:4,marginBottom:2}}>TRIPLE CORRELACIÓN</div>
-              <div style={{fontSize:28.9,fontWeight:900,color:'#cc00ff',letterSpacing:6,
-                textShadow:'0 0 24px #cc00ff, 0 0 60px #8800cc'}}>APT</div>
-              <div style={{fontSize:8,color:'#aa77cc',letterSpacing:2,marginTop:2}}>DNS · ENDPOINT · IDENTIDAD</div>
-              <div style={{fontSize:11.9,color:'#00ffb4',marginTop:6,letterSpacing:2}}>
-                +{aptMoment.pts}{aptMoment.mult>1?`  ×${aptMoment.mult}`:''}
-              </div>
-            </div>
           </div>
         )}
 
@@ -634,14 +612,6 @@ export default function RiskFlowTriage(){
         )}
 
       </div>
-
-      {/* TUTORIAL paso 1: banner */}
-      {phase==='tut'&&tutStep===0&&(
-        <div className="bnc" style={{width:w,textAlign:'center',fontSize:11.05,color:'#00ffb4',
-          padding:'7px 0',letterSpacing:.5}}>
-          ① Marca los dos de <b>igual figura</b> y <b>distinto color</b>, luego pulsa <b>SALDAR</b> ↓
-        </div>
-      )}
 
       {/* BARRA SALDAR */}
       {inGame&&(()=>{
