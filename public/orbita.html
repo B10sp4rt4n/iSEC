@@ -70,7 +70,7 @@ svg{display:block;width:100%;height:auto}
 
   <div class="stage">
     <div class="tabs-overlay" id="tabs"></div>
-    <svg id="orb-svg" viewBox="0 0 800 620" role="img" aria-label="Cinco frentes de protección alrededor de las personas de la empresa: Equipo, Identidad, Correo, Red y DNS, y Uso de IA.">
+    <svg id="orb-svg" viewBox="0 0 800 540" role="img" aria-label="Cinco frentes de protección alrededor de las personas de la empresa: Equipo, Identidad, Correo, Red y DNS, y Uso de IA.">
       <g id="rings">
         <ellipse class="ring r1" cx="400" cy="255" rx="140" ry="88"/>
         <ellipse class="ring" cx="400" cy="255" rx="215" ry="138"/>
@@ -84,18 +84,13 @@ svg{display:block;width:100%;height:auto}
         <g class="ico" transform="translate(-22 -40) scale(1.83)"><path d="M12 11a3.5 3.5 0 1 0 0-7a3.5 3.5 0 0 0 0 7z"/><path d="M5 21c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/></g>
         <text y="36">Tu gente</text>
       </g>
-      <!-- Descripción contextual dentro de la ventana de órbita -->
-      <g id="descbox">
-        <rect id="desc-bg" x="50" y="564" width="700" height="52" rx="10" fill="white" stroke="#D3D6EE" stroke-width="1.4"/>
-        <foreignObject x="60" y="568" width="680" height="52">
-          <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;align-items:center;gap:10px;height:52px;overflow:hidden">
-            <span id="desc-chip" style="font:700 10px 'Raleway',sans-serif;letter-spacing:1.2px;color:#4B47C8;white-space:nowrap;flex-shrink:0">INFO</span>
-            <span id="desc-text" style="font:400 12px 'Raleway',sans-serif;color:#575B84;line-height:1.3;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">Presiona sobre cada nodo para ver el detalle del frente.</span>
-            <a id="desc-cta" href="https://registro.synappssys.com/registro" target="_blank" style="display:none;flex-shrink:0;font:700 11px 'Raleway',sans-serif;color:#fff;background:#4B47C8;padding:6px 12px;border-radius:6px;text-decoration:none;white-space:nowrap">¿Lo analizamos? →</a>
-          </div>
-        </foreignObject>
-      </g>
     </svg>
+  </div>
+
+  <div id="info-panel" style="background:var(--panel);border:1.5px solid var(--line);border-radius:12px;padding:16px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;transition:border-color .3s">
+    <span id="desc-chip" style="font:700 11px var(--body);letter-spacing:1.1px;color:var(--indigo);white-space:nowrap;flex-shrink:0">INFO</span>
+    <span id="desc-text" style="font:400 15px var(--body);color:var(--muted);line-height:1.4;flex:1;min-width:0">Presiona sobre cada nodo o escenario para ver el detalle.</span>
+    <a id="desc-cta" href="https://registro.synappssys.com/registro" target="_blank" style="display:none;flex-shrink:0;font:700 13px var(--body);color:#fff;background:var(--indigo);padding:9px 16px;border-radius:6px;text-decoration:none;white-space:nowrap;min-height:40px;line-height:22px">¿Lo analizamos? →</a>
   </div>
 
 
@@ -111,21 +106,6 @@ svg{display:block;width:100%;height:auto}
 </div>
 
 <script>
-// Ajuste de viewBox en mobile: recorta el descbox para que el SVG sea más compacto
-(function(){
-  function adjustViewBox(){
-    var svg = document.getElementById('orb-svg');
-    if(!svg) return;
-    if(window.innerWidth <= 540){
-      svg.setAttribute('viewBox','0 0 800 540');
-    } else {
-      svg.setAttribute('viewBox','0 0 800 620');
-    }
-  }
-  adjustViewBox();
-  window.addEventListener('resize', adjustViewBox);
-})();
-
 (function(){
   var NS='http://www.w3.org/2000/svg', C={x:400,y:255};
   var ICON={
@@ -183,25 +163,24 @@ svg{display:block;width:100%;height:auto}
     b.addEventListener('click',function(){play(i,true)});tabs.appendChild(b);s.btn=b;
   });
   function updateDesc(frontId,chip,text,showCta){
-    var dt=document.getElementById('desc-text'), dc=document.getElementById('desc-chip'), db=document.getElementById('desc-bg'), da=document.getElementById('desc-cta');
+    var dt=document.getElementById('desc-text'), dc=document.getElementById('desc-chip'), panel=document.getElementById('info-panel'), da=document.getElementById('desc-cta');
     var color=FRONTCOLOR[frontId]||'#4B47C8';
-    if(dt){dt.textContent=text; dt.style.color='#15173F';}
+    if(dt){dt.textContent=text; dt.style.color='var(--ink)';}
     if(dc){dc.textContent=chip||'INFO'; dc.style.color=color;}
-    if(db){db.setAttribute('stroke',color); db.setAttribute('stroke-width','2');}
+    if(panel){panel.style.borderColor=color;}
     if(da){
-      da.style.display=showCta?'block':'none';
+      da.style.display=showCta?'inline-block':'none';
       da.style.background=color;
       if(showCta){
-        // Guardar contexto para el formulario de registro
         try{sessionStorage.setItem('orbita_frente',frontId);}catch(e){}
       }
     }
   }
   function resetDesc(){
-    var dt=document.getElementById('desc-text'), dc=document.getElementById('desc-chip'), db=document.getElementById('desc-bg'), da=document.getElementById('desc-cta');
-    if(dt){dt.textContent='Presiona sobre cada nodo para ver el detalle del frente.'; dt.style.color='#575B84';}
-    if(dc){dc.textContent='INFO'; dc.style.color='#4B47C8';}
-    if(db){db.setAttribute('stroke','#D3D6EE'); db.setAttribute('stroke-width','1.4');}
+    var dt=document.getElementById('desc-text'), dc=document.getElementById('desc-chip'), panel=document.getElementById('info-panel'), da=document.getElementById('desc-cta');
+    if(dt){dt.textContent='Presiona sobre cada nodo o escenario para ver el detalle.'; dt.style.color='var(--muted)';}
+    if(dc){dc.textContent='INFO'; dc.style.color='var(--indigo)';}
+    if(panel){panel.style.borderColor='var(--line)';}
     if(da){da.style.display='none';}
   }
   function clearState(){
