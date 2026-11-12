@@ -171,6 +171,124 @@ export async function POST(request: Request) {
     const inserted = Array.isArray(result) ? result[0] : null;
     const folio = inserted?.folio ? String(inserted.folio).padStart(4, "0") : "—";
 
+    // ── Assessment DNS del dominio del prospecto ─────────────────────────────
+    // Se resuelve aquí porque el dominio ya fue validado (MX existe).
+    // Se usa para enriquecer el correo de confirmación.
+    const dnsAssessment = await (async () => {
+      type DnsResult = {
+        hasMx: boolean; mxRecord: string;
+        hasSPF: boolean; spfRecord: string;
+        hasDMARC: boolean; dmarcRecord: string;
+        score: number; scoreLabel: string; scoreColor: string;
+      };
+      const result: DnsResult = {
+        hasMx: false, mxRecord: "",
+        hasSPF: false, spfRecord: "",
+        hasDMARC: false, dmarcRecord: "",
+        score: 0, scoreLabel: "Crítico", scoreColor: "#dc2626",
+      };
+      try {
+        // MX (ya validado antes, pero lo traemos para mostrar)
+        const mxRecords = await dns.resolveMx(domain).catch(() => []);
+        if (mxRecords.length > 0) {
+          result.hasMx = true;
+          result.mxRecord = mxRecords.sort((a: { priority: number; exchange: string }, b: { priority: number; exchange: string }) => a.priority - b.priority)[0].exchange;
+        }
+        // SPF — TXT record en el apex que empieza con "v=spf1"
+        const txtRecords = await dns.resolveTxt(domain).catch(() => [] as string[][]);
+        const spfTxt = txtRecords.flat().find((r: string) => r.toLowerCase().startsWith("v=spf1"));
+        if (spfTxt) { result.hasSPF = true; result.spfRecord = spfTxt.slice(0, 80); }
+        // DMARC — TXT en _dmarc.<domain>
+        const dmarcTxt = await dns.resolveTxt(`_dmarc.${domain}`).catch(() => [] as string[][]);
+        const dmarcRec = dmarcTxt.flat().find((r: string) => r.toLowerCase().startsWith("v=dmarc1"));
+        if (dmarcRec) { result.hasDMARC = true; result.dmarcRecord = dmarcRec.slice(0, 120); }
+      } catch { /* silencioso */ }
+      // Score: MX=1pt, SPF=1pt, DMARC=1pt → 0-3
+      result.score = (result.hasMx ? 1 : 0) + (result.hasSPF ? 1 : 0) + (result.hasDMARC ? 1 : 0);
+      if (result.score === 3) { result.scoreLabel = "Protegido"; result.scoreColor = "#16a34a"; }
+      else if (result.score === 2) { result.scoreLabel = "Riesgo medio"; result.scoreColor = "#d97706"; }
+      else { result.scoreLabel = "Riesgo alto"; result.scoreColor = "#dc2626"; }
+      return result;
+    })();
+
+    const dnsHtml = (() => {
+      const row = (ok: boolean, label: string, detail: string) => `
+        <tr>
+          <td style="padding:10px 12px;vertical-align:top">
+            <span style="display:inline-flex;align-items:center;justify-content:center;
+                         width:20px;height:20px;border-radius:50%;font-size:11px;font-weight:800;
+                         background:${ok ? "#dcfce7" : "#fee2e2"};color:${ok ? "#15803d" : "#b91c1c"}">
+              ${ok ? "✓" : "✗"}
+            </span>
+          </td>
+          <td style="padding:10px 0;vertical-align:top">
+            <span style="font-size:13px;font-weight:700;color:#162036">${label}</span>
+            ${detail ? `<div style="font-size:11px;color:#94a3b8;margin-top:3px;font-family:monospace;word-break:break-all">${detail}</div>` : ""}
+          </td>
+          <td style="padding:10px 12px;text-align:right;vertical-align:top">
+            <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;
+                         background:${ok ? "#f0fdf4" : "#fef2f2"};color:${ok ? "#15803d" : "#dc2626"}">
+              ${ok ? "OK" : "FALTA"}
+            </span>
+          </td>
+        </tr>`;
+      const total = dnsAssessment.score;
+      const pct = Math.round((total / 3) * 100);
+      return `
+        <div style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin:0 0 24px">
+          <!-- Header del assessment -->
+          <div style="background:#0f172a;padding:16px 20px;display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <p style="margin:0;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">
+                DNS Security Assessment
+              </p>
+              <p style="margin:4px 0 0;font-size:16px;font-weight:800;color:#ffffff;font-family:monospace">
+                ${domain}
+              </p>
+            </div>
+            <div style="text-align:right">
+              <p style="margin:0;font-size:28px;font-weight:900;color:${dnsAssessment.scoreColor};line-height:1">${pct}%</p>
+              <p style="margin:2px 0 0;font-size:11px;font-weight:700;color:${dnsAssessment.scoreColor}">${dnsAssessment.scoreLabel}</p>
+            </div>
+          </div>
+          <!-- Barra de progreso -->
+          <div style="height:4px;background:#1e293b">
+            <div style="height:4px;width:${pct}%;background:${dnsAssessment.scoreColor};transition:width .3s"></div>
+          </div>
+          <!-- Checks -->
+          <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse">
+            <tr style="background:#f8fafc;border-bottom:1px solid #e2e8f0">
+              <td colspan="3" style="padding:8px 12px;font-size:11px;font-weight:700;
+                  color:#64748b;text-transform:uppercase;letter-spacing:.06em">
+                Registros evaluados
+              </td>
+            </tr>
+            ${row(dnsAssessment.hasMx, "Registro MX (recepción de correo)", dnsAssessment.mxRecord)}
+            <tr><td colspan="3" style="border-top:1px solid #f1f5f9"></td></tr>
+            ${row(dnsAssessment.hasSPF, "SPF (autorización de remitentes)", dnsAssessment.spfRecord)}
+            <tr><td colspan="3" style="border-top:1px solid #f1f5f9"></td></tr>
+            ${row(dnsAssessment.hasDMARC, "DMARC (política antiphishing)", dnsAssessment.dmarcRecord)}
+          </table>
+          ${total < 3 ? `
+          <!-- Recomendación -->
+          <div style="background:#fffbeb;border-top:1px solid #fde68a;padding:12px 20px">
+            <p style="margin:0;font-size:12px;color:#92400e;line-height:1.5">
+              <strong>⚠️ ${3 - total} ${3 - total === 1 ? "control faltante" : "controles faltantes"}:</strong>
+              ${!dnsAssessment.hasSPF && !dnsAssessment.hasDMARC
+                ? "Sin SPF ni DMARC, cualquier atacante puede enviar correos que parecen ser de <strong>@" + domain + "</strong>."
+                : !dnsAssessment.hasDMARC
+                ? "Sin DMARC, el SPF no puede aplicar política de rechazo sobre correos falsificados."
+                : "Sin SPF, no hay lista de servidores autorizados para enviar en nombre de tu dominio."}
+            </p>
+          </div>` : `
+          <div style="background:#f0fdf4;border-top:1px solid #bbf7d0;padding:12px 20px">
+            <p style="margin:0;font-size:12px;color:#166534;line-height:1.5">
+              ✅ Tu dominio tiene los tres controles básicos activos. Agenda con SynAppsSys para revisar la configuración a fondo.
+            </p>
+          </div>`}
+        </div>`;
+    })();
+
     // Correo de confirmación (no bloqueante — si falla no afecta el registro)
     const resendKey = process.env.RESEND_API_KEY;
     if (resendKey) {
@@ -345,148 +463,105 @@ export async function POST(request: Request) {
           📄 ${fi.dsLabel}
         </a>` : "";
 
+      const acepta = parsed.data.acepta_comunicaciones ?? false;
+
       resend.emails.send({
         from: `SynAppsSys <${fromDomain}>`,
         to: parsed.data.correo,
-        subject: fi ? fi.subject : "Tu diagnóstico de ciberseguridad — SynAppsSys",
+        subject: acepta
+          ? `Assessment DNS de ${domain} — te lo enviamos como agradecimiento`
+          : "Recibimos tu registro — SynAppsSys",
         html: `
-          <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
-              <div style="background:#162036;border-radius:6px;padding:6px 12px">
-                <span style="font-size:13px;font-weight:800;color:#ffffff;letter-spacing:.04em">SynAppsSys</span>
-              </div>
-              <span style="font-size:12px;color:#94a3b8">× ThreatDown</span>
-            </div>
-            <h2 style="color:#162036;margin:0 0 12px">Hola, ${parsed.data.nombre}</h2>
-            <p style="color:#475569;line-height:1.6;margin:0 0 20px">
-              ${fi ? fi.intro : "Recibimos tu información. Un especialista de <strong>SynAppsSys</strong> se pondrá en contacto contigo pronto."}
-            </p>
+          <div style="font-family:Arial,Helvetica,sans-serif;max-width:580px;margin:0 auto;color:#162036">
 
-            ${contextoHtml}
-
-            <!-- CTA Assessment -->
-            <div style="background:#0f172a;border-radius:10px;padding:20px 24px;margin:0 0 24px;text-align:center">
-              <p style="margin:0 0 6px;font-size:13px;color:#94a3b8;line-height:1.5">
-                ¿Quieres saber exactamente cómo está tu empresa en este frente?
-              </p>
-              <p style="margin:0 0 14px;font-size:15px;font-weight:700;color:#ffffff">
-                Agenda un assessment gratuito con SynAppsSys
-              </p>
-              <a href="https://calendly.com/salvador-ruiz-synappssys" target="_blank"
-                 style="display:inline-block;font-size:13px;font-weight:700;color:#0f172a;
-                        background:#ffffff;padding:11px 22px;border-radius:6px;text-decoration:none">
-                ${fi ? fi.ctaTexto : "Agendar assessment gratuito →"}
-              </a>
-            </div>
-
-            <!-- Recursos del fabricante -->
-            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;
-                        padding:16px 20px;margin:0 0 24px">
-              <p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#162036;
-                        text-transform:uppercase;letter-spacing:.06em">
-                📚 Recursos de ThreatDown
-              </p>
+            <!-- Header -->
+            <div style="background:#0f172a;padding:20px 28px;border-radius:12px 12px 0 0">
               <table cellpadding="0" cellspacing="0" style="width:100%">
-                <!-- Sitio web -->
                 <tr>
-                  <td colspan="2" style="padding:4px 0;font-size:12px;color:#64748b;
-                      font-weight:600;text-transform:uppercase;letter-spacing:.05em;
-                      padding-top:8px">Sitio web</td>
-                </tr>
-                <tr>
-                  <td style="padding:3px 8px 3px 0;font-size:13px">
-                    <a href="https://www.threatdown.com/"
-                       style="color:#1d4ed8;text-decoration:none">
-                      ¿Qué es ThreatDown?
-                    </a>
+                  <td>
+                    <img src="https://registro.synappssys.com/logo-synappssys.png"
+                         alt="SynAppsSys" style="height:30px;display:block"/>
                   </td>
-                </tr>
-                <tr>
-                  <td style="padding:3px 8px 3px 0;font-size:13px">
-                    <a href="https://www.threatdown.com/products-bundles/"
-                       style="color:#1d4ed8;text-decoration:none">
-                      Bundles y productos
-                    </a>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:3px 8px 3px 0;font-size:13px">
-                    <a href="https://www.threatdown.com/why-threatdown/"
-                       style="color:#1d4ed8;text-decoration:none">
-                      ¿Por qué ThreatDown?
-                    </a>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:3px 8px 3px 0;font-size:13px">
-                    <a href="https://www.threatdown.com/resources/"
-                       style="color:#1d4ed8;text-decoration:none">
-                      Recursos y datasheets
-                    </a>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:3px 8px 3px 0;font-size:13px">
-                    <a href="https://www.malwarebytes.com/blog/"
-                       style="color:#1d4ed8;text-decoration:none">
-                      Blog de ciberseguridad
-                    </a>
-                  </td>
-                </tr>
-                <!-- Datasheets -->
-                <tr>
-                  <td colspan="2" style="padding:4px 0;font-size:12px;color:#64748b;
-                      font-weight:600;text-transform:uppercase;letter-spacing:.05em;
-                      padding-top:12px">Datasheets</td>
-                </tr>
-                <tr>
-                  <td style="padding:3px 8px 3px 0;font-size:13px">
-                    <a href="https://www.threatdown.com/wp-content/uploads/2024/04/TD_EDR_Datasheet_v2.pdf"
-                       style="color:#1d4ed8;text-decoration:none">
-                      📄 ThreatDown EDR
-                    </a>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:3px 8px 3px 0;font-size:13px">
-                    <a href="https://www.threatdown.com/wp-content/uploads/2025/07/TD_Email_Security_Datasheet.pdf"
-                       style="color:#1d4ed8;text-decoration:none">
-                      📄 ThreatDown Email Security
-                    </a>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:3px 8px 3px 0;font-size:13px">
-                    <a href="https://www.threatdown.com/wp-content/uploads/2025/11/TD_MDR_Datasheet.pdf"
-                       style="color:#1d4ed8;text-decoration:none">
-                      📄 ThreatDown MDR
-                    </a>
+                  <td style="text-align:right;font-size:11px;color:#64748b;font-weight:600">
+                    ThreatDown Partner Platinum
                   </td>
                 </tr>
               </table>
             </div>
 
-            <!-- Firma Salvador Ruiz -->
-            <table cellpadding="0" cellspacing="0" style="font-size:13px;color:#1e293b;margin-bottom:24px">
-              <tr>
-                <td style="padding-right:16px;vertical-align:top">
-                  <img src="https://registro.synappssys.com/logo-synappssys.png"
-                       alt="SynAppsSys" style="height:28px;display:block;margin-bottom:6px"/>
-                </td>
-                <td style="border-left:3px solid #162036;padding-left:16px;vertical-align:top">
-                  <p style="margin:0;font-weight:700;color:#162036">Salvador Ruiz</p>
-                  <p style="margin:2px 0 0;color:#475569">SynAppsSys · ThreatDown Partner Platinum</p>
-                  <p style="margin:6px 0 0;color:#64748b">
-                    e: <a href="mailto:salvador.ruiz@synappssys.com"
-                         style="color:#162036;text-decoration:none">salvador.ruiz@synappssys.com</a>
-                  </p>
-                  <p style="margin:2px 0 0;color:#64748b">
-                    wa: <a href="https://wa.me/525514389292"
-                          style="color:#162036;text-decoration:none">+52 55 1438 9292</a>
-                  </p>
-                </td>
-              </tr>
-            </table>
+            <!-- Cuerpo -->
+            <div style="background:#ffffff;padding:28px 28px 8px;border:1px solid #e2e8f0;border-top:none">
+
+              <h2 style="margin:0 0 8px;font-size:20px;color:#0f172a">Hola, ${parsed.data.nombre}</h2>
+              <p style="margin:0 0 20px;font-size:14px;color:#475569;line-height:1.6">
+                Recibimos tu registro desde el evento iSEC 2026. Gracias por tomarte el tiempo.
+              </p>
+
+              ${acepta ? `
+              <!-- Assessment DNS — solo si aceptó comunicaciones -->
+              <p style="margin:0 0 12px;font-size:13px;color:#475569;line-height:1.6">
+                Como agradecimiento, corrimos un análisis rápido de los registros DNS de
+                <strong style="color:#0f172a">@${domain}</strong> para ver cómo está configurada
+                la seguridad del correo de tu empresa. Aquí el resultado:
+              </p>
+
+              ${dnsHtml}
+
+              <!-- Siguiente paso -->
+              <div style="background:#0f172a;border-radius:10px;padding:20px 24px;margin:0 0 24px;text-align:center">
+                <p style="margin:0 0 6px;font-size:13px;color:#94a3b8;line-height:1.5">
+                  ¿Quieres un análisis completo — DKIM, BIMI, registros MX secundarios y política DMARC a fondo?
+                </p>
+                <p style="margin:0 0 14px;font-size:15px;font-weight:700;color:#ffffff">
+                  Agenda una sesión de 30 min con SynAppsSys — sin costo
+                </p>
+                <a href="https://calendly.com/salvador-ruiz-synappssys" target="_blank"
+                   style="display:inline-block;font-size:13px;font-weight:700;color:#0f172a;
+                          background:#ffffff;padding:11px 24px;border-radius:6px;text-decoration:none">
+                  Agendar assessment completo →
+                </a>
+              </div>
+              ` : `
+              <!-- Sin assessment — solo confirmación -->
+              <p style="margin:0 0 20px;font-size:14px;color:#475569;line-height:1.6">
+                Un especialista de <strong>SynAppsSys</strong> revisará tu información y se pondrá en contacto contigo pronto.
+              </p>
+              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin:0 0 24px;text-align:center">
+                <a href="https://calendly.com/salvador-ruiz-synappssys" target="_blank"
+                   style="display:inline-block;font-size:13px;font-weight:700;color:#ffffff;
+                          background:#2563eb;padding:11px 24px;border-radius:6px;text-decoration:none">
+                  Agendar una llamada →
+                </a>
+              </div>
+              `}
+
+              <!-- Firma -->
+              <table cellpadding="0" cellspacing="0" style="border-top:1px solid #e2e8f0;padding-top:20px;margin-top:4px;width:100%">
+                <tr>
+                  <td style="border-left:3px solid #2563eb;padding-left:14px">
+                    <p style="margin:0;font-size:14px;font-weight:700;color:#0f172a">Salvador Ruiz</p>
+                    <p style="margin:3px 0 0;font-size:12px;color:#64748b">SynAppsSys · ThreatDown Partner Platinum</p>
+                    <p style="margin:6px 0 0;font-size:12px;color:#64748b">
+                      <a href="mailto:salvador.ruiz@synappssys.com"
+                         style="color:#2563eb;text-decoration:none">salvador.ruiz@synappssys.com</a>
+                      &nbsp;·&nbsp;
+                      <a href="https://wa.me/525514389292"
+                         style="color:#2563eb;text-decoration:none">+52 55 1438 9292</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+            </div>
+
+            <!-- Footer -->
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-top:none;
+                        border-radius:0 0 12px 12px;padding:14px 28px;text-align:center">
+              <p style="margin:0;font-size:11px;color:#94a3b8;line-height:1.6">
+                Recibiste este correo porque te registraste en el evento iSEC 2026.
+                ${acepta ? "Puedes cancelar comunicaciones respondiendo a este correo con el texto <strong>BAJA</strong>." : ""}
+              </p>
+            </div>
 
           </div>
         `,
