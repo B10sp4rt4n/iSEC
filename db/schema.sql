@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS event_prospects (
   pregunta_cerrada_1 VARCHAR(80) NOT NULL,
   pregunta_cerrada_2 VARCHAR(80) NOT NULL,
   dolor_reto TEXT NOT NULL,
+  contexto_orbita VARCHAR(200),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

@@ -167,7 +167,14 @@ svg{display:block;width:100%;height:auto}
     if(dt){dt.textContent=text; dt.style.color='#15173F';}
     if(dc){dc.textContent=chip||'INFO'; dc.style.color=color;}
     if(db){db.setAttribute('stroke',color); db.setAttribute('stroke-width','2');}
-    if(da){da.style.display=showCta?'block':'none'; da.style.background=color;}
+    if(da){
+      da.style.display=showCta?'block':'none';
+      da.style.background=color;
+      if(showCta){
+        // Guardar contexto para el formulario de registro
+        try{sessionStorage.setItem('orbita_frente',frontId);}catch(e){}
+      }
+    }
   }
   function resetDesc(){
     var dt=document.getElementById('desc-text'), dc=document.getElementById('desc-chip'), db=document.getElementById('desc-bg'), da=document.getElementById('desc-cta');
@@ -206,6 +213,8 @@ svg{display:block;width:100%;height:auto}
     el[s.front].node.classList.add('sel');
     colorNode(s.front);
     updateDesc(s.front,s.chip,s.text,true);
+    // Guardar escenario específico
+    try{sessionStorage.setItem('orbita_escenario',s.label);}catch(e){}
   }
   function play(i,animate){
     var s=SCEN[i], token=++running;

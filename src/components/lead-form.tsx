@@ -12,6 +12,7 @@ type FormState = {
   pregunta_cerrada_1: string;
   pregunta_cerrada_2: string;
   dolor_reto: string;
+  contexto_orbita?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -54,6 +55,16 @@ const PREGUNTA_CERRADA_2: ClosedQuestion = {
   ],
 };
 
+function getOrbitaContexto(): string {
+  try {
+    const frente = sessionStorage.getItem("orbita_frente") ?? "";
+    const escenario = sessionStorage.getItem("orbita_escenario") ?? "";
+    if (escenario) return `${frente}|${escenario}`;
+    if (frente) return frente;
+  } catch { /* sessionStorage no disponible */ }
+  return "";
+}
+
 const initialState: FormState = {
   nombre: "",
   empresa: "",
@@ -63,11 +74,15 @@ const initialState: FormState = {
   pregunta_cerrada_1: "",
   pregunta_cerrada_2: "",
   dolor_reto: "",
+  contexto_orbita: "",
 };
 
 export default function LeadForm() {
   const router = useRouter();
-  const [form, setForm] = useState<FormState>(initialState);
+  const [form, setForm] = useState<FormState>(() => ({
+    ...initialState,
+    contexto_orbita: getOrbitaContexto(),
+  }));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);

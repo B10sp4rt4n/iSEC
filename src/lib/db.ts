@@ -76,6 +76,12 @@ export async function ensureEventSchema(sql: ReturnType<typeof getSqlClient>) {
     ADD COLUMN IF NOT EXISTS folio SERIAL;
   `;
 
+  // Agrega columna contexto_orbita si no existe
+  await sql`
+    ALTER TABLE event_prospects
+    ADD COLUMN IF NOT EXISTS contexto_orbita VARCHAR(200);
+  `;
+
   await sql`
     CREATE TABLE IF NOT EXISTS event_raffle_winners (
       id UUID PRIMARY KEY,

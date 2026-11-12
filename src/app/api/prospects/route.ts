@@ -93,6 +93,7 @@ const leadSchema = z.object({
   pregunta_cerrada_1: z.string().trim().min(1).max(80),
   pregunta_cerrada_2: z.string().trim().min(1).max(80),
   dolor_reto: z.string().trim().min(1).max(1000),
+  contexto_orbita: z.string().trim().max(200).optional().or(z.literal("")),
 });
 
 export async function POST(request: Request) {
@@ -146,7 +147,8 @@ export async function POST(request: Request) {
         telefono,
         pregunta_cerrada_1,
         pregunta_cerrada_2,
-        dolor_reto
+        dolor_reto,
+        contexto_orbita
       )
       VALUES (
         ${prospectId},
@@ -157,7 +159,8 @@ export async function POST(request: Request) {
         ${parsed.data.telefono || null},
         ${parsed.data.pregunta_cerrada_1},
         ${parsed.data.pregunta_cerrada_2},
-        ${parsed.data.dolor_reto}
+        ${parsed.data.dolor_reto},
+        ${parsed.data.contexto_orbita || null}
       )
       RETURNING id, folio;
     `;
@@ -170,10 +173,42 @@ export async function POST(request: Request) {
     if (resendKey) {
       const resend = new Resend(resendKey);
       const fromDomain = process.env.RESEND_FROM ?? "analisis@send.synappssys.com";
+
+      // Personalización por frente/escenario
+      const contexto = parsed.data.contexto_orbita ?? "";
+      const [fronteId, escenario] = contexto.split("|");
+      const FRENTE_INFO: Record<string, { nombre: string; color: string; tagline: string; beneficio: string; datasheet: string; dsLabel: string }> = {
+        equipo:    { nombre: "Equipo",    color: "#E4512E", tagline: "Protección en endpoints — 24/7, sin intervención manual", beneficio: "ThreatDown EDR detecta, aísla y remedia amenazas en laptops y servidores antes de que se propaguen.", datasheet: "https://www.threatdown.com/wp-content/uploads/2024/04/TD_EDR_Datasheet_v2.pdf",         dsLabel: "ThreatDown EDR — Datasheet" },
+        identidad: { nombre: "Identidad", color: "#7C3AED", tagline: "Monitoreo de accesos y detección de credenciales comprometidas", beneficio: "Cuando una cuenta corporativa se usa desde un lugar inusual, el sistema la bloquea y notifica de inmediato.", datasheet: "https://www.threatdown.com/products-bundles/", dsLabel: "Bundles ThreatDown — Gestión de Identidad" },
+        correo:    { nombre: "Correo",    color: "#0E8F6E", tagline: "Filtrado de phishing antes de que llegue al buzón", beneficio: "ThreatDown Email Security intercepta mensajes maliciosos y suplantaciones antes de que el usuario los vea.", datasheet: "https://www.threatdown.com/wp-content/uploads/2025/07/TD_Email_Security_Datasheet.pdf",    dsLabel: "ThreatDown Email Security — Datasheet" },
+        red:       { nombre: "Red y DNS", color: "#0369A1", tagline: "Control del tráfico y bloqueo a nivel DNS", beneficio: "Protección de red corta conexiones no autorizadas antes de que salgan datos, sin importar desde dónde se conecte el equipo.", datasheet: "https://www.threatdown.com/products-bundles/",                                               dsLabel: "Bundles ThreatDown — Protección de Red" },
+        ia:        { nombre: "Uso de IA", color: "#B45309", tagline: "Visibilidad sobre herramientas de IA no autorizadas", beneficio: "El sistema registra qué herramientas de IA usa cada equipo y te da contexto para tomar decisiones informadas sobre riesgo.", datasheet: "https://www.threatdown.com/wp-content/uploads/2025/11/TD_MDR_Datasheet.pdf",             dsLabel: "ThreatDown MDR — Datasheet" },
+      };
+      const fi = FRENTE_INFO[fronteId] ?? null;
+      const escenarioLabel = escenario ? ` — Escenario: <em>${escenario}</em>` : "";
+      const contextoHtml = fi ? `
+        <!-- Bloque personalizado por frente -->
+        <div style="background:#f8fafc;border-left:4px solid ${fi.color};border-radius:0 8px 8px 0;
+                    padding:16px 20px;margin:0 0 24px">
+          <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:${fi.color};
+                    text-transform:uppercase;letter-spacing:.08em">
+            Frente: ${fi.nombre}${escenarioLabel}
+          </p>
+          <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#162036">${fi.tagline}</p>
+          <p style="margin:0 0 12px;font-size:13px;color:#475569;line-height:1.6">${fi.beneficio}</p>
+          <a href="${fi.datasheet}" target="_blank"
+             style="display:inline-block;font-size:12px;font-weight:700;color:#fff;
+                    background:${fi.color};padding:7px 14px;border-radius:6px;text-decoration:none">
+            📄 ${fi.dsLabel}
+          </a>
+        </div>` : "";
+
       resend.emails.send({
         from: `iSEC Infosecurity <${fromDomain}>`,
         to: parsed.data.correo,
-        subject: "Gracias por registrarte — iSEC Infosecurity | ThreatDown",
+        subject: fi
+          ? `Tu análisis de ${fi.nombre} — iSEC Infosecurity | ThreatDown`
+          : "Gracias por registrarte — iSEC Infosecurity | ThreatDown",
         html: `
           <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
             <div style="background:#ffffff;border-radius:8px;padding:8px 16px;
@@ -187,6 +222,22 @@ export async function POST(request: Request) {
               <strong>SynAppsSys</strong> se pondrá en contacto contigo
               para darte seguimiento personalizado con <strong>ThreatDown</strong>.
             </p>
+
+            ${contextoHtml}
+
+            <!-- Agenda una llamada -->
+            <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:8px;
+                        padding:16px 20px;margin:0 0 24px;text-align:center">
+              <p style="margin:0 0 8px;font-size:13px;color:#1e293b;line-height:1.5">
+                ¿Quieres analizar esto con un especialista?<br>
+                <strong>Agenda una llamada con Salvador Ruiz, SynAppsSys</strong>
+              </p>
+              <a href="https://calendly.com/salvador-ruiz-synappssys" target="_blank"
+                 style="display:inline-block;font-size:13px;font-weight:700;color:#fff;
+                        background:#4B47C8;padding:10px 20px;border-radius:6px;text-decoration:none">
+                📅 Agendar llamada →
+              </a>
+            </div>
 
             <!-- Recursos del fabricante -->
             <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;
