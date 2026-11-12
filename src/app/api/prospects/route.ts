@@ -255,38 +255,66 @@ export async function POST(request: Request) {
 
       const fi = FRENTE_INFO[fronteId] ?? null;
 
-      // Buscar noticia dinámica via Bing News (fire & forget — se agrega si llega a tiempo)
+      // Buscar noticia dinámica via RSS de Malwarebytes (el propio fabricante ThreatDown)
+      // Fire & forget — si falla el fetch (timeout/red) cae silenciosamente al caso fijo
       let noticiaHtml = "";
       if (fi) {
         try {
-          const bingKey = process.env.BING_SEARCH_KEY ?? "";
-          if (bingKey) {
-            const q = encodeURIComponent(fi.newsQuery);
-            const nr = await fetch(
-              `https://api.bing.microsoft.com/v7.0/news/search?q=${q}&count=1&mkt=es-MX&freshness=Month`,
-              { headers: { "Ocp-Apim-Subscription-Key": bingKey }, signal: AbortSignal.timeout(4000) }
-            );
-            if (nr.ok) {
-              const nd = await nr.json() as { value?: { name: string; description: string; url: string; datePublished: string }[] };
-              const art = nd.value?.[0];
-              if (art) {
-                const fecha = new Date(art.datePublished).toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" });
-                noticiaHtml = `
-                  <div style="border:1px solid #e2e8f0;border-radius:8px;padding:14px 18px;margin:0 0 24px">
-                    <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">
-                      🗞️ Noticia reciente — ${fecha}
-                    </p>
-                    <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#162036;line-height:1.4">${art.name}</p>
-                    <p style="margin:0 0 10px;font-size:13px;color:#475569;line-height:1.5">${art.description.slice(0, 180)}…</p>
-                    <a href="${art.url}" target="_blank"
-                       style="font-size:12px;color:#1d4ed8;text-decoration:none;font-weight:600">
-                      Leer artículo completo →
-                    </a>
-                  </div>`;
-              }
+          const rssUrl = "https://www.malwarebytes.com/blog/feed";
+          const rr = await fetch(rssUrl, {
+            headers: { "User-Agent": "SynAppsSys-LeadApp/1.0" },
+            signal: AbortSignal.timeout(5000),
+          });
+          if (rr.ok) {
+            const xml = await rr.text();
+            // Extraer todos los <item> del feed
+            const items: { title: string; desc: string; link: string; pubDate: string }[] = [];
+            const itemRe = /<item>([\s\S]*?)<\/item>/g;
+            let m: RegExpExecArray | null;
+            while ((m = itemRe.exec(xml)) !== null) {
+              const block = m[1];
+              const getTag = (tag: string) => {
+                const t = new RegExp(`<${tag}[^>]*>(?:<\\!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, "i").exec(block);
+                return t ? t[1].trim() : "";
+              };
+              items.push({
+                title: getTag("title"),
+                desc: getTag("description"),
+                link: getTag("link"),
+                pubDate: getTag("pubDate"),
+              });
+            }
+            // Buscar el artículo más relevante para el frente usando palabras clave de newsQuery
+            const keywords = fi.newsQuery.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+            const scored = items.map(it => {
+              const hay = `${it.title} ${it.desc}`.toLowerCase();
+              const hits = keywords.reduce((n, kw) => n + (hay.includes(kw) ? 1 : 0), 0);
+              return { ...it, hits };
+            });
+            scored.sort((a, b) => b.hits - a.hits);
+            const art = scored[0]?.hits > 0 ? scored[0] : items[0]; // fallback al más reciente
+            if (art && art.title && art.link) {
+              const fechaStr = art.pubDate ? (() => {
+                try { return new Date(art.pubDate).toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" }); }
+                catch { return ""; }
+              })() : "";
+              // Limpiar HTML de descripción
+              const descClean = art.desc.replace(/<[^>]+>/g, "").replace(/&[a-z]+;/gi, " ").trim().slice(0, 180);
+              noticiaHtml = `
+                <div style="border:1px solid #e2e8f0;border-radius:8px;padding:14px 18px;margin:0 0 24px">
+                  <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">
+                    🗞️ Del blog de Malwarebytes${fechaStr ? ` — ${fechaStr}` : ""}
+                  </p>
+                  <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#162036;line-height:1.4">${art.title}</p>
+                  ${descClean ? `<p style="margin:0 0 10px;font-size:13px;color:#475569;line-height:1.5">${descClean}…</p>` : ""}
+                  <a href="${art.link}" target="_blank"
+                     style="font-size:12px;color:#1d4ed8;text-decoration:none;font-weight:600">
+                    Leer artículo completo →
+                  </a>
+                </div>`;
             }
           }
-        } catch { /* no bloquea */ }
+        } catch { /* no bloquea — el caso fijo siempre está */ }
       }
 
       const contextoHtml = fi ? `
