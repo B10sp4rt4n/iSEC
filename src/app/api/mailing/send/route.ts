@@ -23,12 +23,9 @@ const EXCLUDE_EMAILS = new Set([
   "b10sp4rt4n@gmail.com",
 ]);
 
-const ALWAYS_INCLUDE = [
-  { correo: "ecota@threatdown.com", nombre: "Estela Cota" },
-  { correo: "ecotae0@gmail.com", nombre: "Estela Cota" },
-];
+const ALWAYS_INCLUDE: { correo: string; nombre: string }[] = [];
 
-const SUMMARY_RECIPIENTS = ["ecotae0@gmail.com", "salvador.ruiz@synappssys.com"];
+const SUMMARY_RECIPIENTS = ["salvador.ruiz@synappssys.com"];
 const BATCH_SIZE = 5;
 
 const bodySchema = z.union([

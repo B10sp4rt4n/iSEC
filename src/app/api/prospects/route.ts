@@ -463,26 +463,23 @@ export async function POST(request: Request) {
               </table>
             </div>
 
-            <!-- Firma Estela Cota -->
+            <!-- Firma Salvador Ruiz -->
             <table cellpadding="0" cellspacing="0" style="font-size:13px;color:#1e293b;margin-bottom:24px">
               <tr>
                 <td style="padding-right:16px;vertical-align:top">
-                  <img src="https://registro.synappssys.com/logos/threatdown-logo.png"
-                       alt="ThreatDown" style="height:28px;display:block;margin-bottom:6px"/>
+                  <img src="https://registro.synappssys.com/logo-synappssys.png"
+                       alt="SynAppsSys" style="height:28px;display:block;margin-bottom:6px"/>
                 </td>
                 <td style="border-left:3px solid #162036;padding-left:16px;vertical-align:top">
-                  <p style="margin:0;font-weight:700;color:#162036">Estela Cota</p>
-                  <p style="margin:2px 0 0;color:#475569">Territory Channel Account Manager, LATAM</p>
+                  <p style="margin:0;font-weight:700;color:#162036">Salvador Ruiz</p>
+                  <p style="margin:2px 0 0;color:#475569">SynAppsSys · ThreatDown Partner Platinum</p>
                   <p style="margin:6px 0 0;color:#64748b">
-                    e: <a href="mailto:ecota@malwarebytes.com"
-                         style="color:#162036;text-decoration:none">ecota@malwarebytes.com</a>
+                    e: <a href="mailto:salvador.ruiz@synappssys.com"
+                         style="color:#162036;text-decoration:none">salvador.ruiz@synappssys.com</a>
                   </p>
                   <p style="margin:2px 0 0;color:#64748b">
-                    m: <a href="tel:+16198699089"
-                         style="color:#162036;text-decoration:none">+1 619 869 9089</a>
-                  </p>
-                  <p style="margin:2px 0 0;color:#94a3b8;font-size:11px">
-                    3979 Freedom Circle, 12th Floor, Santa Clara, CA 95054
+                    wa: <a href="https://wa.me/525514389292"
+                          style="color:#162036;text-decoration:none">+52 55 1438 9292</a>
                   </p>
                 </td>
               </tr>

@@ -27,9 +27,9 @@ const bodySchema = z.union([
 const CALENDLY   = "https://calendly.com/salvador-ruiz-synappssys";
 const FROM_NAME  = "iSEC Infosecurity";
 const SUBJECT    = "Tu EDR, ¿detectaría los 5 patrones del reporte?";
-const VALIDATOR_EMAIL = "ecotae0@gmail.com";
+const VALIDATOR_EMAIL = "salvador.ruiz@synappssys.com";
 const OWNER_EMAIL     = "salvador.ruiz@synappssys.com";
-const REPORT_RECIPIENTS = ["sruiz@synappssys.com", "ecotae0@gmail.com", "ecota@threatdown.com"];
+const REPORT_RECIPIENTS = ["salvador.ruiz@synappssys.com"];
 const EXCLUDE_EMAILS = new Set(["blanca.pech@netpay.com.mx"]);
 
 const CHANNEL_CARGOS = new Set([
@@ -212,22 +212,6 @@ function buildEmail2Html(nombre: string): string {
                        style="color:#0ea5e9;text-decoration:none">salvador.ruiz@synappssys.com</a>
                   </p>
 
-                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px">
-                    <tr>
-                      <td style="border-top:1px dashed #e2e8f0;font-size:0;line-height:0">&nbsp;</td>
-                    </tr>
-                  </table>
-
-                  <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#0f172a">
-                    Estela Cota
-                  </p>
-                  <p style="margin:0 0 2px;font-size:13px;color:#64748b">
-                    ThreatDown by Malwarebytes — Territory Channel Account Manager, LATAM
-                  </p>
-                  <p style="margin:0;font-size:12px;color:#0ea5e9">
-                    <a href="mailto:ecota@threatdown.com"
-                       style="color:#0ea5e9;text-decoration:none">ecota@threatdown.com</a>
-                  </p>
                 </td>
               </tr>
             </table>
