@@ -1,12 +1,8 @@
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Órbita SynAppsSys</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=Raleway:wght@400;500;600;700&display=swap">
 <style>
-/* Layout: título a la izquierda sobre una órbita de cinco frentes alrededor de "Tu gente"; escenarios debajo; lista de texto para móvil y buscadores. */
 :root{
   --bg:#F5F6FB; --panel:#FFFFFF; --ink:#15173F; --muted:#575B84; --line:#D3D6EE;
   --indigo:#4B47C8; --mint:#0E8F6E; --coral:#E4512E; --ring:#B9BCE4;
@@ -18,17 +14,22 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16p
 .wrap{max-width:1040px;margin:0 auto;display:grid;gap:28px}
 h1{font-family:var(--display);font-weight:600;font-size:clamp(34px,6vw,60px);line-height:1.04;margin:0;text-wrap:balance;max-width:20ch}
 .lead{color:var(--muted);max-width:52ch;margin:12px 0 0}
-.stage{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 8px 4px}
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:0;position:relative;overflow:hidden}
 svg{display:block;width:100%;height:auto}
+.tabs-overlay{position:absolute;top:12px;left:0;right:0;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding:0 12px;pointer-events:none}
+.tabs-overlay .tab{pointer-events:auto;font:600 13px var(--body);padding:7px 14px;min-height:36px}
 .ring{fill:none;stroke:var(--ring);stroke-width:1.4;stroke-dasharray:3 7}
-.ring.r1{animation:spin 90s linear infinite;transform-origin:400px 270px}
+.ring.r1{animation:spin 90s linear infinite;transform-origin:400px 255px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spoke{stroke:var(--ring);stroke-width:1.6;transition:stroke .3s}
 .spoke.on{stroke:var(--mint)}
 .node{cursor:pointer;outline:none}
-.node .disc{fill:var(--panel);stroke:var(--line);stroke-width:2;transition:stroke .3s,fill .3s}
+.node .disc{fill:var(--panel);stroke:var(--line);stroke-width:2;transition:stroke .3s,fill .3s,stroke-width .3s}
+.node.lit .disc{fill:var(--node-color,#4B47C8);stroke:var(--node-color,#4B47C8)}
+.node.lit .ico{stroke:#fff}
+.node.lit text,.node.lit tspan{fill:#fff}
 .node .ico{fill:none;stroke:var(--indigo);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.node text{font:600 20px var(--body);fill:var(--ink);text-anchor:middle;paint-order:stroke;stroke:var(--panel);stroke-width:6px}
+.node text{font:600 14px var(--body);fill:var(--ink);text-anchor:middle;paint-order:stroke;stroke:var(--panel);stroke-width:5px}
 .node:hover .disc,.node:focus-visible .disc{stroke:var(--indigo)}
 .node:focus-visible .disc{stroke-width:3.5}
 .node.sel .disc{stroke:var(--indigo);stroke-width:3.5}
@@ -36,20 +37,14 @@ svg{display:block;width:100%;height:auto}
 .node.ok .disc{stroke:var(--mint);stroke-width:4}
 .core .disc{fill:var(--bg);stroke:var(--indigo);stroke-width:2}
 .core .ico{stroke:var(--coral);stroke-width:2.2}
-.core text{font:700 20px var(--body);fill:var(--ink)}
+.core text{font:700 15px var(--body);fill:var(--ink)}
 #threat{fill:var(--coral)}
-.tabs{display:flex;gap:8px;flex-wrap:wrap}
 .tab{font:600 15px var(--body);color:var(--ink);background:var(--panel);border:1.5px solid var(--line);border-radius:999px;padding:10px 18px;cursor:pointer;min-height:44px}
 .tab:hover{border-color:var(--indigo)}
 .tab:focus-visible{outline:3px solid var(--indigo);outline-offset:2px}
 .tab[aria-pressed="true"]{background:var(--indigo);border-color:var(--indigo);color:#fff}
-.simlabel{font-size:14px;color:var(--muted);margin:0 0 10px}
-.cap{display:grid;gap:6px;border-left:4px solid var(--line);padding:2px 0 2px 16px;min-height:96px}
-.cap.alert{border-color:var(--coral)} .cap.ok{border-color:var(--mint)} .cap.info{border-color:var(--indigo)}
 .chip{font:700 13px var(--body);width:max-content;padding:2px 10px;border-radius:999px;border:1.5px solid currentColor}
 .chip.alert{color:var(--coral)} .chip.ok{color:var(--mint)} .chip.info{color:var(--indigo)}
-.cap h2{font:600 22px var(--display);margin:0}
-.cap p{margin:0;max-width:62ch;color:var(--muted)}
 .fronts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px 28px;margin:0;padding:20px 0 0;list-style:none;border-top:1px solid var(--line)}
 .fronts li{min-width:0}
 .fronts b{display:block;font:600 18px var(--display);margin-bottom:2px}
@@ -59,16 +54,8 @@ svg{display:block;width:100%;height:auto}
 .cta:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 .note{font-size:14px;color:var(--muted);margin:0}
 @media (prefers-reduced-motion:reduce){.ring.r1{animation:none}}
-@media (max-width:480px){
-  .tab{font-size:13px;padding:8px 14px;min-height:38px}
-  .cap h2{font-size:18px}
-  .fronts{grid-template-columns:1fr;gap:14px}
-  .cta{font-size:14px;padding:11px 20px}
-}
 </style>
 
-</head>
-<body>
 <div class="wrap">
   <header>
     <h1>Tu gente, en el centro. Todo conectado. Todo por cuidar.</h1>
@@ -76,35 +63,41 @@ svg{display:block;width:100%;height:auto}
   </header>
 
   <div class="stage">
-    <svg viewBox="0 0 800 570" role="img" aria-label="Cinco frentes de protección alrededor de las personas de la empresa: Equipo, Identidad, Correo, Red y DNS, y Uso de IA.">
+    <div class="tabs-overlay" id="tabs"></div>
+    <svg viewBox="0 0 800 620" role="img" aria-label="Cinco frentes de protección alrededor de las personas de la empresa: Equipo, Identidad, Correo, Red y DNS, y Uso de IA.">
       <g id="rings">
-        <ellipse class="ring r1" cx="400" cy="270" rx="150" ry="96"/>
-        <ellipse class="ring" cx="400" cy="270" rx="230" ry="150"/>
-        <ellipse class="ring" cx="400" cy="270" rx="310" ry="205"/>
+        <ellipse class="ring r1" cx="400" cy="255" rx="140" ry="88"/>
+        <ellipse class="ring" cx="400" cy="255" rx="215" ry="138"/>
+        <ellipse class="ring" cx="400" cy="255" rx="290" ry="190"/>
       </g>
       <g id="spokes"></g>
       <g id="nodes"></g>
       <circle id="threat" r="9" cx="-50" cy="-50" opacity="0"/>
-      <g class="node core" transform="translate(400 270)" aria-hidden="true">
-        <circle class="disc" r="64"/>
-        <g class="ico" transform="translate(-24 -44) scale(2)"><path d="M12 11a3.5 3.5 0 1 0 0-7a3.5 3.5 0 0 0 0 7z"/><path d="M5 21c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/></g>
-        <text y="40">Tu gente</text>
+      <g class="node core" transform="translate(400 255)" aria-hidden="true">
+        <circle class="disc" r="58"/>
+        <g class="ico" transform="translate(-22 -40) scale(1.83)"><path d="M12 11a3.5 3.5 0 1 0 0-7a3.5 3.5 0 0 0 0 7z"/><path d="M5 21c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/></g>
+        <text y="36">Tu gente</text>
+      </g>
+      <!-- Descripción contextual dentro de la ventana de órbita -->
+      <g id="descbox">
+        <rect id="desc-bg" x="50" y="568" width="700" height="42" rx="10" fill="white" stroke="#D3D6EE" stroke-width="1.4"/>
+        <foreignObject x="60" y="572" width="680" height="36">
+          <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;align-items:center;gap:10px;height:36px;overflow:hidden">
+            <span id="desc-chip" style="font:700 10px 'Raleway',sans-serif;letter-spacing:1.2px;color:#4B47C8;white-space:nowrap">INFO</span>
+            <span id="desc-text" style="font:400 12px 'Raleway',sans-serif;color:#575B84;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">Presiona sobre cada nodo para ver el detalle del frente.</span>
+          </div>
+        </foreignObject>
       </g>
     </svg>
   </div>
 
-  <section aria-labelledby="simh">
-    <p class="simlabel" id="simh">Escenarios simulados</p>
-    <div class="tabs" id="tabs"></div>
-  </section>
-  <div class="cap info" id="cap" aria-live="polite"></div>
 
   <ul class="fronts" aria-label="Los cinco frentes">
-    <li><b>Equipo</b><span>EDR y MDR 24/7 con ThreatDown en laptops y servidores con Windows, macOS y Linux.</span></li>
-    <li><b>Identidad</b><span>ITDR sobre Active Directory, Entra ID y Okta. Disponible según paquete.</span></li>
-    <li><b>Correo</b><span>Email Security para Microsoft 365 y Google Workspace. Disponible según paquete.</span></li>
-    <li><b>Uso de IA</b><span>Vemos quién usa qué herramientas de IA y bloqueamos la aplicación cuando haga falta. La protección de los datos que se comparten llegará próximamente.</span></li>
-    <li><b>Red y DNS</b><span>Fortinet (Partner certificado) para firewall y segmentación, e Infoblox para seguridad y control de DNS.</span></li>
+    <li><b>Equipo</b><span>Protección continua en laptops, escritorios y servidores. Detección y respuesta ante amenazas las 24 horas.</span></li>
+    <li><b>Identidad</b><span>Monitoreo de cuentas y accesos corporativos. Alerta cuando una credencial es usada de forma inusual.</span></li>
+    <li><b>Correo</b><span>Filtrado de mensajes maliciosos antes de que lleguen al usuario. Compatible con las principales plataformas.</span></li>
+    <li><b>Red y DNS</b><span>Control del tráfico de red y protección a nivel DNS. Bloquea conexiones no autorizadas antes de que salgan datos.</span></li>
+    <li><b>Uso de IA</b><span>Visibilidad sobre las herramientas de IA que usa su equipo. Permite tomar decisiones informadas sobre su uso.</span></li>
   </ul>
   <a class="cta" href="https://calendly.com/salvador-ruiz-synappssys" target="_blank" rel="noopener">Agenda una llamada</a>
   <p class="note">Los escenarios son simulaciones ilustrativas, no detecciones de un cliente real.</p>
@@ -112,7 +105,7 @@ svg{display:block;width:100%;height:auto}
 
 <script>
 (function(){
-  var NS='http://www.w3.org/2000/svg', C={x:400,y:270};
+  var NS='http://www.w3.org/2000/svg', C={x:400,y:255};
   var ICON={
     equipo:['M4 6h16v10H4z','M2 19h20'],
     identidad:['M12 4a7 7 0 0 0-7 7v3','M12 8a3 3 0 0 0-3 3v5','M12 4a7 7 0 0 1 7 7v2','M12 12v6','M16 11v6','M8 15v3'],
@@ -121,62 +114,95 @@ svg{display:block;width:100%;height:auto}
     red:['M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z','M3 12h18','M12 3c3 3 3 15 0 18','M12 3c-3 3-3 15 0 18']
   };
   var FRONTS=[
-    {id:'equipo',name:'Equipo',a:-126,t:'EDR y MDR 24/7 con ThreatDown en laptops y servidores con Windows, macOS y Linux.'},
-    {id:'identidad',name:'Identidad',a:-54,t:'ITDR sobre Active Directory, Entra ID y Okta. Disponible según paquete.'},
-    {id:'correo',name:'Correo',a:18,t:'Email Security para Microsoft 365 y Google Workspace. Disponible según paquete.'},
-    {id:'red',name:'Red y DNS',a:90,t:'Fortinet (Partner certificado) para firewall y segmentación, e Infoblox para seguridad y control de DNS.'},
-    {id:'ia',name:'Uso de IA',a:162,t:'Vemos quién usa qué herramientas de IA y bloqueamos la aplicación cuando haga falta. La protección de los datos que se comparten llegará próximamente.'}
+    {id:'equipo',  name:'Equipo',    a:-126, color:'#E4512E', t:'Protección continua en laptops, escritorios y servidores. Detección y respuesta ante amenazas las 24 horas.'},
+    {id:'identidad',name:'Identidad',a:-54,  color:'#7C3AED', t:'Monitoreo de cuentas y accesos corporativos. Alerta cuando una credencial es usada de forma inusual o comprometida.'},
+    {id:'correo',  name:'Correo',    a:18,   color:'#0E8F6E', t:'Filtrado de mensajes maliciosos antes de que lleguen al usuario. Compatible con las principales plataformas de correo.'},
+    {id:'red',     name:'Red y DNS', a:90,   color:'#0369A1', t:'Control del tráfico de red y protección a nivel DNS. Bloquea conexiones no autorizadas antes de que salgan datos.'},
+    {id:'ia',      name:'Uso de IA', a:162,  color:'#B45309', t:'Visibilidad sobre las herramientas de IA que usa su equipo. Permite tomar decisiones informadas sobre su uso.'}
   ];
   var SCEN=[
-    {label:'Llega un correo',front:'correo',chip:'Contenido',kind:'ok',title:'Un enlace sospechoso llega a un buzón',text:'Email Security lo detecta y lo aísla antes de que alguien haga clic. Disponible según paquete.'},
-    {label:'Alguien inicia sesión',front:'identidad',chip:'Alertado',kind:'ok',title:'Una cuenta válida entra desde un lugar inusual',text:'ITDR vigila Active Directory, Entra ID y Okta, y avisa del abuso de la credencial. Disponible según paquete.'},
-    {label:'Se usa una IA',front:'ia',chip:'Visible',kind:'info',title:'Alguien abre una herramienta de IA no autorizada',text:'Vemos quién usó la herramienta y cuál fue, y podemos bloquear esa aplicación. La protección de datos llegará próximamente.'}
+    {label:'Equipo infectado',  front:'equipo',    chip:'BLOQUEADO', title:'Malware detectado en un equipo de trabajo',                         text:'El agente de protección lo aísla en segundos y alerta al equipo de respuesta antes de que se propague.'},
+    {label:'Credencial robada', front:'identidad', chip:'ALERTA',    title:'Una cuenta corporativa accede desde un país inusual',                text:'El sistema detecta el comportamiento anómalo, bloquea la sesión y notifica al administrador de inmediato.'},
+    {label:'Correo malicioso',  front:'correo',    chip:'DETENIDO',  title:'Un enlace de phishing llega al buzón de un empleado',               text:'El filtro intercepta el mensaje antes de que llegue a la bandeja de entrada y lo pone en cuarentena.'},
+    {label:'Tráfico sospechoso',front:'red',       chip:'BLOQUEADO', title:'Un dispositivo intenta conectarse a un servidor externo desconocido',text:'La protección de red detecta el intento y lo corta antes de que salgan datos.'},
+    {label:'IA no autorizada',  front:'ia',        chip:'VISIBLE',   title:'Un colaborador usa una herramienta de IA externa sin registro',       text:'El sistema identifica el uso y lo registra para que el equipo de TI evalúe el riesgo y tome acción.'}
   ];
+  var KINDCOLOR={alert:'#E4512E',ok:'#0E8F6E',info:'#4B47C8'};
+  var FRONTCOLOR={};
+  FRONTS.forEach(function(f){FRONTCOLOR[f.id]=f.color});
   var pos={}, el={}, running=0;
   function mk(n,a,p){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
   var spokes=document.getElementById('spokes'), nodes=document.getElementById('nodes');
   FRONTS.forEach(function(f){
-    var r=f.a*Math.PI/180, x=Math.round(C.x+310*Math.cos(r)), y=Math.round(C.y+205*Math.sin(r));
+    var r=f.a*Math.PI/180, x=Math.round(C.x+290*Math.cos(r)), y=Math.round(C.y+190*Math.sin(r));
     pos[f.id]={x:x,y:y};
-    el[f.id]={spoke:mk('line',{class:'spoke',x1:C.x,y1:C.y,x2:x,y2:y},spokes)};
+    var spk=mk('line',{class:'spoke',x1:C.x,y1:C.y,x2:x,y2:y},spokes);
+    el[f.id]={spoke:spk};
     var g=mk('g',{class:'node',transform:'translate('+x+' '+y+')',tabindex:0,role:'button','aria-label':f.name+': '+f.t},nodes);
-    mk('circle',{class:'disc',r:34},g);
-    var ic=mk('g',{class:'ico',transform:'translate(-17 -17) scale(1.42)'},g);
+    var disc=mk('circle',{class:'disc',r:30},g);
+    el[f.id].disc=disc;
+    var ic=mk('g',{class:'ico',transform:'translate(-15 -15) scale(1.25)'},g);
     ICON[f.id].forEach(function(d){mk('path',{d:d},ic)});
-    var tx=mk('text',{y:62},g); tx.textContent=f.name;
-    el[f.id].node=g;
+    var words=f.name.split(' '), tx;
+    if(words.length===1){
+      tx=mk('text',{y:50},g); tx.textContent=f.name;
+    } else {
+      tx=mk('text',{y:44},g);
+      var t1=mk('tspan',{'x':'0','dy':'0'},tx); t1.textContent=words[0];
+      var t2=mk('tspan',{'x':'0','dy':'16'},tx); t2.textContent=words.slice(1).join(' ');
+    }
+    el[f.id].node=g; el[f.id].ico=ic; el[f.id].label=tx; el[f.id].disc=disc;
     g.addEventListener('click',function(){selectFront(f.id)});
     g.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();selectFront(f.id)}});
   });
-  var tabs=document.getElementById('tabs'), cap=document.getElementById('cap'), threat=document.getElementById('threat');
+  var tabs=document.getElementById('tabs'), threat=document.getElementById('threat');
   SCEN.forEach(function(s,i){
     var b=document.createElement('button');b.className='tab';b.type='button';b.textContent=s.label;b.id='tab'+i;
     b.addEventListener('click',function(){play(i,true)});tabs.appendChild(b);s.btn=b;
   });
-  function clearState(){
-    FRONTS.forEach(function(f){el[f.id].node.classList.remove('sel','alert','ok');el[f.id].spoke.classList.remove('on')});
-    threat.setAttribute('opacity','0');
+  function updateDesc(frontId,chip,title){
+    var dt=document.getElementById('desc-text'), dc=document.getElementById('desc-chip'), db=document.getElementById('desc-bg');
+    var color=FRONTCOLOR[frontId]||'#4B47C8';
+    if(dt){dt.textContent=title; dt.style.color=color;}
+    if(dc){dc.textContent=chip||'INFO'; dc.style.color=color;}
+    if(db){db.setAttribute('stroke',color); db.setAttribute('stroke-width','2');}
   }
-  function showCap(kind,chip,title,text){
-    cap.className='cap '+kind;
-    cap.innerHTML='';
-    if(chip){var c=document.createElement('span');c.className='chip '+kind;c.textContent=chip;cap.appendChild(c)}
-    var h=document.createElement('h2');h.textContent=title;cap.appendChild(h);
-    var p=document.createElement('p');p.textContent=text;cap.appendChild(p);
+  function resetDesc(){
+    var dt=document.getElementById('desc-text'), dc=document.getElementById('desc-chip'), db=document.getElementById('desc-bg');
+    if(dt){dt.textContent='Presiona sobre cada nodo para ver el detalle del frente.'; dt.style.color='#575B84';}
+    if(dc){dc.textContent='INFO'; dc.style.color='#4B47C8';}
+    if(db){db.setAttribute('stroke','#D3D6EE'); db.setAttribute('stroke-width','1.4');}
+  }
+  function clearState(){
+    FRONTS.forEach(function(f){
+      el[f.id].node.classList.remove('sel','alert','ok','lit');
+      el[f.id].spoke.classList.remove('on');
+      el[f.id].spoke.setAttribute('stroke','var(--ring)');
+    });
+    threat.setAttribute('opacity','0');
+    resetDesc();
+  }
+  function colorNode(id){
+    var color=FRONTCOLOR[id]||'#4B47C8';
+    el[id].node.style.setProperty('--node-color',color);
+    el[id].node.classList.add('lit');
+    el[id].spoke.setAttribute('stroke',color);
+    el[id].spoke.classList.add('on');
   }
   function selectFront(id){
     running++; clearState();
     SCEN.forEach(function(s){s.btn.setAttribute('aria-pressed','false')});
     var f=FRONTS.filter(function(x){return x.id===id})[0];
-    el[id].node.classList.add('sel');el[id].spoke.classList.add('on');
-    showCap('info','',f.name,f.t);
+    el[id].node.classList.add('sel');
+    colorNode(id);
+    updateDesc(id,'FRENTE',f.t);
   }
   function settle(i){
     var s=SCEN[i];
     clearState();
-    el[s.front].node.classList.add(s.kind==='ok'?'ok':'sel');
-    el[s.front].spoke.classList.add('on');
-    showCap(s.kind,s.chip,s.title,s.text);
+    el[s.front].node.classList.add('sel');
+    colorNode(s.front);
+    updateDesc(s.front,s.chip,s.text);
   }
   function play(i,animate){
     var s=SCEN[i], token=++running;
@@ -185,7 +211,7 @@ svg{display:block;width:100%;height:auto}
     var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
     if(!animate||reduce){settle(i);return}
     var t=pos[s.front], sx=C.x+(t.x-C.x)*1.28, sy=C.y+(t.y-C.y)*1.28;
-    showCap('alert','En curso',s.title,'Simulando el escenario…');
+    updateDesc(s.front,'EN CURSO',s.title);
     threat.setAttribute('opacity','1');
     var t0=null, dur=1300;
     function step(ts){
@@ -204,5 +230,5 @@ svg{display:block;width:100%;height:auto}
   play(0,false);
 })();
 </script>
-</body>
-</html>
+
+</body></html>
