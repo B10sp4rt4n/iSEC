@@ -164,9 +164,11 @@ export default function LeadForm() {
 
   return (
     <form onSubmit={onSubmit} className="card rounded-3xl p-6 md:p-8">
-      <h1 className="title-font mb-2 text-3xl font-bold">Registro de contacto</h1>
-      <p className="mb-6 text-sm text-slate-700">
-        Completa tus datos para continuar la conversacion despues del evento.
+      <h1 className="title-font mb-2 text-2xl font-bold" style={{ color: "#1a1a3e" }}>
+        Continúa la conversación
+      </h1>
+      <p className="mb-6 text-sm" style={{ color: "#6b6fa8" }}>
+        Déjanos tus datos y te enviamos información relevante para tu empresa.
       </p>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -263,7 +265,7 @@ export default function LeadForm() {
             <span className="text-xs text-red-600">{emailError}</span>
           )}
           {emailValid === true && (
-            <span className="text-xs text-emerald-600">✓ Correo empresarial válido</span>
+            <span className="text-xs" style={{ color: "#5b5fc7", fontWeight: 600 }}>✓ Correo empresarial válido</span>
           )}
         </label>
 

@@ -1,94 +1,108 @@
 @import "tailwindcss";
 
+/* ── SynAppsSys brand tokens ─────────────────────────────────────────────── */
 :root {
-  --background: #f7f4ec;
-  --foreground: #162036;
-  --surface: #fffdf8;
-  --surface-strong: #f0eadf;
-  --accent: #0a8f79;
-  --accent-strong: #066d5c;
-  --ring: rgba(10, 143, 121, 0.26);
+  --background: #f4f6fb;
+  --foreground: #1a1a3e;
+  --surface: #ffffff;
+  --surface-strong: #eef0f8;
+  --accent: #5b5fc7;
+  --accent-strong: #4448a8;
+  --accent-coral: #e85d2f;
+  --ring: rgba(91, 95, 199, 0.22);
+  --border: #d6d9ee;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Manrope", sans-serif;
-  --font-mono: "Space Grotesk", sans-serif;
+  --font-sans: "Inter", sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "Manrope", sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
+/* ── Page background — limpio con sutil gradiente indigo ─────────────────── */
 .mesh-bg {
-  background-image:
-    radial-gradient(circle at 10% 10%, #fff1bf 0%, transparent 36%),
-    radial-gradient(circle at 90% 12%, #b7f3e8 0%, transparent 34%),
-    linear-gradient(145deg, #f8f5ee 0%, #eae4d5 100%);
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(91, 95, 199, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, rgba(232, 93, 47, 0.05) 0%, transparent 45%),
+    #f4f6fb;
 }
 
+/* ── Card ────────────────────────────────────────────────────────────────── */
 .card {
   background: var(--surface);
-  border: 1px solid #ddd4c2;
-  box-shadow: 0 10px 30px rgba(22, 32, 54, 0.08);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 24px rgba(26, 26, 62, 0.07), 0 1px 4px rgba(26, 26, 62, 0.04);
 }
 
 .title-font {
   font-family: "Space Grotesk", sans-serif;
 }
 
+/* ── Form fields ─────────────────────────────────────────────────────────── */
 .field {
   width: 100%;
-  border-radius: 0.75rem;
-  border: 1px solid #cfc2ab;
-  background: #fff;
-  padding: 0.68rem 0.85rem;
-  font-size: 0.95rem;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  border-radius: 0.625rem;
+  border: 1.5px solid var(--border);
+  background: #fafbff;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.925rem;
+  color: var(--foreground);
+  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
 }
 
 .field:focus {
   outline: none;
   border-color: var(--accent);
+  background: #fff;
   box-shadow: 0 0 0 4px var(--ring);
 }
 
+/* ── Primary button ──────────────────────────────────────────────────────── */
 .btn-primary {
-  border-radius: 0.75rem;
+  border-radius: 0.625rem;
   background: var(--accent);
   color: #fff;
   font-weight: 700;
-  transition: transform 160ms ease, background 160ms ease;
+  letter-spacing: 0.01em;
+  transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
 
 .btn-primary:hover {
   background: var(--accent-strong);
   transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(91, 95, 199, 0.3);
 }
 
-/* Radio option rows for scoring questions */
+/* ── Radio option rows ───────────────────────────────────────────────────── */
 .radio-option {
   display: flex;
   align-items: center;
   gap: 0.625rem;
   width: 100%;
-  padding: 0.6rem 0.85rem;
-  border-radius: 0.75rem;
-  border: 1px solid #cfc2ab;
-  background: #fff;
+  padding: 0.6rem 0.9rem;
+  border-radius: 0.625rem;
+  border: 1.5px solid var(--border);
+  background: #fafbff;
   cursor: pointer;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+  text-align: left;
 }
 
 .radio-option:hover {
   border-color: var(--accent);
+  background: #fff;
 }
 
 .radio-option--selected {
   border-color: var(--accent);
+  background: #fff;
   box-shadow: 0 0 0 3px var(--ring);
 }
 
@@ -96,7 +110,7 @@ body {
   width: 1rem;
   height: 1rem;
   border-radius: 9999px;
-  border: 2px solid #cfc2ab;
+  border: 2px solid var(--border);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -115,18 +129,19 @@ body {
   background: var(--accent);
 }
 
+/* ── Score badge ─────────────────────────────────────────────────────────── */
 .score-badge {
   font-size: 0.7rem;
   font-weight: 700;
   padding: 0.15rem 0.5rem;
   border-radius: 9999px;
-  background: #f0eadf;
-  color: #6b5e4a;
+  background: var(--surface-strong);
+  color: #6b6fa8;
   flex-shrink: 0;
   transition: background 150ms ease, color 150ms ease;
 }
 
 .score-badge--selected {
-  background: rgba(10, 143, 121, 0.14);
+  background: rgba(91, 95, 199, 0.12);
   color: var(--accent-strong);
 }
