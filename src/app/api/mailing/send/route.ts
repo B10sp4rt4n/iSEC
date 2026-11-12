@@ -93,6 +93,7 @@ export async function POST(request: Request) {
   const all = (await sql`
     SELECT id, nombre, correo, cargo
     FROM event_prospects
+    WHERE acepta_comunicaciones = TRUE
     ORDER BY created_at ASC
   `) as ProspectRow[];
 

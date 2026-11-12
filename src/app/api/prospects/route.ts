@@ -94,6 +94,7 @@ const leadSchema = z.object({
   pregunta_cerrada_2: z.string().trim().min(1).max(80),
   dolor_reto: z.string().trim().min(1).max(1000),
   contexto_orbita: z.string().trim().max(200).optional().or(z.literal("")),
+  acepta_comunicaciones: z.boolean().optional().default(false),
 });
 
 export async function POST(request: Request) {
@@ -148,7 +149,8 @@ export async function POST(request: Request) {
         pregunta_cerrada_1,
         pregunta_cerrada_2,
         dolor_reto,
-        contexto_orbita
+        contexto_orbita,
+        acepta_comunicaciones
       )
       VALUES (
         ${prospectId},
@@ -160,7 +162,8 @@ export async function POST(request: Request) {
         ${parsed.data.pregunta_cerrada_1},
         ${parsed.data.pregunta_cerrada_2},
         ${parsed.data.dolor_reto},
-        ${parsed.data.contexto_orbita || null}
+        ${parsed.data.contexto_orbita || null},
+        ${parsed.data.acepta_comunicaciones ?? false}
       )
       RETURNING id, folio;
     `;

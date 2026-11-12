@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS event_prospects (
   pregunta_cerrada_2 VARCHAR(80) NOT NULL,
   dolor_reto TEXT NOT NULL,
   contexto_orbita VARCHAR(200),
+  acepta_comunicaciones BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
