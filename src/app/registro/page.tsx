@@ -1,3 +1,4 @@
+import Image from "next/image";
 import LeadForm from "@/components/lead-form";
 
 export default function RegistroPage() {
@@ -8,20 +9,19 @@ export default function RegistroPage() {
         background: "#fff",
         borderBottom: "1px solid #d6d9ee",
         padding: "0 1.5rem",
-        height: "56px",
+        height: "60px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
       }}>
-        <span style={{
-          fontFamily: "'Space Grotesk', sans-serif",
-          fontWeight: 700,
-          fontSize: "1.15rem",
-          color: "#1a1a3e",
-          letterSpacing: "-0.01em",
-        }}>
-          Syn<span style={{ color: "#5b5fc7" }}>Apps</span>Sys
-        </span>
+        <Image
+          src="/logo-synappssys.png"
+          alt="SynAppsSys"
+          width={148}
+          height={42}
+          style={{ objectFit: "contain" }}
+          priority
+        />
         <span style={{
           fontSize: "0.75rem",
           fontWeight: 600,

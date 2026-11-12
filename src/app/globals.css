@@ -6,10 +6,12 @@
   --foreground: #1a1a3e;
   --surface: #ffffff;
   --surface-strong: #eef0f8;
-  --accent: #5b5fc7;
-  --accent-strong: #4448a8;
+  --accent: #2563eb;
+  --accent-teal: #0d9488;
+  --accent-purple: #7c3aed;
+  --accent-strong: #1d4ed8;
   --accent-coral: #e85d2f;
-  --ring: rgba(91, 95, 199, 0.22);
+  --ring: rgba(37, 99, 235, 0.2);
   --border: #d6d9ee;
 }
 
