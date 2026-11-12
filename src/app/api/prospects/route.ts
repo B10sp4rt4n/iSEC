@@ -485,27 +485,6 @@ export async function POST(request: Request) {
               </tr>
             </table>
 
-            <hr style="border:none;border-top:1px solid #e2e8f0;margin:0 0 20px"/>
-
-            <!-- Sorteo -->
-            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;
-                        padding:16px 20px;margin:20px 0">
-              <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#1d4ed8">
-                🎟️ Ya estás inscrito en el sorteo
-              </p>
-              <p style="margin:0 0 10px;font-size:13px;color:#1e3a5f;line-height:1.5">
-                Con tu registro participas automáticamente en el sorteo del evento
-                <strong>iSEC Infosecurity</strong>. Rifamos <strong>4 premios</strong>
-                (1°, 2°, 3° y 4° lugar). El ganador se anunciará durante la sesión.
-                ¡Buena suerte!
-              </p>
-              <div style="background:#162036;border-radius:8px;padding:14px 20px;text-align:center">
-                <p style="margin:0;font-size:11px;color:#94a3b8;text-transform:uppercase;
-                           letter-spacing:.08em;font-weight:600">Tu folio de participación</p>
-                <p style="margin:6px 0 0;font-size:32px;font-weight:800;color:#ffffff;
-                           letter-spacing:.1em">#${folio}</p>
-              </div>
-            </div>
           </div>
         `,
       }).catch((err: unknown) => console.error("Resend error:", err));
