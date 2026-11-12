@@ -33,25 +33,26 @@ type ClosedQuestion = {
 };
 
 const PREGUNTA_CERRADA_1: ClosedQuestion = {
-  label: "1. ¿Qué riesgo te preocupa más en tu empresa?",
+  label: "1. ¿Cuál de estos frentes representa el mayor riesgo no resuelto en tu empresa hoy?",
   name: "pregunta_cerrada_1",
   maxScore: 10,
   options: [
-    { value: "ransomware",  label: "Ransomware",                            score: 10 },
-    { value: "phishing",    label: "Phishing o correo malicioso",           score: 8  },
-    { value: "visibilidad", label: "Falta de visibilidad sobre equipos",    score: 5  },
-    { value: "navegacion",  label: "Navegación o acceso a sitios riesgosos", score: 3 },
+    { value: "equipo",     label: "Equipos infectados o con malware activo",          score: 10 },
+    { value: "identidad",  label: "Credenciales robadas o cuentas comprometidas",     score: 9  },
+    { value: "correo",     label: "Phishing y correos maliciosos que llegan al inbox", score: 8  },
+    { value: "ia",         label: "IA o apps no autorizadas usadas por el equipo",    score: 7  },
   ],
 };
 
 const PREGUNTA_CERRADA_2: ClosedQuestion = {
-  label: "2. ¿Tu empresa tiene forma de detectar qué pasó dentro de un equipo cuando ocurre algo sospechoso?",
+  label: "2. Si hoy ocurriera un incidente, ¿tu equipo podría detectarlo antes de que se propague?",
   name: "pregunta_cerrada_2",
   maxScore: 10,
   options: [
-    { value: "no",        label: "No",               score: 10 },
-    { value: "no_seguro", label: "No estoy seguro",   score: 7  },
-    { value: "si",        label: "Sí",                score: 2  },
+    { value: "no",        label: "No — no tenemos visibilidad en tiempo real",  score: 10 },
+    { value: "no_seguro", label: "No estoy seguro — dependemos de alertas tardías", score: 7  },
+    { value: "parcial",   label: "Parcialmente — solo en algunos equipos o sistemas", score: 4 },
+    { value: "si",        label: "Sí — tenemos detección activa y respuesta",   score: 1  },
   ],
 };
 
@@ -295,7 +296,7 @@ export default function LeadForm() {
         />
 
         <label className="space-y-1 text-sm font-medium">
-          3. Cuando evalúan ciberseguridad, ¿qué pesa más para ustedes?
+          3. ¿Qué es lo que más complica proteger a tu empresa hoy?
           <select
             required
             name="dolor_reto"
@@ -304,10 +305,11 @@ export default function LeadForm() {
             className="field"
           >
             <option value="">Selecciona una opción</option>
-            <option value="prevenir">Prevenir incidentes</option>
-            <option value="visibilidad_control">Tener visibilidad y control</option>
-            <option value="reducir_carga">Reducir carga operativa al equipo</option>
-            <option value="cumplimiento">Cumplimiento o tranquilidad para dirección</option>
+            <option value="sin_visibilidad">No tenemos visibilidad de lo que pasa en equipos y red</option>
+            <option value="identidad_descontrolada">Gestionar accesos e identidades es caótico</option>
+            <option value="usuarios_riesgo">Los usuarios son el eslabón débil — correo y phishing</option>
+            <option value="ia_shadow">No sabemos qué herramientas de IA usa nuestro equipo</option>
+            <option value="carga_ops">El equipo de TI está saturado, no hay tiempo de responder</option>
           </select>
         </label>
       </div>
