@@ -177,65 +177,174 @@ export async function POST(request: Request) {
       // Personalización por frente/escenario
       const contexto = parsed.data.contexto_orbita ?? "";
       const [fronteId, escenario] = contexto.split("|");
-      const FRENTE_INFO: Record<string, { nombre: string; color: string; tagline: string; beneficio: string; datasheet: string; dsLabel: string }> = {
-        equipo:    { nombre: "Equipo",    color: "#E4512E", tagline: "Protección en endpoints — 24/7, sin intervención manual", beneficio: "ThreatDown EDR detecta, aísla y remedia amenazas en laptops y servidores antes de que se propaguen.", datasheet: "https://www.threatdown.com/wp-content/uploads/2024/04/TD_EDR_Datasheet_v2.pdf",         dsLabel: "ThreatDown EDR — Datasheet" },
-        identidad: { nombre: "Identidad", color: "#7C3AED", tagline: "Monitoreo de accesos y detección de credenciales comprometidas", beneficio: "Cuando una cuenta corporativa se usa desde un lugar inusual, el sistema la bloquea y notifica de inmediato.", datasheet: "https://www.threatdown.com/products-bundles/", dsLabel: "Bundles ThreatDown — Gestión de Identidad" },
-        correo:    { nombre: "Correo",    color: "#0E8F6E", tagline: "Filtrado de phishing antes de que llegue al buzón", beneficio: "ThreatDown Email Security intercepta mensajes maliciosos y suplantaciones antes de que el usuario los vea.", datasheet: "https://www.threatdown.com/wp-content/uploads/2025/07/TD_Email_Security_Datasheet.pdf",    dsLabel: "ThreatDown Email Security — Datasheet" },
-        red:       { nombre: "Red y DNS", color: "#0369A1", tagline: "Control del tráfico y bloqueo a nivel DNS", beneficio: "Protección de red corta conexiones no autorizadas antes de que salgan datos, sin importar desde dónde se conecte el equipo.", datasheet: "https://www.threatdown.com/products-bundles/",                                               dsLabel: "Bundles ThreatDown — Protección de Red" },
-        ia:        { nombre: "Uso de IA", color: "#B45309", tagline: "Visibilidad sobre herramientas de IA no autorizadas", beneficio: "El sistema registra qué herramientas de IA usa cada equipo y te da contexto para tomar decisiones informadas sobre riesgo.", datasheet: "https://www.threatdown.com/wp-content/uploads/2025/11/TD_MDR_Datasheet.pdf",             dsLabel: "ThreatDown MDR — Datasheet" },
+
+      type FrenteInfo = {
+        nombre: string; color: string;
+        subject: string;        // consultivo, ligado al escenario
+        intro: string;          // 1ª frase del email
+        casoTitulo: string;     // título del caso de impacto real
+        casoTexto: string;      // narrativa del caso (2-3 líneas)
+        casoUrl: string;        // link al caso/blog ThreatDown
+        ctaTexto: string;       // texto del botón assessment
+        newsQuery: string;      // query para buscar noticia dinámica
+        datasheet: string; dsLabel: string;
       };
+
+      const FRENTE_INFO: Record<string, FrenteInfo> = {
+        equipo: {
+          nombre: "Endpoints", color: "#E4512E",
+          subject: `${escenario || "Equipo infectado"}: así se detiene antes de propagarse`,
+          intro: "Viste cómo un endpoint comprometido puede paralizar una operación entera. No es un escenario hipotético.",
+          casoTitulo: "Caso real: ransomware detenido en 8 segundos",
+          casoTexto: "Una empresa manufacturera con 200 equipos sufrió una infección de LockBit. ThreatDown EDR aisló el equipo afectado automáticamente antes de que el ransomware llegara a compartir red. Cero archivos cifrados en el resto de la organización.",
+          casoUrl: "https://www.threatdown.com/resources/case-studies/",
+          ctaTexto: "Evalúa tus endpoints con SynAppsSys →",
+          newsQuery: "ransomware empresas México 2026 endpoint ataque",
+          datasheet: "https://www.threatdown.com/wp-content/uploads/2024/04/TD_EDR_Datasheet_v2.pdf",
+          dsLabel: "ThreatDown EDR — Datasheet",
+        },
+        identidad: {
+          nombre: "Identidad y Accesos", color: "#7C3AED",
+          subject: `${escenario || "Credencial comprometida"}: una cuenta robada puede costar millones`,
+          intro: "El 80% de las brechas empieza con una credencial comprometida. Lo que viste en la órbita pasa todos los días.",
+          casoTitulo: "Caso real: acceso anómalo detectado a las 2 AM",
+          casoTexto: "Un director financiero de una firma de servicios tuvo su cuenta de Microsoft 365 usada desde Ucrania fuera de horario. ThreatDown detectó el comportamiento inusual, bloqueó la sesión y notificó al equipo de TI en menos de 3 minutos.",
+          casoUrl: "https://www.threatdown.com/resources/",
+          ctaTexto: "Analiza tus accesos con SynAppsSys →",
+          newsQuery: "robo credenciales corporativas phishing México 2026",
+          datasheet: "https://www.threatdown.com/products-bundles/",
+          dsLabel: "ThreatDown — Gestión de Identidad",
+        },
+        correo: {
+          nombre: "Correo y Phishing", color: "#0E8F6E",
+          subject: `${escenario || "Correo malicioso"}: el 90% de ataques empieza en el inbox`,
+          intro: "Un solo clic en el enlace equivocado puede comprometer toda la organización. Los filtros básicos ya no son suficientes.",
+          casoTitulo: "Caso real: campaña de phishing dirigido bloqueada antes del inbox",
+          casoTexto: "Una institución educativa con 1,200 usuarios recibió una campaña de spear-phishing que imitaba a su banco corporativo. ThreatDown Email Security interceptó el 100% de los mensajes maliciosos antes de que llegaran a la bandeja de entrada.",
+          casoUrl: "https://www.threatdown.com/wp-content/uploads/2025/07/TD_Email_Security_Datasheet.pdf",
+          ctaTexto: "Evalúa tu protección de correo →",
+          newsQuery: "phishing correo empresarial México ataque 2026",
+          datasheet: "https://www.threatdown.com/wp-content/uploads/2025/07/TD_Email_Security_Datasheet.pdf",
+          dsLabel: "ThreatDown Email Security — Datasheet",
+        },
+        red: {
+          nombre: "Red y DNS", color: "#0369A1",
+          subject: `${escenario || "Tráfico sospechoso"}: si ya salió la información, ya es tarde`,
+          intro: "El tráfico hacia servidores desconocidos suele ser la última señal antes de una fuga de datos. La capa de red es donde se gana o se pierde.",
+          casoTitulo: "Caso real: exfiltración de datos detenida a nivel DNS",
+          casoTexto: "Una empresa logística detectó que un equipo intentaba conectarse a un servidor en Europa del Este cada 15 minutos. La protección DNS de ThreatDown bloqueó la comunicación y reveló que el equipo llevaba 3 días comprometido sin que nadie lo supiera.",
+          casoUrl: "https://www.threatdown.com/resources/",
+          ctaTexto: "Analiza tu tráfico de red con SynAppsSys →",
+          newsQuery: "fuga datos red DNS exfiltración empresas 2026",
+          datasheet: "https://www.threatdown.com/products-bundles/",
+          dsLabel: "ThreatDown — Protección de Red",
+        },
+        ia: {
+          nombre: "Uso de IA", color: "#B45309",
+          subject: `${escenario || "IA no autorizada"}: ¿sabes qué herramientas de IA usa tu equipo hoy?`,
+          intro: "ChatGPT, Gemini, Copilot — tu gente ya los usa. La pregunta es si tú tienes visibilidad sobre qué información comparten con esas herramientas.",
+          casoTitulo: "Caso real: datos confidenciales enviados a una IA externa sin saberlo",
+          casoTexto: "Un equipo de desarrollo de una fintech compartió fragmentos de código propietario con una IA externa durante semanas. ThreatDown lo detectó, registró los eventos y permitió al CISO tomar decisiones de política antes de que hubiera un incidente regulatorio.",
+          casoUrl: "https://www.threatdown.com/resources/",
+          ctaTexto: "Mapea el uso de IA en tu empresa →",
+          newsQuery: "shadow AI herramientas IA no autorizadas empresas riesgo 2026",
+          datasheet: "https://www.threatdown.com/wp-content/uploads/2025/11/TD_MDR_Datasheet.pdf",
+          dsLabel: "ThreatDown MDR — Datasheet",
+        },
+      };
+
       const fi = FRENTE_INFO[fronteId] ?? null;
-      const escenarioLabel = escenario ? ` — Escenario: <em>${escenario}</em>` : "";
+
+      // Buscar noticia dinámica via Bing News (fire & forget — se agrega si llega a tiempo)
+      let noticiaHtml = "";
+      if (fi) {
+        try {
+          const bingKey = process.env.BING_SEARCH_KEY ?? "";
+          if (bingKey) {
+            const q = encodeURIComponent(fi.newsQuery);
+            const nr = await fetch(
+              `https://api.bing.microsoft.com/v7.0/news/search?q=${q}&count=1&mkt=es-MX&freshness=Month`,
+              { headers: { "Ocp-Apim-Subscription-Key": bingKey }, signal: AbortSignal.timeout(4000) }
+            );
+            if (nr.ok) {
+              const nd = await nr.json() as { value?: { name: string; description: string; url: string; datePublished: string }[] };
+              const art = nd.value?.[0];
+              if (art) {
+                const fecha = new Date(art.datePublished).toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" });
+                noticiaHtml = `
+                  <div style="border:1px solid #e2e8f0;border-radius:8px;padding:14px 18px;margin:0 0 24px">
+                    <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">
+                      🗞️ Noticia reciente — ${fecha}
+                    </p>
+                    <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#162036;line-height:1.4">${art.name}</p>
+                    <p style="margin:0 0 10px;font-size:13px;color:#475569;line-height:1.5">${art.description.slice(0, 180)}…</p>
+                    <a href="${art.url}" target="_blank"
+                       style="font-size:12px;color:#1d4ed8;text-decoration:none;font-weight:600">
+                      Leer artículo completo →
+                    </a>
+                  </div>`;
+              }
+            }
+          }
+        } catch { /* no bloquea */ }
+      }
+
       const contextoHtml = fi ? `
-        <!-- Bloque personalizado por frente -->
+        <!-- Caso de impacto por escenario -->
         <div style="background:#f8fafc;border-left:4px solid ${fi.color};border-radius:0 8px 8px 0;
-                    padding:16px 20px;margin:0 0 24px">
-          <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:${fi.color};
-                    text-transform:uppercase;letter-spacing:.08em">
-            Frente: ${fi.nombre}${escenarioLabel}
-          </p>
-          <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#162036">${fi.tagline}</p>
-          <p style="margin:0 0 12px;font-size:13px;color:#475569;line-height:1.6">${fi.beneficio}</p>
-          <a href="${fi.datasheet}" target="_blank"
+                    padding:16px 20px;margin:0 0 20px">
+          <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:${fi.color};
+                    text-transform:uppercase;letter-spacing:.08em">📌 Caso de impacto</p>
+          <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#162036">${fi.casoTitulo}</p>
+          <p style="margin:0 0 12px;font-size:13px;color:#475569;line-height:1.6">${fi.casoTexto}</p>
+          <a href="${fi.casoUrl}" target="_blank"
              style="display:inline-block;font-size:12px;font-weight:700;color:#fff;
                     background:${fi.color};padding:7px 14px;border-radius:6px;text-decoration:none">
-            📄 ${fi.dsLabel}
+            Ver más casos →
           </a>
-        </div>` : "";
+        </div>
+        ${noticiaHtml}
+        <!-- Datasheet -->
+        <p style="margin:0 0 8px;font-size:12px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.06em">
+          Recurso técnico
+        </p>
+        <a href="${fi.datasheet}" target="_blank"
+           style="display:inline-block;font-size:13px;font-weight:600;color:#1d4ed8;
+                  text-decoration:none;margin:0 0 24px">
+          📄 ${fi.dsLabel}
+        </a>` : "";
 
       resend.emails.send({
-        from: `iSEC Infosecurity <${fromDomain}>`,
+        from: `SynAppsSys <${fromDomain}>`,
         to: parsed.data.correo,
-        subject: fi
-          ? `Tu análisis de ${fi.nombre} — iSEC Infosecurity | ThreatDown`
-          : "Gracias por registrarte — iSEC Infosecurity | ThreatDown",
+        subject: fi ? fi.subject : "Tu diagnóstico de ciberseguridad — SynAppsSys",
         html: `
           <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
-            <div style="background:#ffffff;border-radius:8px;padding:8px 16px;
-                        display:inline-block;margin-bottom:24px;border:1px solid #e2e8f0">
-              <img src="https://registro.synappssys.com/logos/threatdown-logo.png"
-                   alt="ThreatDown" style="height:36px;display:block" />
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+              <div style="background:#162036;border-radius:6px;padding:6px 12px">
+                <span style="font-size:13px;font-weight:800;color:#ffffff;letter-spacing:.04em">SynAppsSys</span>
+              </div>
+              <span style="font-size:12px;color:#94a3b8">× ThreatDown</span>
             </div>
-            <h2 style="color:#162036;margin:0 0 12px">Hola, ${parsed.data.nombre} 👋</h2>
-            <p style="color:#475569;line-height:1.6;margin:0 0 16px">
-              Recibimos tu registro correctamente. Un experto de
-              <strong>SynAppsSys</strong> se pondrá en contacto contigo
-              para darte seguimiento personalizado con <strong>ThreatDown</strong>.
+            <h2 style="color:#162036;margin:0 0 12px">Hola, ${parsed.data.nombre}</h2>
+            <p style="color:#475569;line-height:1.6;margin:0 0 20px">
+              ${fi ? fi.intro : "Recibimos tu información. Un especialista de <strong>SynAppsSys</strong> se pondrá en contacto contigo pronto."}
             </p>
 
             ${contextoHtml}
 
-            <!-- Agenda una llamada -->
-            <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:8px;
-                        padding:16px 20px;margin:0 0 24px;text-align:center">
-              <p style="margin:0 0 8px;font-size:13px;color:#1e293b;line-height:1.5">
-                ¿Quieres analizar esto con un especialista?<br>
-                <strong>Agenda una llamada con Salvador Ruiz, SynAppsSys</strong>
+            <!-- CTA Assessment -->
+            <div style="background:#0f172a;border-radius:10px;padding:20px 24px;margin:0 0 24px;text-align:center">
+              <p style="margin:0 0 6px;font-size:13px;color:#94a3b8;line-height:1.5">
+                ¿Quieres saber exactamente cómo está tu empresa en este frente?
+              </p>
+              <p style="margin:0 0 14px;font-size:15px;font-weight:700;color:#ffffff">
+                Agenda un assessment gratuito con SynAppsSys
               </p>
               <a href="https://calendly.com/salvador-ruiz-synappssys" target="_blank"
-                 style="display:inline-block;font-size:13px;font-weight:700;color:#fff;
-                        background:#4B47C8;padding:10px 20px;border-radius:6px;text-decoration:none">
-                📅 Agendar llamada →
+                 style="display:inline-block;font-size:13px;font-weight:700;color:#0f172a;
+                        background:#ffffff;padding:11px 22px;border-radius:6px;text-decoration:none">
+                ${fi ? fi.ctaTexto : "Agendar assessment gratuito →"}
               </a>
             </div>
 
