@@ -13,6 +13,7 @@ type FormState = {
   pregunta_cerrada_2: string;
   dolor_reto: string;
   contexto_orbita?: string;
+  acepta_comunicaciones: boolean;
 };
 
 // ---------------------------------------------------------------------------
@@ -76,6 +77,7 @@ const initialState: FormState = {
   pregunta_cerrada_2: "",
   dolor_reto: "",
   contexto_orbita: "",
+  acepta_comunicaciones: false,
 };
 
 export default function LeadForm() {
@@ -131,6 +133,12 @@ export default function LeadForm() {
 
     if (emailValid === false) {
       setError("Por favor corrige el correo antes de continuar.");
+      setIsSaving(false);
+      return;
+    }
+
+    if (!form.acepta_comunicaciones) {
+      setError("Debes aceptar recibir comunicaciones para continuar.");
       setIsSaving(false);
       return;
     }
@@ -313,6 +321,20 @@ export default function LeadForm() {
           </select>
         </label>
       </div>
+
+      <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm" style={{ color: "#6b6fa8" }}>
+        <input
+          type="checkbox"
+          name="acepta_comunicaciones"
+          checked={form.acepta_comunicaciones}
+          onChange={(e) => setForm((prev) => ({ ...prev, acepta_comunicaciones: e.target.checked }))}
+          style={{ marginTop: "2px", accentColor: "#2563eb", flexShrink: 0 }}
+        />
+        <span>
+          Acepto recibir comunicaciones de SynAppsSys relacionadas con ciberseguridad y ThreatDown.
+          Puedo cancelar mi suscripción en cualquier momento.
+        </span>
+      </label>
 
       {error ? <p className="mt-4 text-sm text-red-700">{error}</p> : null}
 
