@@ -13,11 +13,17 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16p
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 56px}
 .wrap{max-width:1040px;margin:0 auto;display:grid;gap:28px}
 h1{font-family:var(--display);font-weight:600;font-size:clamp(34px,6vw,60px);line-height:1.04;margin:0;text-wrap:balance;max-width:20ch}
-.lead{color:var(--muted);max-width:52ch;margin:12px 0 0}
+.lead{color:var(--ink);opacity:.7;max-width:52ch;margin:12px 0 0;font-size:17px}
 .stage{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:0;position:relative;overflow:hidden}
 svg{display:block;width:100%;height:auto}
 .tabs-overlay{position:absolute;top:12px;left:0;right:0;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding:0 12px;pointer-events:none}
 .tabs-overlay .tab{pointer-events:auto;font:600 13px var(--body);padding:7px 14px;min-height:36px}
+@media(max-width:540px){
+  .tabs-overlay{position:static;padding:12px 12px 0;border-top:0;order:-1;justify-content:flex-start}
+  .stage{display:flex;flex-direction:column}
+  .stage svg{order:1}
+  .tabs-overlay{order:0}
+}
 .ring{fill:none;stroke:var(--ring);stroke-width:1.4;stroke-dasharray:3 7}
 .ring.r1{animation:spin 90s linear infinite;transform-origin:400px 255px}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -59,12 +65,12 @@ svg{display:block;width:100%;height:auto}
 <div class="wrap">
   <header>
     <h1>Tu gente, en el centro. Todo conectado. Todo por cuidar.</h1>
-    <p class="lead">Cinco frentes protegen a las personas de su empresa. SynAppsSys los opera como un solo servicio. Elija un escenario o toque un frente.</p>
+    <p class="lead">Explora los cinco frentes que protegen a tu empresa — operados como un solo servicio.</p>
   </header>
 
   <div class="stage">
     <div class="tabs-overlay" id="tabs"></div>
-    <svg viewBox="0 0 800 620" role="img" aria-label="Cinco frentes de protección alrededor de las personas de la empresa: Equipo, Identidad, Correo, Red y DNS, y Uso de IA.">
+    <svg id="orb-svg" viewBox="0 0 800 620" role="img" aria-label="Cinco frentes de protección alrededor de las personas de la empresa: Equipo, Identidad, Correo, Red y DNS, y Uso de IA.">
       <g id="rings">
         <ellipse class="ring r1" cx="400" cy="255" rx="140" ry="88"/>
         <ellipse class="ring" cx="400" cy="255" rx="215" ry="138"/>
@@ -105,6 +111,21 @@ svg{display:block;width:100%;height:auto}
 </div>
 
 <script>
+// Ajuste de viewBox en mobile: recorta el descbox para que el SVG sea más compacto
+(function(){
+  function adjustViewBox(){
+    var svg = document.getElementById('orb-svg');
+    if(!svg) return;
+    if(window.innerWidth <= 540){
+      svg.setAttribute('viewBox','0 0 800 540');
+    } else {
+      svg.setAttribute('viewBox','0 0 800 620');
+    }
+  }
+  adjustViewBox();
+  window.addEventListener('resize', adjustViewBox);
+})();
+
 (function(){
   var NS='http://www.w3.org/2000/svg', C={x:400,y:255};
   var ICON={
