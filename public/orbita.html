@@ -80,11 +80,12 @@ svg{display:block;width:100%;height:auto}
       </g>
       <!-- Descripción contextual dentro de la ventana de órbita -->
       <g id="descbox">
-        <rect id="desc-bg" x="50" y="568" width="700" height="42" rx="10" fill="white" stroke="#D3D6EE" stroke-width="1.4"/>
-        <foreignObject x="60" y="572" width="680" height="36">
-          <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;align-items:center;gap:10px;height:36px;overflow:hidden">
-            <span id="desc-chip" style="font:700 10px 'Raleway',sans-serif;letter-spacing:1.2px;color:#4B47C8;white-space:nowrap">INFO</span>
-            <span id="desc-text" style="font:400 12px 'Raleway',sans-serif;color:#575B84;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">Presiona sobre cada nodo para ver el detalle del frente.</span>
+        <rect id="desc-bg" x="50" y="564" width="700" height="52" rx="10" fill="white" stroke="#D3D6EE" stroke-width="1.4"/>
+        <foreignObject x="60" y="568" width="680" height="52">
+          <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;align-items:center;gap:10px;height:52px;overflow:hidden">
+            <span id="desc-chip" style="font:700 10px 'Raleway',sans-serif;letter-spacing:1.2px;color:#4B47C8;white-space:nowrap;flex-shrink:0">INFO</span>
+            <span id="desc-text" style="font:400 12px 'Raleway',sans-serif;color:#575B84;line-height:1.3;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">Presiona sobre cada nodo para ver el detalle del frente.</span>
+            <a id="desc-cta" href="https://registro.synappssys.com/registro" target="_blank" style="display:none;flex-shrink:0;font:700 11px 'Raleway',sans-serif;color:#fff;background:#4B47C8;padding:6px 12px;border-radius:6px;text-decoration:none;white-space:nowrap">¿Lo analizamos? →</a>
           </div>
         </foreignObject>
       </g>
@@ -160,18 +161,20 @@ svg{display:block;width:100%;height:auto}
     var b=document.createElement('button');b.className='tab';b.type='button';b.textContent=s.label;b.id='tab'+i;
     b.addEventListener('click',function(){play(i,true)});tabs.appendChild(b);s.btn=b;
   });
-  function updateDesc(frontId,chip,title){
-    var dt=document.getElementById('desc-text'), dc=document.getElementById('desc-chip'), db=document.getElementById('desc-bg');
+  function updateDesc(frontId,chip,text,showCta){
+    var dt=document.getElementById('desc-text'), dc=document.getElementById('desc-chip'), db=document.getElementById('desc-bg'), da=document.getElementById('desc-cta');
     var color=FRONTCOLOR[frontId]||'#4B47C8';
-    if(dt){dt.textContent=title; dt.style.color=color;}
+    if(dt){dt.textContent=text; dt.style.color='#15173F';}
     if(dc){dc.textContent=chip||'INFO'; dc.style.color=color;}
     if(db){db.setAttribute('stroke',color); db.setAttribute('stroke-width','2');}
+    if(da){da.style.display=showCta?'block':'none'; da.style.background=color;}
   }
   function resetDesc(){
-    var dt=document.getElementById('desc-text'), dc=document.getElementById('desc-chip'), db=document.getElementById('desc-bg');
+    var dt=document.getElementById('desc-text'), dc=document.getElementById('desc-chip'), db=document.getElementById('desc-bg'), da=document.getElementById('desc-cta');
     if(dt){dt.textContent='Presiona sobre cada nodo para ver el detalle del frente.'; dt.style.color='#575B84';}
     if(dc){dc.textContent='INFO'; dc.style.color='#4B47C8';}
     if(db){db.setAttribute('stroke','#D3D6EE'); db.setAttribute('stroke-width','1.4');}
+    if(da){da.style.display='none';}
   }
   function clearState(){
     FRONTS.forEach(function(f){
@@ -195,14 +198,14 @@ svg{display:block;width:100%;height:auto}
     var f=FRONTS.filter(function(x){return x.id===id})[0];
     el[id].node.classList.add('sel');
     colorNode(id);
-    updateDesc(id,'FRENTE',f.t);
+    updateDesc(id,'FRENTE',f.t,true);
   }
   function settle(i){
     var s=SCEN[i];
     clearState();
     el[s.front].node.classList.add('sel');
     colorNode(s.front);
-    updateDesc(s.front,s.chip,s.text);
+    updateDesc(s.front,s.chip,s.text,true);
   }
   function play(i,animate){
     var s=SCEN[i], token=++running;
@@ -211,7 +214,7 @@ svg{display:block;width:100%;height:auto}
     var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
     if(!animate||reduce){settle(i);return}
     var t=pos[s.front], sx=C.x+(t.x-C.x)*1.28, sy=C.y+(t.y-C.y)*1.28;
-    updateDesc(s.front,'EN CURSO',s.title);
+    updateDesc(s.front,'EN CURSO',s.title,false);
     threat.setAttribute('opacity','1');
     var t0=null, dur=1300;
     function step(ts){
